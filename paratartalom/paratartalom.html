@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Páratartalom a Vita kupacnak</title>
+    <!-- Google Fonts import for a modern look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Using Tailwind CSS for rapid and responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Custom styles to complement Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom progress bar color */
+        .progress-bar {
+            background-color: #3b82f6; /* blue-500 */
+        }
+        /* Style for HARMATPONT overlay */
+        #dewPointDisplay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        /* Custom canvas styling */
+        canvas {
+            background: linear-gradient(to bottom, #aaccff, #eef4ff);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 p-4 md:p-8">
+
+    <main class="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 space-y-12">
+        <header class="text-center">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-600">💧 Páratartalom és harmatpont labor 🔬</h1>
+            <p class="mt-2 text-slate-600">Ez az alkalmazás segít megérteni a levegő páratartalmával kapcsolatos fogalmakat. Haladj végig a három részen a teljes megértésért!</p>
+        </header>
+
+        <!-- ==================== 1. RÉSZ: SZIMULÁCIÓ ==================== -->
+        <section id="part1" class="space-y-4">
+            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">1. Pára a levegőben</h2>
+            <p>Figyeld meg a <span class="text-red-500 font-bold">piros (levegő)</span> és <span class="text-blue-700 font-bold">kék (víz)</span> részecskék mozgását! A szimuláció addig fut, amíg beáll az egyensúlyi állapot. Fontos megjegyezni, hogy ez a szimuláció csak nagy vonalakban mutatja, hogy mi történik a valóságban mindez sokkal bonyolultabb. Fogalmazz meg három állítást a szimuláció alapján, mi igaz a vízpára viselkedésére a levegőben. </p>
+            <canvas id="simulationCanvas" class="w-full h-64 md:h-80 rounded-lg border-2 border-slate-300"></canvas>
+            
+            <div class="space-y-2">
+                <label class="font-bold text-center text-lg block">Aktuális vízpára a levegőben</label>
+                <div class="w-full bg-slate-200 rounded-full h-6 overflow-hidden border border-slate-300">
+                    <div id="currentWaterBar" class="bg-blue-500 h-full rounded-full transition-all duration-300" style="width: 25%;"></div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div class="control-group">
+                     <button id="addWaterBtn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-base">Víz hozzáadása (+)</button>
+                </div>
+                <div class="control-group">
+                    <label for="tempSlider" class="font-bold block mb-1">Hőmérséklet: <span id="tempValue" class="text-red-500">15 °C</span></label>
+                    <input type="range" id="tempSlider" min="-10" max="40" value="15" class="w-full h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. RÉSZ: FOGALMAK ==================== -->
+        <section id="part2" class="space-y-4">
+            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">2. Abszolút és relatív páratartalom, harmatpont</h2>
+            <p>Itt már konkrét értékekkel dolgozunk. Állítsd be a levegő abszolút páratartalmát és hőmérsékletét, és figyeld, hogyan változik a relatív páratartalom! Ha a relatív páratartalom eléri a 100%-ot, a levegő telítetté válik: elértük a <strong>harmatpontot</strong>.</p>
+            <div class="calculator relative p-6 border border-slate-200 rounded-lg space-y-4">
+                <div id="dewPointDisplay" class="absolute inset-0 bg-blue-600 bg-opacity-90 text-white flex justify-center items-center text-5xl font-extrabold rounded-lg opacity-0 invisible transition-opacity duration-500 pointer-events-none">HARMATPONT</div>
+                
+                <div class="control-group">
+                    <label for="absHumiditySlider" class="font-bold block mb-1">Abszolút páratartalom: <span id="absHumidityValue" class="text-blue-600">9.4 g/m³</span></label>
+                    <input type="range" id="absHumiditySlider" min="1" max="52" value="9.4" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                <div class="control-group">
+                    <label for="calcTempSlider" class="font-bold block mb-1">Hőmérséklet: <span id="calcTempValue" class="text-red-500">20 °C</span></label>
+                    <input type="range" id="calcTempSlider" min="-10" max="40" value="20" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                
+                <div>
+                    <h3 class="font-bold">Relatív páratartalom:</h3>
+                    <div class="w-full bg-slate-200 rounded-full h-8 mt-2 overflow-hidden">
+                        <div id="humidityProgressBar" class="progress-bar h-full rounded-full transition-all duration-200"></div>
+                    </div>
+                    <div id="relativeHumidityValue" class="text-center text-2xl font-bold text-slate-700 mt-2">54%</div>
+                </div>
+            </div>
+
+            <div class="pt-4">
+                <h3 class="text-xl font-bold text-slate-700 mb-2">Maximális Páratartalom Táblázat</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-max text-center border border-slate-300">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="p-3 border-b border-slate-300">Hőmérséklet (°C)</th>
+                                <th class="p-3 border-b border-slate-300">Maximális páratartalom (g/m³)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="humidityTableBody" class="bg-white">
+                            <!-- Rows will be injected by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 3. RÉSZ: FELADATOK ==================== -->
+        <section id="part3" class="space-y-4">
+            <h2 class="text-2xl font-bold text-blue-600 border-b-2 border-slate-200 pb-2">3. Gyakorló feladatok</h2>
+            <p>Teszteld a tudásodat! Kérj egy új feladatot, írd be a megoldást (egy tizedesjegy pontossággal), majd ellenőrizd!</p>
+            <div class="task-container p-6 bg-slate-50 rounded-lg border border-slate-200 space-y-4">
+                <button id="newTaskBtn" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">Új feladat</button>
+                <div id="question" class="font-bold text-lg min-h-[56px] flex items-center"></div>
+                <div class="flex flex-wrap gap-2">
+                    <input type="number" id="answerInput" placeholder="Válasz..." class="p-2 border border-slate-300 rounded-lg w-32">
+                    <button id="checkBtn" class="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors">Ellenőrzés</button>
+                </div>
+                <div id="feedback" class="font-bold text-lg min-h-[28px]"></div>
+            </div>
+        </section>
+    </main>
+
+<script>
+window.addEventListener('DOMContentLoaded', () => {
+
+    // ==================== PART 1: SIMULATION ====================
+    const canvas = document.getElementById('simulationCanvas');
+    const ctx = canvas.getContext('2d');
+    const addWaterBtn = document.getElementById('addWaterBtn');
+    const tempSlider = document.getElementById('tempSlider');
+    const tempValueSpan = document.getElementById('tempValue');
+    const currentWaterBar = document.getElementById('currentWaterBar');
+    
+    let particles = [];
+    let clusters = [];
+    const airParticleCount = 150;
+    const maxWaterParticles = 70;
+    const airParticleColor = '#ef4444'; // red-500
+    const waterParticleColor = '#1d4ed8'; // blue-700
+    const clusterColor = 'rgba(59, 130, 246, 0.7)'; // blue-500 with alpha
+
+    let isRunning = false;
+    let simulationTimeout = null;
+    let isInitialized = false;
+
+    // --- Variables for stability check ---
+    let waterCountHistory = [];
+    let stabilityCheckCounter = 0;
+    const STABILITY_CHECK_INTERVAL = 60; 
+    const STABILITY_DURATION = 10; 
+
+    class Particle {
+        constructor(type) {
+            this.type = type;
+            this.radius = this.type === 'air' ? 4 : 5;
+            this.color = this.type === 'air' ? airParticleColor : waterParticleColor;
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.cooldown = 0;
+            this.resetVelocity();
+        }
+        resetVelocity() {
+            const tempValue = parseInt(tempSlider.value);
+            const tempFactor = 1 + ((tempValue + 10) / 50) * 3.5;
+            const angle = Math.random() * 2 * Math.PI;
+            this.vx = Math.cos(angle) * tempFactor;
+            this.vy = Math.sin(angle) * tempFactor;
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            if (this.type === 'water' && this.cooldown > 0) {
+                ctx.globalAlpha = 0.5;
+            }
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+        }
+        update() {
+            if (this.cooldown > 0) {
+                this.cooldown--;
+            }
+            this.x += this.vx;
+            this.y += this.vy;
+
+            if (this.x > canvas.width - this.radius) { this.x = canvas.width - this.radius; this.vx *= -1; } 
+            else if (this.x < this.radius) { this.x = this.radius; this.vx *= -1; }
+
+            if (this.y > canvas.height - this.radius) { this.y = canvas.height - this.radius; this.vy *= -1; } 
+            else if (this.y < this.radius) { this.y = this.radius; this.vy *= -1; }
+        }
+    }
+    
+    class Cluster {
+        constructor(p1, p2) {
+            this.particles = [p1, p2];
+            this.x = (p1.x + p2.x) / 2;
+            this.y = (p1.y + p2.y) / 2;
+            this.vx = (p1.vx + p2.vx) / 2;
+            this.vy = (p1.vy + p2.vy) / 2;
+            this.updateRadius();
+        }
+        updateRadius() { this.radius = 5 * Math.sqrt(this.particles.length); }
+        addParticle(p) {
+            this.vx = (this.vx * this.particles.length + p.vx) / (this.particles.length + 1);
+            this.vy = (this.vy * this.particles.length + p.vy) / (this.particles.length + 1);
+            this.particles.push(p);
+            this.updateRadius();
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = clusterColor;
+            ctx.strokeStyle = waterParticleColor;
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+
+            if (this.x > canvas.width - this.radius) { this.x = canvas.width - this.radius; this.vx *= -1; } 
+            else if (this.x < this.radius) { this.x = this.radius; this.vx *= -1; }
+
+            if (this.y > canvas.height - this.radius) { this.y = canvas.height - this.radius; this.vy *= -1; } 
+            else if (this.y < this.radius) { this.y = this.radius; this.vy *= -1; }
+        }
+    }
+
+    function initSimulation() {
+        particles = [];
+        clusters = [];
+        for (let i = 0; i < airParticleCount; i++) {
+            particles.push(new Particle('air'));
+        }
+        for (let i = 0; i < 20; i++) {
+             particles.push(new Particle('water'));
+        }
+        drawCurrentState();
+    }
+    
+    function updateCurrentWaterDisplay(currentWaterCount) {
+        const percentage = Math.min(100, (currentWaterCount / maxWaterParticles) * 100);
+        currentWaterBar.style.width = `${percentage}%`;
+    }
+
+    function getTargetWaterCount(temp) {
+        // This function defines the "ideal" number of water particles for a given temperature.
+        // It maps the -10 to 40 C range to a particle count range (e.g., 5 to 65).
+        const minParticles = 5;
+        const maxParticles = 65;
+        const normalizedTemp = (temp + 10) / 50; // Temp range to 0-1
+        return minParticles + (maxParticles - minParticles) * normalizedTemp;
+    }
+
+    function handleCollisions() {
+        const tempValue = parseInt(tempSlider.value);
+        const normalizedTemp = (tempValue + 10) / 50;
+
+        // --- GUIDED SIMULATION LOGIC ---
+        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+        const targetWaterCount = getTargetWaterCount(tempValue);
+
+        let stickiness;
+        let dynamicCaptureBonus;
+
+        if (currentWaterCount > targetWaterCount) {
+            // Too much water, force condensation
+            stickiness = 1.0; // Almost certain to stick
+            dynamicCaptureBonus = 25; // Large capture radius
+        } else {
+            // Not enough water (or just right), use physics-based model
+            stickiness = 1 - Math.pow(normalizedTemp, 2.0);
+            const extraCaptureRadius = 15;
+            dynamicCaptureBonus = extraCaptureRadius * stickiness;
+        }
+
+        // The rest of the collision logic remains, but now uses the guided `stickiness` and `dynamicCaptureBonus`
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const p1 = particles[i];
+                const p2 = particles[j];
+                if (!p1 || !p2) continue;
+                
+                if (p1.type === 'water' && p2.type === 'water') {
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const captureDistance = p1.radius + p2.radius + dynamicCaptureBonus;
+
+                    if (distance < captureDistance && p1.cooldown === 0 && p2.cooldown === 0) {
+                        if (Math.random() < stickiness) {
+                            clusters.push(new Cluster(p1, p2));
+                            particles.splice(j, 1);
+                            particles.splice(i, 1);
+                            i--;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        for (let i = particles.length - 1; i >= 0; i--) {
+            for (let k = clusters.length - 1; k >= 0; k--) {
+                const p = particles[i];
+                const c = clusters[k];
+                if (!p || !c) continue;
+                const dx = p.x - c.x;
+                const dy = p.y - c.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                const physicalContact = distance < p.radius + c.radius;
+                const captureContact = distance < p.radius + c.radius + dynamicCaptureBonus;
+
+                if (p.type === 'air' && physicalContact) {
+                    c.particles.forEach(cp => {
+                       cp.x = c.x + (Math.random() - 0.5) * c.radius;
+                       cp.y = c.y + (Math.random() - 0.5) * c.radius;
+                       cp.cooldown = 60;
+                       particles.push(cp);
+                    });
+                    clusters.splice(k, 1);
+                } else if (p.type === 'water' && p.cooldown === 0 && captureContact) {
+                    if (Math.random() < Math.min(1, stickiness * 1.5)) {
+                        c.addParticle(p);
+                        particles.splice(i, 1);
+                        break;
+                    }
+                }
+            }
+        }
+        for (let i = 0; i < clusters.length; i++) {
+            for (let j = i + 1; j < clusters.length; j++) {
+                const c1 = clusters[i];
+                const c2 = clusters[j];
+                if (!c1 || !c2) continue;
+                const dx = c1.x - c2.x;
+                const dy = c1.y - c2.y;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                const captureDistance = c1.radius + c2.radius + dynamicCaptureBonus;
+
+                if (distance < captureDistance) {
+                    if (c1.particles.length >= c2.particles.length) {
+                        c2.particles.forEach(p => c1.addParticle(p));
+                        clusters.splice(j, 1);
+                        j--;
+                    } else {
+                        c1.particles.forEach(p => c2.addParticle(p));
+                        clusters.splice(i, 1);
+                        i--;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    function drawCurrentState() {
+        if (!canvas.width || !canvas.height) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        [...particles, ...clusters].forEach(p => p.draw());
+        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+        updateCurrentWaterDisplay(currentWaterCount);
+    }
+    
+    function animate() {
+        if (!isRunning) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        [...particles, ...clusters].forEach(p => { p.update(); p.draw(); });
+        handleCollisions();
+        clusters = clusters.filter(c => {
+            if (c.particles.length >= 4) {
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, c.radius + 5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+                return false;
+            }
+            return true;
+        });
+        
+        const currentWaterCount = particles.filter(p => p.type === 'water').length + clusters.reduce((acc, c) => acc + c.particles.length, 0);
+        updateCurrentWaterDisplay(currentWaterCount);
+
+        // --- Stability Check Logic ---
+        stabilityCheckCounter++;
+        if (stabilityCheckCounter >= STABILITY_CHECK_INTERVAL) {
+            stabilityCheckCounter = 0;
+            waterCountHistory.push(currentWaterCount);
+            
+            if (waterCountHistory.length > STABILITY_DURATION) {
+                waterCountHistory.shift();
+            }
+
+            if (waterCountHistory.length === STABILITY_DURATION) {
+                const isStable = waterCountHistory.every(count => count === waterCountHistory[0]);
+                if (isStable) {
+                    isRunning = false;
+                    clearTimeout(simulationTimeout); 
+                }
+            }
+        }
+        
+        requestAnimationFrame(animate);
+    }
+    
+    function startSimulation() {
+        clearTimeout(simulationTimeout);
+        if (!isRunning) {
+            isRunning = true;
+            waterCountHistory = [];
+            stabilityCheckCounter = 0;
+            animate();
+        }
+        simulationTimeout = setTimeout(() => {
+            if (isRunning) {
+                isRunning = false;
+            }
+        }, 30000); 
+    }
+    
+    const resizeObserver = new ResizeObserver(entries => {
+        const entry = entries[0];
+        if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+            canvas.width = entry.contentRect.width;
+            canvas.height = entry.contentRect.height;
+            if (!isInitialized) {
+                initSimulation();
+                isInitialized = true;
+            } else {
+                drawCurrentState();
+            }
+        }
+    });
+
+    resizeObserver.observe(canvas);
+
+
+    addWaterBtn.addEventListener('click', () => {
+        const currentTotal = particles.filter(p=>p.type==='water').length + clusters.reduce((a,c)=>a+c.particles.length, 0)
+        if (currentTotal > 120) return; // Prevent adding too many particles
+        for (let i = 0; i < 10; i++) {
+            particles.push(new Particle('water'));
+        }
+        startSimulation();
+    });
+
+    tempSlider.addEventListener('input', () => {
+        tempValueSpan.textContent = `${tempSlider.value} °C`;
+        [...particles, ...clusters].forEach(p => p.resetVelocity ? p.resetVelocity() : null);
+        startSimulation();
+    });
+
+    // ==================== PART 2: CONCEPTS ====================
+    const absHumiditySlider = document.getElementById('absHumiditySlider');
+    const calcTempSlider = document.getElementById('calcTempSlider');
+    const absHumidityValueSpan = document.getElementById('absHumidityValue');
+    const calcTempValueSpan = document.getElementById('calcTempValue');
+    const humidityProgressBar = document.getElementById('humidityProgressBar');
+    const relativeHumidityValueSpan = document.getElementById('relativeHumidityValue');
+    const dewPointDisplay = document.getElementById('dewPointDisplay');
+    const humidityTableBody = document.getElementById('humidityTableBody');
+
+    const maxHumidityData = {
+        '-10': 2.1, '-5': 3.2, '0': 4.8, '5': 6.8, '10': 9.4, '15': 12.8,
+        '20': 17.3, '25': 23.0, '30': 30.4, '35': 39.6, '40': 51.1
+    };
+
+    Object.entries(maxHumidityData).forEach(([temp, value]) => {
+        const row = humidityTableBody.insertRow();
+        row.className = 'odd:bg-white even:bg-slate-50';
+        row.innerHTML = `<td class="p-3 border-t border-slate-200">${temp}</td><td class="p-3 border-t border-slate-200">${value}</td>`;
+    });
+
+    const temps = Object.keys(maxHumidityData).map(Number);
+    
+    function getMaxHumidity(temp) {
+        if (maxHumidityData[temp] !== undefined) return maxHumidityData[temp];
+        let lowerTemp = temps.filter(t => t <= temp).pop();
+        let upperTemp = temps.filter(t => t >= temp).shift();
+        if (lowerTemp === undefined) return maxHumidityData[temps[0]];
+        if (upperTemp === undefined) return maxHumidityData[temps[temps.length - 1]];
+        if (lowerTemp === upperTemp) return maxHumidityData[lowerTemp];
+        const tempFraction = (temp - lowerTemp) / (upperTemp - lowerTemp);
+        return maxHumidityData[lowerTemp] + tempFraction * (maxHumidityData[upperTemp] - maxHumidityData[lowerTemp]);
+    }
+
+    function updateCalculator() {
+        const absHumidity = parseFloat(absHumiditySlider.value);
+        const temp = parseInt(calcTempSlider.value);
+        absHumidityValueSpan.textContent = `${absHumidity.toFixed(1)} g/m³`;
+        calcTempValueSpan.textContent = `${temp} °C`;
+        const maxHumidity = getMaxHumidity(temp);
+        let relativeHumidity = Math.max(0, (absHumidity / maxHumidity) * 100);
+        dewPointDisplay.classList.toggle('visible', relativeHumidity >= 100);
+        if (relativeHumidity > 100) relativeHumidity = 100;
+        humidityProgressBar.style.width = `${relativeHumidity}%`;
+        relativeHumidityValueSpan.textContent = `${Math.round(relativeHumidity)}%`;
+    }
+
+    [absHumiditySlider, calcTempSlider].forEach(el => el.addEventListener('input', updateCalculator));
+
+    // ==================== PART 3: TASKS ====================
+    const newTaskBtn = document.getElementById('newTaskBtn');
+    const checkBtn = document.getElementById('checkBtn');
+    const questionDiv = document.getElementById('question');
+    const answerInput = document.getElementById('answerInput');
+    const feedbackDiv = document.getElementById('feedback');
+    let correctAnswer;
+
+    function generateTask() {
+        answerInput.value = '';
+        feedbackDiv.textContent = '';
+        feedbackDiv.className = 'font-bold text-lg min-h-[28px]';
+        const taskType = Math.floor(Math.random() * 3);
+        const temp = temps[Math.floor(Math.random() * temps.length)];
+        const maxHumidity = maxHumidityData[temp];
+
+        if (taskType === 0) { // Calculate Relative Humidity
+            const absHumidity = parseFloat((Math.random() * maxHumidity).toFixed(1));
+            questionDiv.textContent = `A levegő hőmérséklete ${temp}°C, a pára mennyisége ${absHumidity} g/m³. Hány % a relatív páratartalom? (Egészre kerekítve)`;
+            correctAnswer = Math.round((absHumidity / maxHumidity) * 100);
+        } else if (taskType === 1) { // Calculate Absolute Humidity
+            const relHumidity = Math.floor(Math.random() * 81) + 10;
+            questionDiv.textContent = `Egy szobában ${temp}°C van, a relatív páratartalom ${relHumidity}%. Hány g/m³ víz van a levegőben? (Egy tizedesjegyre)`;
+            correctAnswer = parseFloat((maxHumidity * (relHumidity / 100)).toFixed(1));
+        } else { // Find Dew Point
+            questionDiv.textContent = `A levegő ${maxHumidity} g/m³ vizet tartalmaz. Hány °C-on lesz a harmatpont?`;
+            correctAnswer = temp;
+        }
+    }
+
+    function checkAnswer() {
+        const userAnswer = parseFloat(answerInput.value);
+        if (isNaN(userAnswer)) {
+            feedbackDiv.textContent = 'Kérlek, számot adj meg!';
+            feedbackDiv.className += ' text-orange-500';
+            return;
+        }
+        if (Math.abs(userAnswer - correctAnswer) < 0.15) {
+            feedbackDiv.textContent = 'Helyes! ✅';
+            feedbackDiv.className += ' text-green-600';
+        } else {
+            feedbackDiv.textContent = `Nem pontos. A helyes válasz: ${correctAnswer}`;
+            feedbackDiv.className += ' text-red-500';
+        }
+    }
+
+    newTaskBtn.addEventListener('click', generateTask);
+    checkBtn.addEventListener('click', checkAnswer);
+    answerInput.addEventListener('keyup', e => e.key === 'Enter' && checkAnswer());
+
+    // Initialize the rest of the app
+    tempValueSpan.textContent = `${tempSlider.value} °C`;
+    updateCalculator();
+    generateTask();
+});
+</script>
+
+</body>
+</html>
+
