@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cuneiform Generator</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      max-width: 700px;
+    }
+    #inputSection {
+      margin-bottom: 1em;
+    }
+    #wordInput {
+      width: 200px;
+      font-size: 1em;
+      padding: 0.3em;
+    }
+    button {
+      font-size: 1em;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 1em;
+      min-height: 120px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      border-top: 1px solid #ccc;
+      padding-top: 1em;
+    }
+    img.cuneiform-syl {
+      border: 1px solid #ccc;
+      background-color: #fff;
+      padding: 5px;
+      max-width: 50px; /* adjust as desired */
+      max-height: 50px; /* adjust as desired */
+    }
+    .explanation {
+      margin-top: 2em;
+      font-size: 0.9em;
+      color: #444;
+      line-height: 1.4em;
+    }
+    .explanation code {
+      background: #f3f3f3;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Cuneiform Syllable Split Demo</h1>
+
+  <p>Enter an English word or phrase. We’ll do a naive <em>syllable split</em> first,
+  then map each English syllable to the cuneiform chart images.</p>
+
+  <div id="inputSection">
+    <label for="wordInput">Enter a word:</label>
+    <input type="text" id="wordInput" placeholder="e.g. museum" />
+    <button id="splitBtn">Transliterate</button>
+  </div>
+
+  <div id="result"></div>
+
+  <div class="explanation">
+    <h2>How it works</h2>
+    <ol>
+      <li><strong>Syllabify the English word.</strong> We use a <em>naive</em> function
+      <code>naiveSyllabify()</code> to split by vowels &amp; simple heuristics. For example:
+      <ul>
+        <li><code>museum</code> → <code>["mu", "se", "um"]</code></li>
+        <li><code>banana</code> → <code>["ba", "na", "na"]</code></li>
+        <li><code>cat</code> → <code>["cat"]</code> (one syllable)</li>
+      </ul>
+      You can <strong>customize</strong> this for more unusual splits (like <em>“ca-at”</em> for “cat”).</li>
+
+      <li><strong>Map each syllable</strong> to cuneiform. For each English syllable:
+        <ul>
+          <li>Break it into <code>letters</code>.</li>
+          <li>Normalize to chart vowels (<code>A, E, I, U</code>) or chart consonants (<code>B, D, G, H, K, L, M, N, P, Q, R, S, T, Z</code>).</li>
+          <li>Chunk into <code>two-letter</code> pieces (<code>C+V</code> or <code>V+C</code>) &amp; pick the
+          <em>closest</em> among the 112 cuneiform syllables.</li>
+          <li>Create <code>&lt;img&gt;</code> tags to display those syllables.</li>
+        </ul>
+      </li>
+    </ol>
+
+   
+  </div>
+
+  <script>
+    /*****************************************
+     * 1. OUR LIST OF VALID CUNEIFORM SYLLABLES
+     *****************************************/
+    const VALID_SYLLABLES = [
+      "AB","BA","EB","BE","IB","BI","UB","BU",
+      "AD","DA","ED","DE","ID","DI","UD","DU",
+      "AG","GA","EG","GE","IG","GI","UG","GU",
+      "AH","HA","EH","HE","IH","HI","UH","HU",
+      "AK","KA","EK","KE","IK","KI","UK","KU",
+      "AL","LA","EL","LE","IL","LI","UL","LU",
+      "AM","MA","EM","ME","IM","MI","UM","MU",
+      "AN","NA","EN","NE","IN","NI","UN","NU",
+      "AP","PA","EP","PE","IP","PI","UP","PU",
+      "AQ","QA","EQ","QE","IQ","QI","UQ","QU",
+      "AR","RA","ER","RE","IR","RI","UR","RU",
+      "AS","SA","ES","SE","IS","SI","US","SU",
+      "AT","TA","ET","TE","IT","TI","UT","TU",
+      "AZ","ZA","EZ","ZE","IZ","ZI","UZ","ZU"
+    ];
+
+    /*****************************************
+     * 2. NAIVE ENGLISH SYLLABIFICATION
+     *****************************************/
+
+    /**
+     * Splits an English word into syllables by a *very rough* approach:
+     *  - We find sequences of vowels and “surrounding” consonants.
+     *  - e.g. "museum" => ["mu", "se", "um"]
+     *  - e.g. "banana" => ["ba","na","na"]
+     *  - e.g. "cat" => ["cat"]
+     *
+     * You can replace or modify this function if you want
+     * “cat” => “ca-at” or “museum” => “mu-zi-um,” etc.
+     */
+    function naiveSyllabify(word) {
+      // to lower for processing
+      const lower = word.toLowerCase();
+      const vowels = /[aeiou]/; // a simple regex for vowels (can expand for 'y' etc.)
+      let result = [];
+      let currentSyl = "";
+      let foundVowel = false;
+
+      for (let i = 0; i < lower.length; i++) {
+        const ch = lower[i];
+        // Add this char to current syllable
+        currentSyl += ch;
+        if (vowels.test(ch)) {
+          foundVowel = true;
+        }
+        // Look ahead: if next char is a vowel (or we reached the end),
+        // we "commit" this syllable. Also handle common boundary heuristics.
+        const nextCh = (i < lower.length - 1) ? lower[i+1] : "";
+        if (!nextCh) {
+          // end of word => push what we have
+          result.push(currentSyl);
+          currentSyl = "";
+        } else {
+          // If we have found a vowel in currentSyl, and nextCh is a vowel,
+          // we assume this is a good place to cut:
+          if (foundVowel && vowels.test(nextCh)) {
+            result.push(currentSyl);
+            currentSyl = "";
+            foundVowel = false;
+          }
+        }
+      }
+
+      // If anything left
+      if (currentSyl) {
+        result.push(currentSyl);
+      }
+
+      return result;
+    }
+
+    /*****************************************
+     * 3. MAP EACH ENGLISH SYLLABLE → CUNEIFORM
+     *****************************************/
+
+    const CHART_VOWELS = new Set(["A","E","I","U"]);
+    const CHART_CONSONANTS = new Set(["B","D","G","H","K","L","M","N","P","Q","R","S","T","Z"]);
+
+    // Turn each letter into one recognized by our chart
+    function normalizeLetter(ch) {
+      const c = ch.toLowerCase();
+      // Basic vowels => map to A/E/I/U
+      if (c === "a") return "A";
+      if (c === "e") return "E";
+      if (c === "i") return "I";
+      if (c === "o") return "U"; // treat 'o' as 'U'
+      if (c === "u") return "U";
+
+      // Sometimes 'y' => a vowel
+      if (c === "y") return "I";
+
+      // If recognized consonant
+      const up = c.toUpperCase();
+      if (CHART_CONSONANTS.has(up)) {
+        return up;
+      }
+
+      // else fallback
+      // (For example, 'c' => 'K', or 'x' => 'S', or anything else => 'S')
+      if (c === "c") return "K";
+      if (c === "x") return "S";
+      return "S";
+    }
+
+    // Break an English syllable into 2-letter chunks (C+V or V+C) if possible
+    function chunkToPairs(letters) {
+      let pairs = [];
+      let i = 0;
+      while (i < letters.length) {
+        if (i < letters.length - 1) {
+          const l1 = letters[i];
+          const l2 = letters[i+1];
+          const isVowel1 = CHART_VOWELS.has(l1);
+          const isVowel2 = CHART_VOWELS.has(l2);
+          // If we have CV or VC, group them
+          if (isVowel1 !== isVowel2) {
+            pairs.push(l1 + l2);
+            i += 2;
+            continue;
+          }
+        }
+        // otherwise single leftover letter
+        pairs.push(letters[i]);
+        i++;
+      }
+      return pairs;
+    }
+
+    // Find cuneiform match for 2-letter chunk
+    function closestSyllable(chunk) {
+      let best = null;
+      let bestDistance = 999;
+      for (const syl of VALID_SYLLABLES) {
+        let dist = 0;
+        if (syl[0] !== chunk[0]) dist++;
+        if (syl[1] !== chunk[1]) dist++;
+        if (dist < bestDistance) {
+          bestDistance = dist;
+          best = syl;
+        }
+      }
+      return best;
+    }
+
+    // Transliterate a single English syllable => array of cuneiform syllable codes
+    function transliterateSyllable(engSyl) {
+      // 1) Normalize each letter
+      const normLetters = [...engSyl].map(ch => normalizeLetter(ch));
+      // 2) Break into 2-letter pairs
+      const pairs = chunkToPairs(normLetters);
+      // 3) For each pair, find best cuneiform match. If single letter leftover, pad it.
+      let cuneiformChunks = [];
+      for (const p of pairs) {
+        if (p.length === 2) {
+          cuneiformChunks.push(closestSyllable(p));
+        } else {
+          // single leftover => pad with 'A' (if consonant) or 'B' (if vowel)
+          if (CHART_VOWELS.has(p)) {
+            cuneiformChunks.push(closestSyllable(p + "B"));
+          } else {
+            cuneiformChunks.push(closestSyllable(p + "A"));
+          }
+        }
+      }
+      return cuneiformChunks;
+    }
+
+    // Full function: English word => naive syllables => cuneiform
+    function transliterateWord(word) {
+      // 1) Syllabify
+      const englishSylls = naiveSyllabify(word);
+      // 2) For each English syllable, convert to multiple cuneiform syllables
+      let result = [];
+      englishSylls.forEach(syl => {
+        const cuneis = transliterateSyllable(syl);
+        result.push(...cuneis); // flatten
+      });
+      return result;
+    }
+
+    /*****************************************
+     * 4. DOM INTERACTION
+     *****************************************/
+
+    const inputEl = document.getElementById("wordInput");
+    const buttonEl = document.getElementById("splitBtn");
+    const resultEl = document.getElementById("result");
+
+    const CUNEIFORM_DIR = "cuneiform_syllables"; // folder of images
+
+    buttonEl.addEventListener("click", () => {
+      const text = inputEl.value.trim();
+      if (!text) {
+        resultEl.innerHTML = "<p>Please enter a word.</p>";
+        return;
+      }
+
+      // For demonstration, let's handle multi-word input by splitting on spaces.
+      // We'll transliterate each word separately, then show them side by side
+      // (with a small gap).
+      const words = text.split(/\s+/);
+
+      // Clear old results
+      resultEl.innerHTML = "";
+
+      words.forEach((word, wIndex) => {
+        // get cuneiform syllables for this word
+        const cuneiformSyls = transliterateWord(word);
+        // build images
+        cuneiformSyls.forEach(syl => {
+          const img = document.createElement("img");
+          img.src = `${CUNEIFORM_DIR}/${syl}.png`;
+          img.alt = syl;
+          img.classList.add("cuneiform-syl");
+          resultEl.appendChild(img);
+        });
+        // add a small gap between words
+        if (wIndex < words.length - 1) {
+          const spacer = document.createElement("div");
+          spacer.style.width = "20px";
+          resultEl.appendChild(spacer);
+        }
+      });
+    });
+
+    // Press "Enter" => click
+    inputEl.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") {
+        buttonEl.click();
+      }
+    });
+  </script>
+</body>
+</html>
