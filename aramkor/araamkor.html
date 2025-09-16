@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Random Circuit Generator</h2>
+    <div id="svgContainer"></div>
+    <button onclick="generateNewCircuit()">Generate New Circuit</button>
+  </div>
+
+  <script>
+    const components = [
+      { type: 'resistor', width: 100, symbol: 'R' },
+      { type: 'capacitor', width: 60,  symbol: 'C' },
+      { type: 'led',       width: 40,  symbol: 'LED' },
+      { type: 'switch',    width: 60,  symbol: 'SW' }
+    ];
+
+    let seed = Math.floor(Math.random() * 10000);
+    function random() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    }
+
+    function generateCircuit() {
+      const numBranches     = Math.floor(random() * 2) + 2; // 2–3 branches
+      const totalComponents = Math.floor(random() * 6) + 6; // 6–11 components
+      let branches = Array(numBranches).fill().map(() => []);
+      for (let i = 0; i < totalComponents; i++) {
+        const comp = {
+          ...components[Math.floor(random() * components.length)],
+          id: `comp${i}`
+        };
+        branches[Math.floor(random() * numBranches)].push(comp);
+      }
+      // ensure no branch is empty
+      branches.forEach((b, i) => {
+        if (!b.length) {
+          b.push({
+            ...components[Math.floor(random() * components.length)],
+            id: `fill${i}`
+          });
+        }
+      });
+      return branches;
+    }
+
+    function compSVG(type, x, y) {
+      switch (type) {
+        case 'capacitor': return `
+          <g>
+            <line x1="${x}"    y1="${y}"   x2="${x+10}" y2="${y}" stroke="black" stroke-width="2"/>
+            <line x1="${x+10}" y1="${y-15}" x2="${x+10}" y2="${y+15}" stroke="black" stroke-width="2"/>
+            <line x1="${x+50}" y1="${y-15}" x2="${x+50}" y2="${y+15}" stroke="black" stroke-width="2"/>
+            <line x1="${x+50}" y1="${y}"   x2="${x+60}" y2="${y}"   stroke="black" stroke-width="2"/>
+            <text x="${x+30}" y="${y-20}" font-size="12" text-anchor="middle">C</text>
+          </g>`;
+        case 'resistor': return `
+          <g>
+            <path d="M${x} ${y} l20 0 l5 -10 l10 20 l10 -20 l10 20 l10 -20 l10 20 l5 -10 l20 0"
+                  stroke="black" stroke-width="2" fill="none"/>
+            <text x="${x+50}" y="${y-20}" font-size="12" text-anchor="middle">R</text>
+          </g>`;
+        case 'led': return `
+          <g>
+            <polygon points="${x},${y-10} ${x},${y+10} ${x+30},${y}"
+                     fill="none" stroke="black" stroke-width="2"/>
+            <line x1="${x+30}" y1="${y-10}" x2="${x+30}" y2="${y+10}" stroke="black" stroke-width="2"/>
+            <line x1="${x}"    y1="${y}"    x2="${x+40}" y2="${y}"    stroke="black" stroke-width="2"/>
+            <text x="${x+15}" y="${y-20}" font-size="12" text-anchor="middle">LED</text>
+          </g>`;
+        case 'switch': return `
+          <g>
+            <line x1="${x}"    y1="${y}" x2="${x+60}" y2="${y}" stroke="black" stroke-width="2"/>
+            <line x1="${x+30}" y1="${y}" x2="${x+50}" y2="${y}" stroke="white" stroke-width="3"/>
+            <line x1="${x+30}" y1="${y}" x2="${x+50}" y2="${y-15}" stroke="black" stroke-width="2"/>
+            <circle cx="${x+30}" cy="${y}" r="3" fill="black"/>
+            <circle cx="${x+50}" cy="${y}" r="3" fill="black"/>
+            <text x="${x+25}" y="${y-20}" font-size="12" text-anchor="middle">SW</text>
+          </g>`;
+      }
+    }
+
+    function calculateBranchWidth(branch) {
+      return branch.reduce((w, c) => w + c.width, 0);
+    }
+
+    function renderCircuit() {
+      const branches      = generateCircuit();
+      const maxBranchWidth= Math.max(...branches.map(calculateBranchWidth)) + 100;
+      const bottomRailY   = (branches.length + 1) * 100;
+      const topBranchY    = bottomRailY - branches.length * 100;
+      const height        = bottomRailY + 50;
+      const centerX       = maxBranchWidth / 2;
+
+      let svg = `
+        <svg viewBox="0 0 ${maxBranchWidth} ${height}" style="width:100%;height:100%;">
+          <defs>
+            <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+              <path d="M20 0 L0 0 0 20" fill="none" stroke="#f0f0f0" stroke-width="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)"/>
+
+          <!-- Side buses -->
+          <line x1="50"              y1="${topBranchY}" x2="50"              y2="${bottomRailY}" stroke="black" stroke-width="2"/>
+          <line x1="${maxBranchWidth-50}" y1="${topBranchY}" x2="${maxBranchWidth-50}" y2="${bottomRailY}" stroke="black" stroke-width="2"/>
+
+          <!-- Bottom rail left of battery -->
+          <line x1="50"  y1="${bottomRailY}" x2="${centerX-25}" y2="${bottomRailY}" stroke="black" stroke-width="2"/>
+          <!-- Bottom rail right of battery -->
+          <line x1="${centerX+25}" y1="${bottomRailY}" x2="${maxBranchWidth-50}" y2="${bottomRailY}" stroke="black" stroke-width="2"/>
+
+          <!-- Battery symbol at center -->
+          <!-- short plate (–) -->
+          <line x1="${centerX-5}"  y1="${bottomRailY-25}" x2="${centerX-5}"  y2="${bottomRailY+25}" stroke="black" stroke-width="2"/>
+          <!-- long plate (+) -->
+          <line x1="${centerX+5}"  y1="${bottomRailY-40}" x2="${centerX+5}"  y2="${bottomRailY+25}" stroke="black" stroke-width="2"/>`;
+
+      // draw each branch
+      branches.forEach((branch, i) => {
+        const y = bottomRailY - (i + 1) * 100;
+        let x = 50;
+        branch.forEach(c => {
+          svg += compSVG(c.type, x, y);
+          x += c.width;
+        });
+        svg += `<line x1="${x}" y1="${y}" x2="${maxBranchWidth-50}" y2="${y}" stroke="black" stroke-width="2"/>`;
+      });
+
+      svg += `</svg>`;
+      document.getElementById('svgContainer').innerHTML = svg;
+    }
+
+    function generateNewCircuit() {
+      seed = Math.floor(Math.random() * 10000);
+      renderCircuit();
+    }
+
+    // initial draw
+    renderCircuit();
+  </script>
+</body>
+</html>
