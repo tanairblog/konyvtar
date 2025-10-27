@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Speaking Trainer – Family & Relationships</title>
+  <style>
+    :root{
+      /* Világos paletta – a mellékelt UI-hoz igazítva */
+      --bg1:#fff6ef;        /* nagyon halvány őszibarack */
+      --bg2:#ffe7d4;        /* világos barack */
+      --panel:#ffffff;      /* kártyák/ panelek háttere */
+      --text:#1f2937;       /* szöveg – gray-800 */
+      --muted:#6b7280;      /* szürkés alapszín */
+      --stroke:#e5e7eb;     /* kártyaszegély */
+      --brand:#ff8a3d;      /* narancs akcentus (gombok) */
+      --brand-2:#ffd166;    /* sárgás kiemelés */
+      --ok:#22c55e;         /* „Használtam” gomb háttér */
+      --soft:#fff2e8;       /* kérdés doboz háttere */
+      --soft-green:#ecfdf5; /* példa doboz háttere */
+      --shadow: 0 8px 24px rgba(0,0,0,.08);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, var(--bg2), transparent 60%),
+                  linear-gradient(180deg, var(--bg1), #fff 60%);
+      color:var(--text);
+      line-height:1.5;
+    }
+    header{max-width:980px; margin:24px auto 12px; padding:0 16px;}
+    h1{font-size:clamp(22px,3vw,32px); margin:0 0 6px;}
+    .sub{color:var(--muted); font-size:14px}
+
+    .wrap{max-width:980px; margin:0 auto 40px; padding:0 16px;}
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--stroke);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .section{padding:18px;}
+
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+    .row > * { flex: 0 0 auto; }
+
+    .badge{ display:inline-block; padding:2px 8px; border:1px solid var(--stroke);
+      border-radius:999px; font-size:12px; color:var(--muted); background:#fff;}
+    .pill{ display:inline-block; padding:4px 10px; border:1px solid var(--stroke);
+      border-radius:999px; color:var(--muted); font-size:12px; background:#fff; }
+
+    button{
+      border:1px solid var(--brand);
+      border-radius:12px; padding:10px 14px; cursor:pointer;
+      background:linear-gradient(180deg, #fff, #ffeede);
+      color:#8a3c00; font-weight:700;
+      transition:transform .06s ease, box-shadow .2s ease, background .2s ease;
+      box-shadow:0 2px 0 rgba(255,138,61,.25);
+    }
+    button:hover{ transform: translateY(-1px); }
+    button:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+
+    .danger{ border-color:#ef4444; background:linear-gradient(180deg, #fff, #ffe3e3); color:#7a0d0d; }
+    .accent{ border-color:var(--brand); }
+
+    .timer{
+      display:flex; align-items:center; gap:12px;
+      font-variant-numeric: tabular-nums; font-size:28px; font-weight:800; letter-spacing:.5px;
+    }
+
+    .question{
+      font-size:clamp(18px, 2.4vw, 24px);
+      padding:16px; border-radius:12px; border:1px solid var(--stroke);
+      background:var(--soft);
+    }
+
+    .cards{ display:grid; gap:14px; grid-template-columns: repeat(3, 1fr); margin-top:14px; }
+    @media (max-width: 860px){ .cards{ grid-template-columns: 1fr; } }
+
+    .flip{ perspective:1000px; position:relative; height:140px; }
+    .card{
+      position:absolute; inset:0;
+      border:1px solid var(--stroke); border-radius:14px; box-shadow:var(--shadow);
+      background:#fff; transform-style:preserve-3d; transition: transform .5s ease;
+    }
+    .card.flipped{ transform: rotateY(180deg); }
+    .side{
+      position:absolute; inset:0; padding:16px; display:flex; align-items:center; justify-content:center;
+      backface-visibility: hidden; text-align:center; font-size: clamp(16px, 2vw, 20px);
+      color:var(--text);
+    }
+    .back{ transform: rotateY(180deg); color:#0f766e; } /* HU/szinonima halvány zöldeskék */
+    .used .side span{ text-decoration: line-through; text-decoration-thickness: 2px; opacity:.9; }
+
+    .mark{
+      position:absolute; top:10px; right:10px; font-size:12px; padding:6px 8px; border-radius:999px;
+      border:1px solid #bbf7d0; background:#e7f9ef; color:#166534; font-weight:800;
+    }
+    .mark[aria-pressed="true"]{ background:#d1fadf; }
+
+    details{ border-top:1px solid var(--stroke); }
+    details summary{ list-style:none; cursor:pointer; padding:14px 18px; color:var(--muted); font-weight:700; }
+    details[open] summary{ color:var(--text); }
+    .import-area{ padding:0 18px 18px; }
+    textarea{
+      width:100%; min-height:140px; resize:vertical; border-radius:12px; border:1px solid var(--stroke);
+      background:#fff; color:var(--text); padding:10px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
+
+    .example{
+      border:1px solid var(--stroke); border-radius:12px; padding:14px;
+      background:var(--soft-green); margin-top:10px;
+    }
+    .footer-note{ color:#065f46; font-size:13px; margin-top:8px; font-weight:600;}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Speaking Trainer – Family & Relationships</h1>
+    <div class="sub">Véletlen kérdés + 3 használható kifejezés (kattintásra fordul EN↔HU, „Használtam” áthúz). 1:30 perc feladatidő, kérdésenkénti mintaválasz.</div>
+  </header>
+
+  <div class="wrap">
+    <!-- MAIN ONLY (nincs jobb oldali kérdéslista) -->
+    <section class="panel">
+      <div class="section">
+        <div class="row" style="justify-content:space-between;">
+          <span class="badge" id="glossCount">Szószedet: 44 kifejezés</span>
+          <div class="timer">
+            <span id="time">01:30</span>
+            <button id="startBtn" class="accent">Start</button>
+            <button id="resetBtn" class="danger">Reset</button>
+            <span class="pill" id="statusPill">Készen áll</span>
+          </div>
+        </div>
+
+        <div class="question" id="question">…</div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="newQ" class="accent">Új kérdés</button>
+          <button id="reshuffle">Kifejezések cseréje</button>
+        </div>
+
+        <div class="cards" id="cards"></div>
+
+        <div id="timeUpArea" class="section" style="padding:0; margin-top:8px; display:none;">
+          <button id="timeUpBtn" class="accent">Time is up</button>
+          <div style="height:8px"></div>
+          <button id="exampleBtn">Example answer</button>
+          <div id="exampleBox" class="example" style="display:none;">
+            <div id="exampleText"></div>
+            <div class="footer-note" id="hintLine"></div>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>▶ Saját szószedet beillesztése (opcionális)</summary>
+        <div class="import-area">
+          <p class="sub">Formátum: soronként <code>angol — magyar</code> vagy <code>angol — magyarázat/szinonima</code>.</p>
+          <textarea id="importBox" placeholder="Illeszd be ide a párokat…"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button id="importBtn" class="accent">Beolvasás és mentés</button>
+            <button id="clearCustom" class="danger">Egyéni szószedet törlése</button>
+            <span class="pill">Mentés: böngésző (localStorage)</span>
+          </div>
+        </div>
+      </details>
+    </section>
+  </div>
+
+<script>
+/* ------------------------
+   DATA
+-------------------------*/
+/* 20 kérdés – továbbra is randomizálva jelenik meg, de NEM listázzuk külön panelen */
+const QUESTIONS = [
+  "Can you tell me a little about your family?",
+  "What is something special about your parents?",
+  "What kind of relationship do you have with your brothers or sisters (or cousins, if you don’t have siblings)?",
+  "What hobbies or interests do people in your family have?",
+  "How do you usually spend time with younger children in your family (like cousins, nieces, or nephews)?",
+  "Do you remember spending time with your grandparents or other relatives? What was it like?",
+  "Which member of your extended family do you feel closest to, and why?",
+  "What are some fun memories you have from playing with relatives or friends when you were younger?",
+  "Did anyone from outside your immediate family ever live with you? How was that experience?",
+  "How was your relationship with your brothers, sisters, or cousins when you were a child?",
+  "Where do your parents live?",
+  "How often do you visit your family?",
+  "What do you usually do when you visit your parents?",
+  "Did you have any pets when you were young?",
+  "Do your parents still keep animals at home?",
+  "What is a “typical” family in your country?",
+  "Do you think families are changing nowadays? How?",
+  "Who is the breadwinner in your family?",
+  "Do most women in your country stay at home or go back to work after having children?",
+  "Do old people usually live with their families, or on their own?"
+];
+
+/* B1-es minták – kérdésenként */
+const SAMPLES = [
+  "Honestly, my family is pretty small, but we’re close. We usually eat together in the evenings and talk about our day. On weekends we visit my grandparents or go for a walk. It’s simple, but it makes us feel connected.",
+  "To be honest, my parents are very supportive. They always listen before giving advice, which kind of seals it for me. My dad loves cooking, and my mom never forgets birthdays. That mix makes home feel warm.",
+  "We’ve grown up together and we’ve had each other’s backs. We don’t have drama most of the time, just jokes and small fights. If things get messy, we cool down and talk later. Overall, it works.",
+  "Some of us like sports, others prefer reading or gaming. Personally, I enjoy music and weekend runs. We try to share a hobby sometimes, like cooking a new recipe. It’s easier to fix problems when we do things together.",
+  "With little kids, I keep it simple and playful. We draw, play board games, or build Lego. I set clear boundaries from day one, but we still laugh a lot. They love it when I read stories with funny voices.",
+  "Yes, I spent a lot of time with my grandparents. They told stories about their childhood and taught me how to bake simple cakes. The house was calm and safe. Those memories still make me smile.",
+  "I feel closest to my aunt because she understands me. She gives honest advice without judging me. If I feel overwhelmed, I can always message her. She’s like a second parent.",
+  "I remember playing football outside until it got dark. We made up silly rules and there was zero pretending—we took it very seriously! Afterwards we ate together at someone’s place. It felt like the whole street was our team.",
+  "Yes, for a few months my cousin stayed with us. At first it was strange to share space, but we clicked and became close. We learned to respect clear boundaries. In the end, it was a good experience.",
+  "When I was a child, we had the usual fights but also lots of laughs. We did homework together and shared snacks. If someone got too loud, we took a break and walked away. We always made up.",
+  "They live in a small town about an hour away. It’s quiet and everyone knows each other. When I visit, I sleep better there. The air feels fresh.",
+  "I try to visit once or twice a month. If school is busy, we do a quick weekly check-in online. Holidays are for longer stays. That keeps us close.",
+  "We usually cook together and talk about plans. Sometimes we fix small things around the house. In the evenings we watch a film or play cards. It’s relaxing and low-stress.",
+  "Yes, we had a dog when I was young. He was playful and followed me everywhere. Taking care of him taught me responsibility. I still miss him sometimes.",
+  "Right now they don’t keep pets, because they travel more. They said maybe later they’ll adopt a cat. It depends on their schedule. They want to do it properly.",
+  "In my view, a typical family here is different for everyone. Some families value tradition, others are more modern. Many live in apartments near the city. Weekends are for meals together.",
+  "Families are changing for sure. More parents work, and people talk more openly about feelings. Sometimes it gets overwhelming, but support is stronger too. Overall, I think it’s positive.",
+  "In my family both parents work, so they share the bills. We also talk about money and big decisions together. That way no one gets stuck with them forever. It feels fair.",
+  "Many women go back to work after having children. If there’s strong support at home and clear boundaries, it can work well. Some choose to stay home for a while, and that’s fine too. It really depends on the people.",
+  "Both options happen here. Some grandparents live with the family, others prefer their own place. We try to visit often and help if someone is overloaded. Respect and time together matter most."
+];
+
+/* A 44-es listád – EN → HU / szinonima */
+const DEFAULT_GLOSSARY = [
+  ["I’m not sure what/where/why exactly.","nem tudom, pontosan mit/hol/miért …"],
+  ["his main interest is …","fő érdeklődési köre …"],
+  ["a lot of people get divorced and live on their own, and bring up their children on their own","sokan elválnak, és egyedül élnek, és a gyerekeiket is egyedül nevelik"],
+  ["which means","ami azt jelenti, hogy …"],
+  ["he … for a living","vmit csinál a megélhetésért/él vmiből"],
+  ["but I only have very vague memories of her","de csak nagyon halvány emlékeim vannak róla"],
+  ["I come from quite a big family","Elég nagy családból számazom"],
+  ["however","but"],
+  ["I suppose","I think"],
+  ["as I remember","amennyire emlékszem/ha jól emlékszem"],
+  ["it was a lot better than","sokkal jobb volt, mint …"],
+  ["normally","usually"],
+  ["by the way","mellesleg"],
+  ["I have a lot of presents to buy at Xmas","sok ajándékot kell vennem karácsaonykor"],
+  ["they were around my age","kb. velem egykorúak voltak"],
+  ["they lived in the country for a while","vidéken éltek egy ideig"],
+  ["nowadays","manapság"],
+  ["I don’t have a very close contact with…","nincs szoros kapcsolatom …val/vel"],
+  ["he/she is the breadwinner in the family","ő a kenyérkereső a családban"],
+  ["it sounds really nice","ez igazán jól hangzik"],
+  ["I started to get my independence and lived my own life a bit.","kezdtem önálló lenni, és a saját életemet élni"],
+  ["occasionally","sometimes"],
+  ["the family atmosphere is/was mostly very happy","nagyjából mindig jó volt a hangulat a családban"],
+  ["during my early childhood","zsenge ifjúkoromban"],
+  ["things were never really the same after that","azután semmi sem volt már ugyanolyan"],
+  ["I must admit","be kell vallanom/ismernem"],
+  ["in my growing years","fiatalkoromban"],
+  ["we didn’t get on so well a lot of times","sokszor nem jöttünk ki valami jól"],
+  ["every other week","minden második héten"],
+  ["she seems to spend half of her life (… in the kitchen/cooking)","fél életét (főzéssel) tölti"],
+  ["which was a bit disappointing for me","ami elég kiábrándító volt számomra"],
+  ["actually","öööööööööööö"],
+  ["we have a lot of things in common/ we have nothing in common","sok közös van bennünk/semmi közös nincs bennünk"],
+  ["he was not in the least interested in …","legkevésbé sem érdekelte"],
+  ["as far as I know","már amennyire én tudom"],
+  ["he lived a very routine life","nagyon egyhangú életet élt"],
+  ["I organised for him to go to Spain","megszerveztem neki, hogy S.-ba utazzon"],
+  ["which was really fascinating","ami lenyűgöző volt"],
+  ["I suppose he is not just a sociable type","teszem azt, nem volt barátkozós fajta"],
+  ["I would say that","azt mondanám, hogy …"],
+  ["he gets completely lost in his books","teljesen belemerül a könyveibe"],
+  ["they really take care of each other","nagyon gondoskodnak egymásról"],
+  ["one of my dreams is to be happily married to a ripe old age","az egyik álmom az, hogy boldog házasságban éljek, amíg őszbe nem csavarodnak fáradt fürtjeim"],
+  ["so they say","legalábbis ezt mondják"]
+];
+
+const LS_KEY = "speaking_trainer_custom_glossary_v4";
+
+/* ------------------------
+   STATE & ELEMENTS
+-------------------------*/
+let GLOSSARY = loadGlossary();
+let currentQIndex = 0;
+let currentThree = [];
+let timer = null, timeLeft = 90_000, running = false;
+
+const qEl = document.getElementById('question');
+const cardsEl = document.getElementById('cards');
+const glCount = document.getElementById('glossCount');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+const newQBtn = document.getElementById('newQ');
+const reshuffleBtn = document.getElementById('reshuffle');
+const timeEl = document.getElementById('time');
+const statusPill = document.getElementById('statusPill');
+const timeUpArea = document.getElementById('timeUpArea');
+const timeUpBtn = document.getElementById('timeUpBtn');
+const exampleBtn = document.getElementById('exampleBtn');
+const exampleBox = document.getElementById('exampleBox');
+const exampleText = document.getElementById('exampleText');
+const hintLine = document.getElementById('hintLine');
+const importBox = document.getElementById('importBox');
+const importBtn = document.getElementById('importBtn');
+const clearCustomBtn = document.getElementById('clearCustom');
+
+/* ------------------------
+   INIT
+-------------------------*/
+glCount.textContent = `Szószedet: ${GLOSSARY.length} kifejezés`;
+pickNewQuestion();
+pickThree();
+renderCards();
+updateTime(90_000);
+
+/* ------------------------
+   RENDER & LOGIC
+-------------------------*/
+function pickNewQuestion(){
+  currentQIndex = Math.floor(Math.random()*QUESTIONS.length);
+  qEl.textContent = QUESTIONS[currentQIndex];
+  resetUsedFlags();
+  hideExample();
+  timeUpArea.style.display = 'none';
+}
+
+function pickThree(){
+  const n = GLOSSARY.length;
+  const chosen = new Set();
+  while(chosen.size < 3 && chosen.size < n){
+    chosen.add(Math.floor(Math.random()*n));
+  }
+  currentThree = Array.from(chosen);
+}
+
+function renderCards(){
+  cardsEl.innerHTML = "";
+  currentThree.forEach(idx => {
+    const [en, hu] = GLOSSARY[idx];
+    const wrap = document.createElement('div');
+    wrap.className = "flip";
+    const card = document.createElement('div');
+    card.className = "card";
+    card.tabIndex = 0;
+    card.setAttribute('role','button');
+    card.setAttribute('aria-label', `Kártya megfordítása: ${en}`);
+
+    const front = document.createElement('div');
+    front.className = "side front";
+    const fspan = document.createElement('span'); fspan.textContent = en; front.appendChild(fspan);
+
+    const back = document.createElement('div');
+    back.className = "side back";
+    const bspan = document.createElement('span'); bspan.textContent = hu || "—"; back.appendChild(bspan);
+
+    const mark = document.createElement('button');
+    mark.className = "mark"; mark.textContent = "Használtam"; mark.type = "button";
+    mark.setAttribute('aria-pressed','false');
+    mark.addEventListener('click', (e)=>{ e.stopPropagation(); card.classList.toggle('used');
+      mark.setAttribute('aria-pressed', card.classList.contains('used') ? 'true':'false'); });
+
+    card.addEventListener('click', ()=> card.classList.toggle('flipped'));
+    card.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); card.classList.toggle('flipped'); }});
+
+    card.appendChild(front); card.appendChild(back); card.appendChild(mark);
+    wrap.appendChild(card); cardsEl.appendChild(wrap);
+  });
+}
+
+function resetUsedFlags(){
+  document.querySelectorAll('.card').forEach(c=> c.classList.remove('used','flipped'));
+}
+
+/* ------------------------
+   TIMER
+-------------------------*/
+function updateTime(ms){
+  const s = Math.max(0, Math.ceil(ms/1000));
+  const mPart = Math.floor(s/60), sPart = s%60;
+  timeEl.textContent = `${String(mPart).padStart(2,'0')}:${String(sPart).padStart(2,'0')}`;
+}
+function setRunning(on){
+  running = on; startBtn.disabled = on; newQBtn.disabled = on; reshuffleBtn.disabled = on;
+  statusPill.textContent = on ? "Folyamatban" : "Készen áll";
+}
+function startTimer(){
+  if(running) return;
+  setRunning(true); timeLeft = 90_000; let last = performance.now();
+  timer = setInterval(()=>{
+    const now = performance.now(); const elapsed = now - last; last = now; timeLeft -= elapsed; updateTime(timeLeft);
+    if(timeLeft <= 0){ clearInterval(timer); timer=null; setRunning(false); timeLeft=0; updateTime(0);
+      timeUpArea.style.display='block'; exampleBox.style.display='none'; }
+  }, 200);
+}
+function resetTimer(){
+  if(timer){ clearInterval(timer); timer=null; }
+  setRunning(false); timeLeft=90_000; updateTime(timeLeft);
+  timeUpArea.style.display='none'; hideExample();
+}
+function hideExample(){ exampleBox.style.display='none'; }
+
+/* ------------------------
+   EXAMPLE ANSWER
+-------------------------*/
+function showExampleForCurrent(){
+  const sample = SAMPLES[currentQIndex] || "Here is a short model answer for this question.";
+  exampleText.textContent = sample;
+  const phrases = currentThree.map(i => GLOSSARY[i]?.[0]).filter(Boolean);
+  hintLine.textContent = phrases.length ? `Try to include: ${phrases.join(' · ')}` : "";
+  exampleBox.style.display = 'block';
+}
+
+/* ------------------------
+   IMPORT / STORAGE
+-------------------------*/
+function loadGlossary(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const arr = JSON.parse(raw);
+      if(Array.isArray(arr) && arr.every(p=>Array.isArray(p) && p.length>=1)){
+        return arr.map(p=>[String(p[0]||"").trim(), String(p[1]||"").trim()]);
+      }
+    }
+  }catch(e){}
+  return DEFAULT_GLOSSARY.slice();
+}
+function saveGlossary(arr){ try{ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }catch(e){} }
+function parsePairs(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const out=[]; for(const line of lines){
+    const m = line.split(/—|–|-/); if(m.length>=2){
+      const en=m[0].trim(), hu=m.slice(1).join('-').trim(); if(en) out.push([en,hu]);
+    }
+  } return out;
+}
+
+/* ------------------------
+   EVENTS
+-------------------------*/
+document.getElementById('startBtn').addEventListener('click', startTimer);
+document.getElementById('resetBtn').addEventListener('click', resetTimer);
+document.getElementById('newQ').addEventListener('click', ()=>{ pickNewQuestion(); pickThree(); renderCards(); });
+document.getElementById('reshuffle').addEventListener('click', ()=>{ pickThree(); renderCards(); });
+document.getElementById('timeUpBtn').addEventListener('click', ()=>{});
+document.getElementById('exampleBtn').addEventListener('click', showExampleForCurrent);
+
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  const pairs = parsePairs(importBox.value||"");
+  if(!pairs.length){ alert("Nem találtam érvényes párokat. Formátum: 'angol — magyar/szinonima'."); return; }
+  GLOSSARY = pairs; saveGlossary(GLOSSARY);
+  glCount.textContent = `Szószedet: ${GLOSSARY.length} kifejezés`;
+  pickThree(); renderCards(); importBox.value="";
+});
+document.getElementById('clearCustom').addEventListener('click', ()=>{
+  if(confirm("Biztosan törlöd az egyéni szószedetet?")){
+    localStorage.removeItem(LS_KEY);
+    GLOSSARY = DEFAULT_GLOSSARY.slice();
+    glCount.textContent = `Szószedet: ${GLOSSARY.length} kifejezés`;
+    pickThree(); renderCards();
+  }
+});
+</script>
+</body>
+</html>

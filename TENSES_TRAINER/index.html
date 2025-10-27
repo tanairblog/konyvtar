@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mr. Susu – Angol Időpontok Interaktív Gyakorló</title>
+  <style>
+    :root{
+      /* Calm Slate palette – low‑glare, classroom friendly */
+      --bg:#0e131a;       /* page background */
+      --panel:#141a22;    /* panels, buttons base */
+      --card:#10161d;     /* cards */
+      --border:#1d2430;   /* subtle borders */
+      --text:#e1e6ed;     /* main text */
+      --muted:#a8b2c1;    /* secondary text */
+      --accent:#7aa2f7;   /* soft blue */
+      --accent-2:#e6c17a; /* muted amber */
+      --ok:#6ccf8e;       /* success */
+      --bad:#ef6b6b;      /* error */
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background: linear-gradient(180deg, var(--bg), #0c1118 75%);
+      color:var(--text); line-height:1.45;
+    }
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+      background: linear-gradient(180deg, var(--bg), #0b1020 70%);
+      color:var(--text); line-height:1.45;
+    }
+    .container{max-width:980px;margin:0 auto;padding:24px}
+    h1,h2,h3{margin:0 0 8px}
+    h1{font-size:clamp(1.4rem,2.5vw,2rem);}
+    h2{font-size:1.2rem;color:#cbd5e1}
+    p{color:var(--muted)}
+
+    .nav{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 20px}
+    .btn{appearance:none;border:1px solid var(--border);background:linear-gradient(180deg,var(--panel), #0d141d);
+      color:var(--text);padding:12px 16px;border-radius:12px;cursor:pointer;font-weight:600;transition:.15s transform,.15s box-shadow,.15s background;
+      box-shadow:0 2px 0 rgba(0,0,0,.35)}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+    .btn.primary{border-color:var(--accent);background:linear-gradient(180deg,#1a2434,#141c29)}
+    .btn.alt{border-color:var(--accent-2);background:linear-gradient(180deg,#2a2315,#201b12)}
+    .btn.ghost{background:transparent;border-color:var(--border)}
+
+    .grid{display:grid;gap:12px}
+    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    @media (max-width:820px){.grid.cols-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media (max-width:540px){.grid.cols-3,.grid.cols-4{grid-template-columns:1fr}}
+
+    .card{background:linear-gradient(180deg,#0f141c,#0b1016);border:1px solid var(--border);border-radius:16px;padding:16px}
+    .card h3{color:#e2e8f0}
+    .card h3{color:#e2e8f0}
+    .muted{color:var(--muted)}
+
+    .hidden{display:none !important}
+
+    .badge{display:inline-block;font-size:.8rem;background:#0b2540;border:1px solid #134063;color:#a5f3fc;border-radius:999px;padding:2px 10px;margin-right:8px}
+
+    .section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:8px 0 16px}
+    .section-title small{color:var(--muted)}
+
+    input[type="text"], textarea{width:100%;background:#0a1222;border:1px solid var(--border);border-radius:12px;color:var(--text);padding:12px 14px}
+    textarea{min-height:110px;resize:vertical}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+    .feedback{margin-top:8px;font-weight:700}
+    .ok{color:var(--ok)}
+    .bad{color:var(--bad)}
+
+    .footer{margin-top:28px;color:#94a3b8;font-size:.9rem}
+
+    /* Cheat sheet modal */
+    .cheat-btn{position:fixed;right:16px;top:16px;z-index:50}
+    .modal{position:fixed;inset:0;background:rgba(2,6,23,.8);backdrop-filter: blur(6px);display:none;z-index:60}
+    .modal.active{display:block}
+    .modal .inner{position:relative;max-width:960px;margin:40px auto;background:#0b1220;border:1px solid var(--border);border-radius:16px;padding:18px;height:80vh;overflow:auto}
+    .modal h2{margin:6px 0 12px}
+    .cs-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    @media (max-width:860px){.cs-grid{grid-template-columns:1fr}}
+    .cs-item{background:#091125;border:1px solid var(--border);border-radius:14px;padding:12px}
+    .cs-item h3{margin-bottom:6px}
+    .close-x{position:absolute;right:12px;top:12px}
+
+    .tense-grid .btn{justify-content:flex-start}
+    .tense-num{font-weight:900;margin-right:8px;color:var(--accent)}
+
+    .stats{font-size:.9rem;color:#a3a3a3}
+
+    .pill{display:inline-block;border:1px solid var(--border);border-radius:999px;padding:4px 10px;color:#e5e7eb;background:#0a1528}
+  </style>
+</head>
+<body>
+  <button class="btn cheat-btn" id="cheatToggle" title="Puskázó – Cheat sheet">Cheat sheet</button>
+
+  <!-- Cheat sheet modal -->
+  <div class="modal" id="cheatModal" aria-hidden="true" role="dialog" aria-label="Cheat sheet">
+    <div class="inner">
+      <button class="btn close-x" id="cheatClose">Bezár</button>
+      <h2>Cheat sheet – 8 angol igeidő (HU fordítással)</h2>
+      <div id="cheatContent" class="cs-grid"></div>
+      <p class="muted" style="margin-top:10px">A puskázó minden játéknál elérhető.</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>Mr. Susu – Angol igeidők interaktív gyakorló</h1>
+      <p class="muted">Egyszerű, egyfájlos megoldás. Négy játék: <span class="pill">Így képezd</span> • <span class="pill">Melyik szó hiányzik?</span> • <span class="pill">Dönts – párosíts</span> • <span class="pill">Haladóknak – fordíts</span></p>
+    </header>
+
+    <!-- HOME -->
+    <section id="home">
+      <div class="section-title"><h2>Válassz játékot</h2><small>Cheat sheet a jobb felső sarokban</small></div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3>a) Így képezd</h3>
+          <p class="muted">Válaszd ki az igeidőt (számmal), és gyakorold a helyes képzést.</p>
+          <button class="btn primary" onclick="go('#igy-kepezd')">Indítás</button>
+        </div>
+        <div class="card">
+          <h3>b) Melyik szó hiányzik?</h3>
+          <p class="muted"> Lyukas mondat angolul + magyar fordítás. Írd be a hiányzó szavakat (pl. <em>am reading</em>).</p>
+          <button class="btn primary" onclick="go('#hianyzik')">Indítás</button>
+        </div>
+        <div class="card">
+          <h3>c) Dönts – párosíts</h3>
+          <p class="muted">Magyar mondat → válaszd ki, melyik igeidő (1–8) illik hozzá.</p>
+          <button class="btn primary" onclick="go('#donts')">Indítás</button>
+        </div>
+        <div class="card">
+          <h3>d) Haladóknak – fordíts</h3>
+          <p class="muted">Magyar mondat → írd le az angol változatot, majd hasonlítsd össze a mintával.</p>
+          <button class="btn primary" onclick="go('#fordits')">Indítás</button>
+        </div>
+      </div>
+
+      <div class="footer">Tipp: Használd a számokat (1–8), hogy gyorsan azonosítsd az igeidőket.</div>
+    </section>
+
+    <!-- a) ÍGY KÉPEZD MAIN -->
+    <section id="igy-kepezd" class="hidden">
+      <div class="section-title">
+        <h2>a) Így képezd – igeidő választó</h2>
+        <button class="btn ghost" onclick="go('#home')">Vissza a főoldalra</button>
+      </div>
+      <div class="tense-grid grid cols-4" id="igyTenseGrid"></div>
+
+      <div id="igyPanel" class="card hidden" style="margin-top:14px">
+        <div class="row" style="justify-content:space-between">
+          <h3 id="igyTitle"></h3>
+          <button class="btn ghost" onclick="IgyGame.backToTenseList()">Vissza az igeidők listájához</button>
+        </div>
+        <p class="muted" id="igyHint">Feladat: Add meg a hiányzó <strong>igei szerkezetet</strong> a zárójelben megadott alapalakból! (pl. <em>am reading, has eaten, had been waiting</em>)</p>
+
+        <div class="card" style="background:#0a1528;border-color:#16324a; margin-bottom:8px">
+          <div class="row"><span class="badge">Magyar</span><span id="igyHu"></span></div>
+        </div>
+        <div class="card" style="background:#0a1528;border-color:#16324a">
+          <div class="row"><span class="badge">Angol</span><span id="igyEnCloze"></span></div>
+        </div>
+
+        <div style="margin-top:8px">
+          <label for="igyInput">Hiányzó igei szerkezet:</label>
+          <input id="igyInput" type="text" placeholder="pl. am reading / has eaten / were playing" onkeydown="if(event.key==='Enter') IgyGame.check()"/>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" onclick="IgyGame.check()">Ellenőrzés</button>
+            <button class="btn alt" onclick="IgyGame.showSolution()">Megoldás megjelenítése</button>
+            <button class="btn primary" onclick="IgyGame.next()">Következő</button>
+          </div>
+          <div class="feedback" id="igyFeedback"></div>
+          <div class="stats" id="igyStats"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- b) MELYIK SZÓ HIÁNYZIK? -->
+    <section id="hianyzik" class="hidden">
+      <div class="section-title">
+        <h2>b) Melyik szó hiányzik?</h2>
+        <button class="btn ghost" onclick="go('#home')">Vissza a főoldalra</button>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3>Írd be a hiányzó részt!</h3><span id="clozeMeta" class="muted"></span></div>
+        <p class="muted" id="clozeHu"></p>
+        <div class="card" style="background:#0a1528;border-color:#16324a">
+          <div class="row"><span class="badge">Mondat</span><span id="clozeEn"></span></div>
+        </div>
+        <div style="margin-top:8px">
+          <label for="clozeInput">Hiányzó rész (pl. <em>am reading</em>):</label>
+          <input id="clozeInput" type="text" placeholder="Írd be a hiányzó szót/részt…" onkeydown="if(event.key==='Enter') ClozeGame.check()"/>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" onclick="ClozeGame.check()">Ellenőrzés</button>
+            <button class="btn primary" onclick="ClozeGame.next()">Új mondat</button>
+          </div>
+          <div class="feedback" id="clozeFeedback"></div>
+          <div class="stats" id="clozeStats"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- c) DÖNTS – PÁROSÍTS -->
+    <section id="donts" class="hidden">
+      <div class="section-title">
+        <h2>c) Dönts – párosíts</h2>
+        <button class="btn ghost" onclick="go('#home')">Vissza a főoldalra</button>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3>Válaszd ki a helyes igeidőt!</h3><span class="muted" id="chooseCounter"></span></div>
+        <p class="muted" id="chooseHu"></p>
+        <div class="card" style="background:#0a1528;border-color:#16324a;margin-bottom:8px">
+          <div class="row"><span class="badge">Angol minta</span><span id="chooseEnSample" class="muted"></span></div>
+        </div>
+        <div class="grid cols-4" id="chooseButtons"></div>
+        <div class="feedback" id="chooseFeedback"></div>
+      </div>
+    </section>
+
+    <!-- d) FORDÍTS -->
+    <section id="fordits" class="hidden">
+      <div class="section-title">
+        <h2>d) Haladóknak – fordíts</h2>
+        <button class="btn ghost" onclick="go('#home')">Vissza a főoldalra</button>
+      </div>
+      <div class="card">
+        <h3>Írd le az angol változatot, majd nézd meg a mintát!</h3>
+        <p class="muted" id="trHu"></p>
+        <textarea id="trInput" placeholder="A te angol mondatod…"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn alt" onclick="TrGame.showModel()">Model válasz megjelenítése</button>
+          <button class="btn primary" onclick="TrGame.next()">Következő</button>
+        </div>
+        <div class="card hidden" id="trModelWrap" style="margin-top:10px;background:#0a1528;border-color:#16324a">
+          <div class="row"><span class="badge">Model válasz</span><span id="trModel"></span></div>
+        </div>
+        <div class="stats" id="trStats"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+  // ---------------------- Data ----------------------
+  const TENSES = [
+    {id:1, num:1, en:"Simple present", hu:"Egyszerű jelen", label:"I go"},
+    {id:2, num:2, en:"Simple past", hu:"Egyszerű múlt", label:"I went"},
+    {id:3, num:3, en:"Present continuous", hu:"Folyamatos jelen", label:"I am going"},
+    {id:4, num:4, en:"Past continuous", hu:"Folyamatos múlt", label:"I was going"},
+    {id:5, num:5, en:"Present perfect", hu:"Befejezett jelen", label:"I have gone"},
+    {id:6, num:6, en:"Past perfect", hu:"Befejezett múlt", label:"I had gone"},
+    {id:7, num:7, en:"Present perfect continuous", hu:"Folyamatos-befejezett jelen", label:"I have been going"},
+    {id:8, num:8, en:"Past perfect continuous", hu:"Folyamatos-befejezett múlt", label:"I had been going"},
+  ];
+
+  const IRREG = {
+    go:{past:"went", pp:"gone"},
+    read:{past:"read", pp:"read"},
+    write:{past:"wrote", pp:"written"},
+    eat:{past:"ate", pp:"eaten"},
+    have:{past:"had", pp:"had"},
+    do:{past:"did", pp:"done"},
+    make:{past:"made", pp:"made"},
+    take:{past:"took", pp:"taken"},
+    come:{past:"came", pp:"come"},
+    become:{past:"became", pp:"become"},
+    see:{past:"saw", pp:"seen"},
+    get:{past:"got", pp:"got"},
+    drive:{past:"drove", pp:"driven"},
+    swim:{past:"swam", pp:"swum"},
+    run:{past:"ran", pp:"run"},
+    write:{past:"wrote", pp:"written"},
+    leave:{past:"left", pp:"left"}
+  };
+
+  const CHEAT = [
+    {id:1, num:1, nameEn:"Simple present", nameHu:"Egyszerű jelen",
+     formHu:"(+) Alany + ige alapalak / 3. személyben -s · (-) don't/doesn't + alapalak · (?) Do/Does + Alany + alapalak",
+     signalsEn:"always, usually, often, every day, on Mondays",
+     signalsHu:"always, usually, often, every day, on Mondays",
+     examples:[{en:"She reads every evening.",hu:"Minden este olvas."},{en:"We play football on Saturdays.",hu:"Szombatonként focizunk."}]
+    },
+    {id:2, num:2, nameEn:"Simple past", nameHu:"Egyszerű múlt",
+     formHu:"(+) Alany + ige múlt (V2) · (-) didn't + alapalak · (?) Did + Alany + alapalak",
+     signalsEn:"yesterday, last week, in 2010, ago",
+     signalsHu:"yesterday, last week, in 2010, ago",
+     examples:[{en:"I went to the museum yesterday.",hu:"Tegnap múzeumba mentem."}]
+    },
+    {id:3, num:3, nameEn:"Present continuous", nameHu:"Folyamatos jelen",
+     formHu:"(+) am/is/are + -ing · (-) am/is/are not + -ing · (?) Am/Is/Are + Alany + -ing",
+     signalsEn:"now, at the moment, today",
+     signalsHu:"now, at the moment, today",
+     examples:[{en:"I am reading a book now.",hu:"Most egy könyvet olvasok."}]
+    },
+    {id:4, num:4, nameEn:"Past continuous", nameHu:"Folyamatos múlt",
+     formHu:"(+) was/were + -ing · (-) was/were not + -ing · (?) Was/Were + Alany + -ing",
+     signalsEn:"while, at 5 o'clock (yesterday), when...",
+     signalsHu:"while, at 5 o'clock (yesterday), when...",
+     examples:[{en:"I was reading when you called.",hu:"Olvastam, amikor hívtál."}]
+    },
+    {id:5, num:5, nameEn:"Present perfect", nameHu:"Befejezett jelen",
+     formHu:"(+) have/has + befejezett melléknévi igenév · (-) haven't/hasn't + V3 · (?) Have/Has + Alany + V3",
+     signalsEn:"already, just, yet, ever, never, since, for",
+     signalsHu:"already, just, yet, ever, never, since, for",
+     examples:[{en:"She has already eaten.",hu:"Már evett."}]
+    },
+    {id:6, num:6, nameEn:"Past perfect", nameHu:"Befejezett múlt",
+     formHu:"(+) had + befejezett melléknévi igenév · (-) hadn't + V3 · (?) Had + Alany + V3",
+     signalsEn:"by the time, before, after",
+     signalsHu:"by the time, before, after",
+     examples:[{en:"We had eaten by the time you called.",hu:"Mire hívtál, ettünk."}]
+    },
+    {id:7, num:7, nameEn:"Present perfect continuous", nameHu:"Folyamatos-befejezett jelen",
+     formHu:"(+) have/has been + -ing · (-) haven't/hasn't been + -ing · (?) Have/Has + Alany + been + -ing",
+     signalsEn:"for, since, all day, lately, recently",
+     signalsHu:"for, since, all day, lately, recently",
+     examples:[{en:"I have been studying for two hours.",hu:"Két órája tanulok."}]
+    },
+    {id:8, num:8, nameEn:"Past perfect continuous", nameHu:"Folyamatos-befejezett múlt",
+     formHu:"(+) had been + -ing · (-) hadn't been + -ing · (?) Had + Alany + been + -ing",
+     signalsEn:"for, since, before, by the time",
+     signalsHu:"for, since, before, by the time",
+     examples:[{en:"She had been working all day.",hu:"Egész nap dolgozott."}]
+    }
+  ];
+
+  // Inventory – seed with 5 per tense (40 total). Later easily expandable to 20 each.
+  const INV = [
+    // 1 Simple present
+{id:"p1-1",  tenseId:1, en:"I go to school by bus.",          hu:"Iskolába busszal járok.",            cloze:"I ____ (go) to school by bus.",            answers:["go"],      variants:[]},
+{id:"p1-2",  tenseId:1, en:"She reads every evening.",         hu:"Minden este olvas.",                 cloze:"She ____ (read) every evening.",           answers:["reads"],   variants:[]},
+{id:"p1-3",  tenseId:1, en:"They play football on Saturdays.", hu:"Szombatonként fociznak.",            cloze:"They ____ (play) football on Saturdays.",  answers:["play"],    variants:[]},
+{id:"p1-4",  tenseId:1, en:"My father works in a bank.",       hu:"Apám egy bankban dolgozik.",         cloze:"My father ____ (work) in a bank.",         answers:["works"],   variants:[]},
+{id:"p1-5",  tenseId:1, en:"We often watch films together.",   hu:"Gyakran nézünk együtt filmeket.",    cloze:"We often ____ (watch) films together.",    answers:["watch"],   variants:[]},
+{id:"p1-6",  tenseId:1, en:"He usually gets up at six.",       hu:"Általában hatkor kel fel.",          cloze:"He ____ (get) up at six.",                 answers:["gets"],    variants:[]},
+{id:"p1-7",  tenseId:1, en:"The train leaves at nine.",        hu:"A vonat kilenckor indul.",           cloze:"The train ____ (leave) at nine.",          answers:["leaves"],  variants:[]},
+{id:"p1-8",  tenseId:1, en:"You speak English very well.",     hu:"Nagyon jól beszélsz angolul.",       cloze:"You ____ (speak) English very well.",      answers:["speak"],   variants:[]},
+{id:"p1-9",  tenseId:1, en:"It rains a lot in April.",         hu:"Áprilisban sokat esik az eső.",      cloze:"It ____ (rain) a lot in April.",           answers:["rains"],   variants:[]},
+{id:"p1-10", tenseId:1, en:"Our lesson starts at half past eight.", hu:"Az óránk fél kilenckor kezdődik.", cloze:"Our lesson ____ (start) at half past eight.", answers:["starts"], variants:[]},
+{id:"p1-11", tenseId:1, en:"My sister studies biology.",       hu:"A húgom biológiát tanul.",           cloze:"My sister ____ (study) biology.",          answers:["studies"], variants:[]},
+{id:"p1-12", tenseId:1, en:"Dogs like playing fetch.",         hu:"A kutyák szeretnek labdázni.",       cloze:"Dogs ____ (like) playing fetch.",          answers:["like"],    variants:[]},
+{id:"p1-13", tenseId:1, en:"The shop closes at five.",         hu:"Az üzlet ötkor zár.",                cloze:"The shop ____ (close) at five.",           answers:["closes"],  variants:[]},
+{id:"p1-14", tenseId:1, en:"I need more time.",                hu:"Több időre van szükségem.",          cloze:"I ____ (need) more time.",                 answers:["need"],    variants:[]},
+{id:"p1-15", tenseId:1, en:"She lives near the school.",       hu:"Az iskola közelében lakik (nő).",        cloze:"She  ____ (live) near the school.",        answers:["lives"],    variants:[]},
+{id:"p1-16", tenseId:1, en:"We eat dinner at seven.",          hu:"Hétkor vacsorázunk.",                cloze:"We ____ (eat) dinner at seven.",           answers:["eat"],     variants:[]},
+{id:"p1-17", tenseId:1, en:"He teaches maths at our school.",  hu:"A mi iskolánkban matekot tanít.",    cloze:"He ____ (teach) maths at our school.",     answers:["teaches"], variants:[]},
+{id:"p1-18", tenseId:1, en:"She drinks tea for breakfast.",    hu:"Reggelire teát iszik.",              cloze:"She ____ (drink) tea for breakfast.",      answers:["drinks"],  variants:[]},
+{id:"p1-19", tenseId:1, en:"The Earth moves around the Sun.",  hu:"A Föld a Nap körül kering.",         cloze:"The Earth ____ (move) around the Sun.",    answers:["moves"],   variants:[]},
+{id:"p1-20", tenseId:1, en:"My brother often helps with homework.",hu:"A tesóm gyakran segít a háziban.", cloze:"My brother often ____ (help) with homework.", answers:["helps"],    variants:[]},
+
+
+    // 2 Simple past (with explicit past-time markers)
+{id:"p2-1",  tenseId:2, en:"I went to the museum yesterday.",                        hu:"Tegnap múzeumba mentem.",                               cloze:"I ____ (go) to the museum yesterday.",                        answers:["went"],    variants:[]},
+{id:"p2-2",  tenseId:2, en:"She studied all night last night.",                       hu:"Tegnap éjjel egész éjszaka tanult.",                    cloze:"She ____ (study) all night last night.",                      answers:["studied"], variants:[]},
+{id:"p2-3",  tenseId:2, en:"They arrived late last Monday.",                          hu:"Múlt hétfőn későn érkeztek.",                           cloze:"They ____ (arrive) late last Monday.",                        answers:["arrived"], variants:[]},
+{id:"p2-4",  tenseId:2, en:"We watched the match on TV last weekend.",                hu:"Múlt hétvégén a meccset a tévében néztük.",             cloze:"We ____ (watch) the match on TV last weekend.",               answers:["watched"], variants:[]},
+{id:"p2-5",  tenseId:2, en:"He wrote me a message two days ago.",                     hu:"Két nappal ezelőtt írt nekem egy üzenetet.",            cloze:"He ____ (write) me a message two days ago.",                  answers:["wrote"],   variants:[]},
+{id:"p2-6",  tenseId:2, en:"We visited the castle last summer.",                       hu:"Tavaly nyáron meglátogattuk a kastélyt.",               cloze:"We ____ (visit) the castle last summer.",                     answers:["visited"], variants:[]},
+{id:"p2-7",  tenseId:2, en:"They bought tickets online yesterday afternoon.",         hu:"Tegnap délután online vették meg a jegyeket.",          cloze:"They ____ (buy) tickets online yesterday afternoon.",         answers:["bought"],  variants:[]},
+{id:"p2-8",  tenseId:2, en:"She saw a rainbow yesterday.",                            hu:"Tegnap szivárványt látott.",                            cloze:"She ____ (see) a rainbow yesterday.",                         answers:["saw"],     variants:[]},
+{id:"p2-9",  tenseId:2, en:"He came home late on Friday.",                            hu:"Pénteken későn jött haza.",                             cloze:"He ____ (come) home late on Friday.",                         answers:["came"],    variants:[]},
+{id:"p2-10", tenseId:2, en:"I read your email at 8 this morning.",                    hu:"Ma reggel 8-kor elolvastam az e-mailedet.",             cloze:"I ____ (read) your email at 8 this morning.",                 answers:["read"],    variants:[]},
+{id:"p2-11", tenseId:2, en:"The meeting started at nine yesterday.",                  hu:"Tegnap kilenckor kezdődött a megbeszélés.",             cloze:"The meeting ____ (start) at nine yesterday.",                 answers:["started"], variants:[]},
+{id:"p2-12", tenseId:2, en:"My grandparents moved to the city in 2005.",              hu:"A nagyszüleim 2005-ben költöztek a városba.",           cloze:"My grandparents ____ (move) to the city in 2005.",            answers:["moved"],   variants:[]},
+{id:"p2-13", tenseId:2, en:"I lost my keys at the park two hours ago.",               hu:"Két órával ezelőtt elvesztettem a kulcsaimat a parkban.", cloze:"I ____ (lose) my keys at the park two hours ago.",          answers:["lost"],    variants:[]},
+{id:"p2-14", tenseId:2, en:"The bus broke down on the way last week.",                hu:"Múlt héten lerobbant a busz útközben.",                 cloze:"The bus ____ (break) down on the way last week.",             answers:["broke"],   variants:[]},
+{id:"p2-15", tenseId:2, en:"She felt tired after the trip on Saturday.",              hu:"Szombaton a kirándulás után fáradtnak érezte magát.",   cloze:"She ____ (feel) tired after the trip on Saturday.",           answers:["felt"],    variants:[]},
+{id:"p2-16", tenseId:2, en:"He drove to the office yesterday morning.",               hu:"Tegnap reggel autóval ment az irodába.",                cloze:"He ____ (drive) to the office yesterday morning.",            answers:["drove"],   variants:[]},
+{id:"p2-17", tenseId:2, en:"We had pizza for dinner last night.",                      hu:"Tegnap este pizzát ettünk vacsorára.",                  cloze:"We ____ (have) pizza for dinner last night.",                 answers:["had"],     variants:[]},
+{id:"p2-18", tenseId:2, en:"They made a cake for me on my birthday last year.",       hu:"Tavaly a születésnapomon tortát készítettek nekem.",    cloze:"They ____ (make) a cake for me on my birthday last year.",    answers:["made"],    variants:[]},
+{id:"p2-19", tenseId:2, en:"The teacher gave us extra homework last week.",           hu:"Múlt héten a tanár plusz házit adott nekünk.",          cloze:"The teacher ____ (give) us extra homework last week.",        answers:["gave"],    variants:[]},
+{id:"p2-20", tenseId:2, en:"The film ended at midnight last night.",                  hu:"Tegnap éjjel éjfélkor ért véget a film.",               cloze:"The film ____ (end) at midnight last night.",                 answers:["ended"],   variants:[]},
+// 3 Present continuous (20)
+{id:"p3-1",  tenseId:3, en:"I am reading a book right now.",           hu:"Éppen most könyvet olvasok.",           cloze:"I ____ ______ (read) a book right now.",            answers:["am reading"],   variants:[]},
+{id:"p3-2",  tenseId:3, en:"She is doing her homework at the moment.",           hu:"Éppen most a házi feladatát csinálja.",           cloze:"She ____ ______ (do) her homework at the moment.",            answers:["is doing"],   variants:[]},
+{id:"p3-3",  tenseId:3, en:"They are playing football in the park.",           hu:"Fociznak a parkban.",           cloze:"They ____ ______ (play) football in the park.",            answers:["are playing"],   variants:[]},
+{id:"p3-4",  tenseId:3, en:"We are having dinner now.",           hu:"Most vacsorázunk.",           cloze:"We ____ ______ (have) dinner now.",            answers:["are having"],   variants:[]},
+{id:"p3-5",  tenseId:3, en:"He is watching a film right now.",           hu:"Éppen most filmet néz.",           cloze:"He ____ ______ (watch) a film right now.",            answers:["is watching"],   variants:[]},
+{id:"p3-6",  tenseId:3, en:"I am not working this week; I am on holiday.",           hu:"Ezen a héten nem dolgozom; szabadságon vagyok.",           cloze:"I ____ ______ (not work) this week; I am on holiday.",            answers:["am not working"],   variants:[]},
+{id:"p3-7",  tenseId:3, en:"My mother is cooking dinner at the moment.",           hu:"Anyukám éppen vacsorát főz.",           cloze:"My mother ____ ______ (cook) dinner at the moment.",            answers:["is cooking"],   variants:[]},
+{id:"p3-8",  tenseId:3, en:"We are studying for the test right now.",           hu:"Éppen most a dolgozatra tanulunk.",           cloze:"We ____ ______ (study) for the test right now.",            answers:["are studying"],   variants:[]},
+{id:"p3-9",  tenseId:3, en:"The kids are sleeping now, so be quiet.",           hu:"A gyerekek most alszanak, légy csendben.",           cloze:"The kids ____ ______ (sleep) now, so be quiet.",            answers:["are sleeping"],   variants:[]},
+{id:"p3-10",  tenseId:3, en:"I am meeting Tom after school today.",           hu:"Ma suli után találkozom Tommal.",           cloze:"I ____ ______ (meet) Tom after school today.",            answers:["am meeting"],   variants:[]},
+{id:"p3-11",  tenseId:3, en:"She is wearing a red jacket today.",           hu:"Ma piros dzsekit visel.",           cloze:"She ____ ______ (wear) a red jacket today.",            answers:["is wearing"],   variants:[]},
+{id:"p3-12",  tenseId:3, en:"They are building a new school this year.",           hu:"Idén egy új iskolát építenek.",           cloze:"They ____ ______ (build) a new school this year.",            answers:["are building"],   variants:[]},
+{id:"p3-13",  tenseId:3, en:"I am learning to drive at the moment.",           hu:"Épp most tanulok vezetni.",           cloze:"I ____ ______ (learn) to drive at the moment.",            answers:["am learning"],   variants:[]},
+{id:"p3-14",  tenseId:3, en:"We are looking for our keys right now.",           hu:"Éppen most keressük a kulcsainkat.",           cloze:"We ____ ______ (look) for our keys right now.",            answers:["are looking"],   variants:[]},
+{id:"p3-15",  tenseId:3, en:"He is fixing his bike in the garage.",           hu:"A garázsban javítja a biciklijét.",           cloze:"He ____ ______ (fix) his bike in the garage.",            answers:["is fixing"],   variants:[]},
+{id:"p3-16",  tenseId:3, en:"The bus is coming; hurry up!",           hu:"Jön a busz; siess!",           cloze:"The bus ____ ______ (come); hurry up!",            answers:["is coming"],   variants:[]},
+{id:"p3-17",  tenseId:3, en:"I am not listening to music; I am studying.",           hu:"Nem hallgatok zenét; tanulok.",           cloze:"I ____ ______ (not listen) to music; I am studying.",            answers:["am not listening"],   variants:[]},
+{id:"p3-18",  tenseId:3, en:"We are getting ready for the match.",           hu:"Készülünk a meccsre.",           cloze:"We ____ ______ (get) ready for the match.",            answers:["are getting"],   variants:[]},
+{id:"p3-19",  tenseId:3, en:"They are having a great time at the party.",           hu:"Nagyon jól érzik magukat a buliban.",           cloze:"They ____ ______ (have) a great time at the party.",            answers:["are having"],   variants:[]},
+{id:"p3-20",  tenseId:3, en:"I am working on a new project this week.",           hu:"Ezen a héten egy új projekten dolgozom.",           cloze:"I ____ ______ (work) on a new project this week.",            answers:["am working"],   variants:[]},
+
+
+
+
+// 4 Past continuous (20)
+{id:"p4-1",  tenseId:4, en:"I was reading when you called.",        hu:"Olvastam, amikor hívtál.",                  cloze:"I ____ ______ (read) when you called.",        answers:["was reading"],   variants:[]},
+{id:"p4-2",  tenseId:4, en:"They were playing at five o'clock.",    hu:"Ötkor épp játszottak.",                     cloze:"They ____ ______ (play) at five o'clock.",     answers:["were playing"],  variants:[]},
+{id:"p4-3",  tenseId:4, en:"She was studying all evening.",         hu:"Egész este tanult.",                        cloze:"She ____ ______ (study) all evening.",         answers:["was studying"],  variants:[]},
+{id:"p4-4",  tenseId:4, en:"We were driving home then.",            hu:"Akkor épp hazafelé vezettünk.",             cloze:"We ____ ______ (drive) home then.",            answers:["were driving"],  variants:[]},
+{id:"p4-5",  tenseId:4, en:"It was raining all day.",               hu:"Egész nap esett az eső.",                   cloze:"It ____ ______ (rain) all day.",               answers:["was raining"],   variants:[]},
+{id:"p4-6",  tenseId:4, en:"I was studying when she arrived.",      hu:"Tanultam, amikor megérkezett.",             cloze:"I ____ ______ (study) when she arrived.",      answers:["was studying"],  variants:[]},
+{id:"p4-7",  tenseId:4, en:"They were watching TV at eight.",       hu:"Nyolckor tévét néztek.",                    cloze:"They ____ ______ (watch) TV at eight.",        answers:["were watching"], variants:[]},
+{id:"p4-8",  tenseId:4, en:"He was driving too fast last night.",   hu:"Túl gyorsan vezetett tegnap este.",                     cloze:"He ____ ______ (drive) too fast.",             answers:["was driving"],   variants:[]},
+{id:"p4-9",  tenseId:4, en:"We were cooking dinner when you called.",hu:"Vacsorát főztünk, amikor hívtál.",         cloze:"We ____ ______ (cook) dinner when you called.",answers:["were cooking"],  variants:[]},
+{id:"p4-10", tenseId:4, en:"She was listening to music all afternoon.", hu:"Egész délután zenét hallgatott.",       cloze:"She ____ ______ (listen) to music all afternoon.", answers:["was listening"], variants:[]},
+{id:"p4-11", tenseId:4, en:"The kids were sleeping at that time.",  hu:"A gyerekek akkor aludtak.",                 cloze:"The kids ____ ______ (sleep) at that time.",   answers:["were sleeping"], variants:[]},
+{id:"p4-12", tenseId:4, en:"It was getting dark at 7.",             hu:"7-kor sötétedett.",                                cloze:"It ____ ______ (get) dark.",                   answers:["was getting"],   variants:[]},
+{id:"p4-13", tenseId:4, en:"You were talking too loudly.",          hu:"Túl hangosan beszéltél.",                    cloze:"You ____ ______ (talk) too loudly.",           answers:["were talking"],  variants:[]},
+{id:"p4-14", tenseId:4, en:"I was walking home when it started to rain.", hu:"Hazafelé sétáltam, amikor eleredt az eső.", cloze:"I ____ ______ (walk) home when it started to rain.", answers:["was walking"], variants:[]},
+{id:"p4-15", tenseId:4, en:"They were having lunch at noon.",       hu:"Délben ebédeltek.",                          cloze:"They ____ ______ (have) lunch at noon.",       answers:["were having"],   variants:[]},
+{id:"p4-16", tenseId:4, en:"He was reading while I was writing.",   hu:"Ő olvasott, miközben én írtam.",             cloze:"He ____ ______ (read) while I was writing.",   answers:["was reading"],   variants:[]},
+{id:"p4-17", tenseId:4, en:"We were waiting for the results all morinig.",      hu:"Az eredményekre vártunk egész délelőtt.",                   cloze:"We ____ ______ (wait) for the results.",       answers:["were waiting"],  variants:[]},
+{id:"p4-18", tenseId:4, en:"She was studying for her exam all night.",        hu:"A vizsgájára tanult egész éjjel.",                       cloze:"She ____ ______ (study) for her exam.",        answers:["was studying"],  variants:[]},
+{id:"p4-19", tenseId:4, en:"They were playing cards in the kitchen at 10.",hu:"A konyhában kártyáztak 10kor.",                    cloze:"They ____ ______ (play) cards in the kitchen.",answers:["were playing"],  variants:[]},
+{id:"p4-20", tenseId:4, en:"The wind was blowing hard yesterday.",            hu:"Erősen fújt a szél tegnap.",                         cloze:"The wind ____ ______ (blow) hard.",            answers:["was blowing"],   variants:[]},
+
+// 5 Present perfect (20)
+{id:"p5-1",  tenseId:5, en:"I have finished my homework.",          hu:"Befejeztem a házimat.",              cloze:"I ____ ______ (finish) my homework.",          answers:["have finished"],     variants:["I've finished"]},
+{id:"p5-2",  tenseId:5, en:"She has already eaten.",                hu:"Már evett.",                          cloze:"She ____ ______ (eat) already.",               answers:["has eaten"],        variants:["She's eaten"]},
+{id:"p5-3",  tenseId:5, en:"We have just arrived.",                 hu:"Épp most érkeztünk.",                 cloze:"We ____ ______ (arrive) just.",                answers:["have arrived"],     variants:["We've arrived"]},
+{id:"p5-4",  tenseId:5, en:"They have visited London twice.",       hu:"Kétszer jártak Londonban.",           cloze:"They ____ ______ (visit) London twice.",       answers:["have visited"],     variants:["They've visited"]},
+{id:"p5-5",  tenseId:5, en:"He has written three emails today.",    hu:"Ma három e-mailt írt.",               cloze:"He ____ ______ (write) three emails today.",   answers:["has written"],      variants:["He's written"]},
+{id:"p5-6",  tenseId:5, en:"I have never been to London.",          hu:"Még sosem voltam Londonban.",         cloze:"I ____ ______ (be) to London.",                answers:["have been"],        variants:["I've been"]},
+{id:"p5-7",  tenseId:5, en:"She has just finished the book.",       hu:"Épp most fejezte be a könyvet.",      cloze:"She ____ ______ (finish) the book.",           answers:["has finished"],     variants:["She's finished"]},
+{id:"p5-8",  tenseId:5, en:"We have already seen that film.",       hu:"Azt a filmet már láttuk.",            cloze:"We ____ ______ (see) that film.",              answers:["have seen"],        variants:["We've seen"]},
+{id:"p5-9",  tenseId:5, en:"They have moved to a new flat.",        hu:"Új lakásba költöztek.",               cloze:"They ____ ______ (move) to a new flat.",       answers:["have moved"],       variants:["They've moved"]},
+{id:"p5-10", tenseId:5, en:"He has broken his phone.",              hu:"Eltörte a telefonját.",               cloze:"He ____ ______ (break) his phone.",            answers:["has broken"],       variants:["He's broken"]},
+{id:"p5-11", tenseId:5, en:"I have lost my wallet.",                hu:"Elveszítettem a pénztárcámat.",       cloze:"I ____ ______ (lose) my wallet.",              answers:["have lost"],        variants:["I've lost"]},
+{id:"p5-12", tenseId:5, en:"She has written three articles this week.", hu:"A héten három cikket írt.",       cloze:"She ____ ______ (write) three articles this week.", answers:["has written"], variants:["She's written"]},
+{id:"p5-13", tenseId:5, en:"We have known each other for years.",   hu:"Évek óta ismerjük egymást.",          cloze:"We ____ ______ (know) each other for years.",  answers:["have known"],       variants:["We've known"]},
+{id:"p5-14", tenseId:5, en:"They have started a new project.",      hu:"Új projektet kezdtek.",               cloze:"They ____ ______ (start) a new project.",      answers:["have started"],     variants:["They've started"]},
+{id:"p5-15", tenseId:5, en:"He has gone to the shop.",              hu:"Elment a boltba.",                    cloze:"He ____ ______ (go) to the shop.",             answers:["has gone"],         variants:["He's gone"]},
+{id:"p5-16", tenseId:5, en:"I have just had lunch.",                hu:"Épp most ebédeltem.",                 cloze:"I ____ ______ (have) lunch.",                  answers:["have had"],         variants:["I've had"]},
+{id:"p5-17", tenseId:5, en:"She has taken many photos today.",      hu:"Ma sok fényképet készített.",         cloze:"She ____ ______ (take) many photos today.",    answers:["has taken"],        variants:["She's taken"]},
+{id:"p5-18", tenseId:5, en:"We have visited Paris twice.",          hu:"Kétszer jártunk Párizsban.",           cloze:"We ____ ______ (visit) Paris twice.",          answers:["have visited"],     variants:["We've visited"]},
+{id:"p5-19", tenseId:5, en:"They have improved a lot recently.",    hu:"Mostanában sokat fejlődtek.",         cloze:"They ____ ______ (improve) a lot recently.",   answers:["have improved"],    variants:["They've improved"]},
+{id:"p5-20", tenseId:5, en:"The train has arrived.",                hu:"A vonat megérkezett.",                cloze:"The train ____ ______ (arrive).",              answers:["has arrived"],      variants:[]},
+
+// 6 Past perfect (20)
+{id:"p6-1",  tenseId:6, en:"I had finished before noon.",                hu:"Dél előtt befejeztem.",                     cloze:"I ____ ______ (finish) before noon.",                answers:["had finished"],  variants:[]},
+{id:"p6-2",  tenseId:6, en:"She had left when I arrived.",               hu:"Mire megérkeztem, ő elment.",               cloze:"She ____ ______ (leave) when I arrived.",            answers:["had left"],      variants:[]},
+{id:"p6-3",  tenseId:6, en:"They had studied a lot before the test.",    hu:"Sokat tanultak a dolgozat előtt.",          cloze:"They ____ ______ (study) a lot before the test.",   answers:["had studied"],   variants:[]},
+{id:"p6-4",  tenseId:6, en:"We had eaten by the time you called.",       hu:"Mire hívtál, ettünk.",                      cloze:"We ____ ______ (eat) by the time you called.",      answers:["had eaten"],     variants:[]},
+{id:"p6-5",  tenseId:6, en:"He had written the report earlier.",         hu:"Korábban megírta a jelentést.",             cloze:"He ____ ______ (write) the report earlier.",        answers:["had written"],   variants:[]},
+{id:"p6-6",  tenseId:6, en:"I had never seen that place before.",        hu:"Korábban sosem láttam azt a helyet.",       cloze:"I ____ ______ (see) that place before.",            answers:["had seen"],      variants:[]},
+{id:"p6-7",  tenseId:6, en:"She had finished when we came.",             hu:"Mire jöttünk, már befejezte.",              cloze:"She ____ ______ (finish) when we came.",            answers:["had finished"],  variants:[]},
+{id:"p6-8",  tenseId:6, en:"They had left by the time I arrived.",       hu:"Mire megérkeztem, már elmentek.",           cloze:"They ____ ______ (leave) by the time I arrived.",   answers:["had left"],      variants:[]},
+{id:"p6-9",  tenseId:6, en:"He had broken the glass before lunch.",      hu:"Ebéd előtt eltörte a poharat.",             cloze:"He ____ ______ (break) the glass before lunch.",    answers:["had broken"],    variants:[]},
+{id:"p6-10", tenseId:6, en:"We had packed everything before the trip.",  hu:"Az utazás előtt mindent bepakoltunk.",      cloze:"We ____ ______ (pack) everything before the trip.", answers:["had packed"],    variants:[]},
+{id:"p6-11", tenseId:6, en:"The bus had already gone when we got there.",hu:"Mire odaértünk, a busz már elment.",        cloze:"The bus ____ ______ (go) when we got there.",       answers:["had gone"],      variants:[]},
+{id:"p6-12", tenseId:6, en:"She had written the email earlier.",         hu:"Korábban megírta az e-mailt.",              cloze:"She ____ ______ (write) the email earlier.",        answers:["had written"],   variants:[]},
+{id:"p6-13", tenseId:6, en:"I had heard the news before you told me.",   hu:"Mielőtt elmondtad, már hallottam a hírt.",  cloze:"I ____ ______ (hear) the news before you told me.", answers:["had heard"],     variants:[]},
+{id:"p6-14", tenseId:6, en:"They had studied English for two years before they moved.", hu:"Két évig tanultak angolul, mielőtt elköltöztek.", cloze:"They ____ ______ (study) English for two years before they moved.", answers:["had studied"], variants:[]},
+{id:"p6-15", tenseId:6, en:"We had met once before that day.",           hu:"Aznap előtt egyszer már találkoztunk.",     cloze:"We ____ ______ (meet) once before that day.",       answers:["had met"],       variants:[]},
+{id:"p6-16", tenseId:6, en:"He had saved enough money to buy the car.",  hu:"Elég pénzt félretett, hogy megvegye az autót.", cloze:"He ____ ______ (save) enough money to buy the car.", answers:["had saved"], variants:[]},
+{id:"p6-17", tenseId:6, en:"The rain had stopped by evening.",           hu:"Estére elállt az eső.",                     cloze:"The rain ____ ______ (stop) by evening.",           answers:["had stopped"],   variants:[]},
+{id:"p6-18", tenseId:6, en:"She had cooked dinner before they arrived.", hu:"Megfőzte a vacsorát, mielőtt megérkeztek.",  cloze:"She ____ ______ (cook) dinner before they arrived.",answers:["had cooked"],    variants:[]},
+{id:"p6-19", tenseId:6, en:"I had read the book before the class.",      hu:"Az óra előtt elolvastam a könyvet.",        cloze:"I ____ ______ (read) the book before the class.",  answers:["had read"],      variants:[]},
+{id:"p6-20", tenseId:6, en:"They had built the bridge by 2010.",         hu:"2010-re felépítették a hidat.",             cloze:"They ____ ______ (build) the bridge by 2010.",     answers:["had built"],     variants:[]},
+
+// 7 Present perfect continuous (20)
+{id:"p7-1",  tenseId:7, en:"I have been studying for two hours.",           hu:"Két órája tanulok.",                   cloze:"I ____ ______ ______ (study) for two hours.",           answers:["have been studying"],  variants:["I've been studying"]},
+{id:"p7-2",  tenseId:7, en:"She has been working since 9.",                  hu:"9 óra óta dolgozik.",                  cloze:"She ____ ______ ______ (work) since 9.",                 answers:["has been working"],   variants:["She's been working"]},
+{id:"p7-3",  tenseId:7, en:"They have been waiting here all day.",          hu:"Egész nap itt várnak.",                cloze:"They ____ ______ ______ (wait) here all day.",          answers:["have been waiting"],  variants:["They've been waiting"]},
+{id:"p7-4",  tenseId:7, en:"We have been walking for miles.",               hu:"Mérföldeket gyaloglunk.",              cloze:"We ____ ______ ______ (walk) for miles.",               answers:["have been walking"],  variants:["We've been walking"]},
+{id:"p7-5",  tenseId:7, en:"It has been raining since morning.",            hu:"Reggel óta esik.",                      cloze:"It ____ ______ ______ (rain) since morning.",          answers:["has been raining"],   variants:["It's been raining"]},
+{id:"p7-6",  tenseId:7, en:"I have been working all morning.",              hu:"Egész délelőtt dolgozom.",             cloze:"I ____ ______ ______ (work) all morning.",             answers:["have been working"],  variants:["I've been working"]},
+{id:"p7-7",  tenseId:7, en:"She has been studying since Monday.",           hu:"Hétfő óta tanul.",                     cloze:"She ____ ______ ______ (study) since Monday.",         answers:["has been studying"],  variants:["She's been studying"]},
+{id:"p7-8",  tenseId:7, en:"They have been playing video games for hours.", hu:"Órák óta videojátékoznak.",             cloze:"They ____ ______ ______ (play) video games for hours.", answers:["have been playing"],  variants:["They've been playing"]},
+{id:"p7-9",  tenseId:7, en:"We have been waiting here for a long time.",    hu:"Régóta itt várunk.",                   cloze:"We ____ ______ ______ (wait) here for a long time.",    answers:["have been waiting"],  variants:["We've been waiting"]},
+{id:"p7-10", tenseId:7, en:"He has been learning English lately.",          hu:"Mostanában angolt tanul.",             cloze:"He ____ ______ ______ (learn) English lately.",         answers:["has been learning"],  variants:["He's been learning"]},
+{id:"p7-11", tenseId:7, en:"It has been snowing since dawn.",               hu:"Hajnal óta havazik.",                  cloze:"It ____ ______ ______ (snow) since dawn.",              answers:["has been snowing"],   variants:["It's been snowing"]},
+{id:"p7-12", tenseId:7, en:"You have been talking too fast.",               hu:"Túl gyorsan beszélsz mostanában.",     cloze:"You ____ ______ ______ (talk) too fast.",               answers:["have been talking"],  variants:[]},
+{id:"p7-13", tenseId:7, en:"I have been feeling better recently.",          hu:"Mostanában jobban érzem magam.",       cloze:"I ____ ______ ______ (feel) better recently.",          answers:["have been feeling"],  variants:["I've been feeling"]},
+{id:"p7-14", tenseId:7, en:"She has been practicing the piano all day.",    hu:"Egész nap zongorázik.",                cloze:"She ____ ______ ______ (practice) the piano all day.",  answers:["has been practicing"],variants:["She's been practicing"]},
+{id:"p7-15", tenseId:7, en:"They have been building a shed in the garden.", hu:"Fészert építenek a kertben.",          cloze:"They ____ ______ ______ (build) a shed in the garden.", answers:["have been building"],  variants:["They've been building"]},
+{id:"p7-16", tenseId:7, en:"We have been driving for three hours.",         hu:"Három órája vezetünk.",                 cloze:"We ____ ______ ______ (drive) for three hours.",        answers:["have been driving"],  variants:["We've been driving"]},
+{id:"p7-17", tenseId:7, en:"He has been reading that novel this week.",     hu:"Ezen a héten azt a regényt olvassa.",  cloze:"He ____ ______ ______ (read) that novel this week.",    answers:["has been reading"],   variants:["He's been reading"]},
+{id:"p7-18", tenseId:7, en:"The kids have been drawing pictures.",          hu:"A gyerekek rajzolnak.",                cloze:"The kids ____ ______ ______ (draw) pictures.",          answers:["have been drawing"],  variants:["They've been drawing"]},
+{id:"p7-19", tenseId:7, en:"You have been helping me a lot.",               hu:"Sokat segítesz mostanában.",           cloze:"You ____ ______ ______ (help) me a lot.",               answers:["have been helping"],  variants:[]},
+{id:"p7-20", tenseId:7, en:"It has been getting warmer lately.",            hu:"Mostanában egyre melegebb van.",       cloze:"It ____ ______ ______ (get) warmer lately.",            answers:["has been getting"],   variants:["It's been getting"]},
+
+// 8 Past perfect continuous (20)
+{id:"p8-1",  tenseId:8, en:"I had been reading for an hour when he arrived.",        hu:"Egy órája olvastam, amikor megérkezett.",          cloze:"I ____ ______ ______ (read) for an hour when he arrived.",        answers:["had been reading"],    variants:[]},
+{id:"p8-2",  tenseId:8, en:"She had been working all day before the break.",         hu:"Egész nap dolgozott a szünet előtt.",               cloze:"She ____ ______ ______ (work) all day before the break.",         answers:["had been working"],   variants:[]},
+{id:"p8-3",  tenseId:8, en:"They had been playing for two hours before it got dark.",hu:"Két órája játszottak, mielőtt besötétedett.",      cloze:"They ____ ______ ______ (play) for two hours before it got dark.",answers:["had been playing"],    variants:[]},
+{id:"p8-4",  tenseId:8, en:"We had been waiting a long time when the bus came.",     hu:"Sokáig vártunk, mire jött a busz.",                 cloze:"We ____ ______ ______ (wait) a long time when the bus came.",     answers:["had been waiting"],   variants:[]},
+{id:"p8-5",  tenseId:8, en:"He had been studying before the exam started.",          hu:"Tanult, mielőtt a vizsga kezdődött.",               cloze:"He ____ ______ ______ (study) before the exam started.",          answers:["had been studying"],  variants:[]},
+{id:"p8-6",  tenseId:8, en:"I had been working for hours when the power went out.",  hu:"Órák óta dolgoztam, amikor elment az áram.",        cloze:"I ____ ______ ______ (work) for hours when the power went out.",  answers:["had been working"],   variants:[]},
+{id:"p8-7",  tenseId:8, en:"She had been studying before the test started.",         hu:"A dolgozat előtt tanult.",                           cloze:"She ____ ______ ______ (study) before the test started.",         answers:["had been studying"],  variants:[]},
+{id:"p8-8",  tenseId:8, en:"They had been playing football when it began to rain.",  hu:"Fociztak, amikor eleredt az eső.",                   cloze:"They ____ ______ ______ (play) football when it began to rain.",  answers:["had been playing"],   variants:[]},
+{id:"p8-9",  tenseId:8, en:"We had been waiting for thirty minutes when the train finally arrived.", hu:"Harminc perce vártunk, amikor végre megérkezett a vonat.", cloze:"We ____ ______ ______ (wait) for thirty minutes when the train arrived.", answers:["had been waiting"], variants:[]},
+{id:"p8-10", tenseId:8, en:"He had been driving all night before he stopped.",       hu:"Egész éjjel vezetett, mielőtt megállt.",             cloze:"He ____ ______ ______ (drive) all night before he stopped.",      answers:["had been driving"],   variants:[]},
+{id:"p8-11", tenseId:8, en:"The children had been running around the yard.",         hu:"A gyerekek a kertben futkároztak.",                  cloze:"The children ____ ______ ______ (run) around the yard.",          answers:["had been running"],   variants:[]},
+{id:"p8-12", tenseId:8, en:"You had been talking for too long when the bell rang.",  hu:"Túl sokáig beszéltél, amikor megszólalt a csengő.",  cloze:"You ____ ______ ______ (talk) for too long when the bell rang.",  answers:["had been talking"],   variants:[]},
+{id:"p8-13", tenseId:8, en:"It had been snowing for hours before it cleared up.",    hu:"Órák óta havazott, mielőtt kiderült az ég.",         cloze:"It ____ ______ ______ (snow) for hours before it cleared up.",    answers:["had been snowing"],   variants:[]},
+{id:"p8-14", tenseId:8, en:"She had been working at the company for five years before she left.", hu:"Öt évig dolgozott a cégnél, mielőtt elment.", cloze:"She ____ ______ ______ (work) at the company for five years before she left.", answers:["had been working"], variants:[]},
+{id:"p8-15", tenseId:8, en:"They had been building the house for months before winter came.", hu:"Hónapok óta építették a házat, mielőtt jött a tél.", cloze:"They ____ ______ ______ (build) the house for months before winter came.", answers:["had been building"], variants:[]},
+{id:"p8-16", tenseId:8, en:"We had been living in Budapest for a year before we moved.", hu:"Egy évig éltünk Budapesten, mielőtt elköltöztünk.", cloze:"We ____ ______ ______ (live) in Budapest for a year before we moved.", answers:["had been living"], variants:[]},
+{id:"p8-17", tenseId:8, en:"He had been reading for a while when he fell asleep.",   hu:"Egy ideje olvasott, amikor elaludt.",                 cloze:"He ____ ______ ______ (read) for a while when he fell asleep.",   answers:["had been reading"],   variants:[]},
+{id:"p8-18", tenseId:8, en:"I had been learning French before I switched to German.",hu:"Franciát tanultam, mielőtt németre váltottam.",      cloze:"I ____ ______ ______ (learn) French before I switched to German.", answers:["had been learning"],  variants:[]},
+{id:"p8-19", tenseId:8, en:"They had been repairing the road all week.",             hu:"Egész héten az utat javították.",                     cloze:"They ____ ______ ______ (repair) the road all week.",             answers:["had been repairing"], variants:[]},
+{id:"p8-20", tenseId:8, en:"She had been practicing yoga before the class began.",   hu:"Jógázott, mielőtt az óra elkezdődött.",               cloze:"She ____ ______ ______ (practice) yoga before the class began.",  answers:["had been practicing"],variants:[]},];
+
+
+
+  // ---------------------- Helpers ----------------------
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const go = (hash) => { location.hash = hash; };
+
+  function showScreen(id){
+    ["#home","#igy-kepezd","#hianyzik","#donts","#fordits"].forEach(s=>$(s).classList.add('hidden'));
+    $(id).classList.remove('hidden');
+    window.scrollTo({top:0,behavior:'smooth'});
+    if(id==="#igy-kepezd") IgyGame.renderTenseButtons();
+    if(id==="#hianyzik") ClozeGame.next();
+    if(id==="#donts") ChooseGame.start();
+    if(id==="#fordits") TrGame.next();
+  }
+  window.addEventListener('hashchange',()=>{
+    const id = location.hash || '#home';
+    showScreen(id);
+  });
+
+  // string helpers
+  const normalize = s => s.toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').trim();
+  // expand common contractions to compare with non‑contracted expected
+  function expandContractions(s){
+    return s
+      .replace(/\bi\s*'m\b/g,"i am")
+      .replace(/\byou\s*'re\b/g,"you are")
+      .replace(/\bhe\s*'s\b/g,"he is")
+      .replace(/\bshe\s*'s\b/g,"she is")
+      .replace(/\bit\s*'s\b/g,"it is")
+      .replace(/\bwe\s*'re\b/g,"we are")
+      .replace(/\bthey\s*'re\b/g,"they are")
+      .replace(/\bi\s*'ve\b/g,"i have")
+      .replace(/\bhe\s*'s\b/g,(m)=>m) // avoid double replacing; handled above
+      .replace(/\bshe\s*'s\b/g,(m)=>m)
+      .replace(/\bwe\s*'ve\b/g,"we have")
+      .replace(/\bthey\s*'ve\b/g,"they have")
+      .replace(/\byou\s*'ve\b/g,"you have")
+      .replace(/\bthere\s*'s\b/g,"there is")
+    ;
+  }
+
+  function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+  function shuffle(a){const x=[...a]; for(let i=x.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]];} return x}
+
+  // -------------- Conjugation for Így képezd --------------
+  const SUBJECTS = ["I","You","He","She","It","We","They"];
+  const VERBS = ["read","go","play","study","watch","write","eat","drive","work","swim","run","make","take","see","visit","call","help","cook","listen","open"];
+  const TIME_HINTS = {
+    1:["every day","on Mondays","often","usually"],
+    2:["yesterday","last night","in 2019","two days ago"],
+    3:["now","at the moment","today"],
+    4:["at 5 o'clock yesterday","when you called","while it was snowing"],
+    5:["already","just","since 2020","for two hours"],
+    6:["by the time you arrived","before lunch"],
+    7:["for three hours","since morning","lately"],
+    8:["for two hours before…","by the time he came"]
+  };
+
+  function thirdPersonS(v){
+    if(v==="have") return "has";
+    if(/(ch|sh|x|s|z|o)$/.test(v)) return v+"es";
+    if(/[^aeiou]y$/.test(v)) return v.slice(0,-1)+"ies";
+    return v+"s";
+  }
+  function ingForm(v){
+    if(v==="be") return "being";
+    if(v.endsWith("ie")) return v.slice(0,-2)+"ying"; // die->dying
+    if(v.endsWith("e") && !/(ee|ye|oe|se)$/.test(v)) return v.slice(0,-1)+"ing"; // make->making, see->seeing exception via (ee)
+    if(["run","swim","shop","plan","sit"].includes(v)) return v+v.slice(-1)+"ing"; // simple CVC set
+    return v+"ing";
+  }
+  function pastSimple(v){ if(IRREG[v]) return IRREG[v].past; if(/e$/.test(v)) return v+"d"; if(/[^aeiou]y$/.test(v)) return v.slice(0,-1)+"ied"; return v+"ed"; }
+  function pastParticiple(v){ if(IRREG[v]) return IRREG[v].pp; if(/e$/.test(v)) return v+"d"; if(/[^aeiou]y$/.test(v)) return v.slice(0,-1)+"ied"; return v+"ed"; }
+  function bePresent(subj){subj=subj.toLowerCase(); if(subj==="i") return "am"; if(["you","we","they"].includes(subj)) return "are"; return "is"; }
+  function haveAux(subj){ return ["he","she","it"].includes(subj.toLowerCase())?"has":"have"; }
+
+  function buildSentence(tenseId, subj, verb, hint){
+    const s = subj; const v = verb;
+    const lowerS = s.toLowerCase();
+    let sentence = '';
+    switch(tenseId){
+      case 1: { // simple present
+        const pred = (["he","she","it"].includes(lowerS)) ? thirdPersonS(v) : v;
+        sentence = `${s} ${pred} ${extraObject(v,tenseId)}.`; break;
+      }
+      case 2: { // simple past
+        sentence = `${s} ${pastSimple(v)} ${extraObject(v,tenseId)}.`; break;
+      }
+      case 3: { // present continuous
+        sentence = `${s} ${bePresent(s)} ${ingForm(v)} ${timeWord(hint)}.`; break;
+      }
+      case 4: { // past continuous
+        const was = (["i","he","she","it"].includes(lowerS))?"was":"were";
+        sentence = `${s} ${was} ${ingForm(v)} ${timeWord(hint)}.`; break;
+      }
+      case 5: { // present perfect
+        sentence = `${s} ${haveAux(s)} ${pastParticiple(v)} ${timeWord(hint)}.`; break;
+      }
+      case 6: { // past perfect
+        sentence = `${s} had ${pastParticiple(v)} ${timeWord(hint)}.`; break;
+      }
+      case 7: { // present perfect continuous
+        sentence = `${s} ${haveAux(s)} been ${ingForm(v)} ${timeWord(hint)}.`; break;
+      }
+      case 8: { // past perfect continuous
+        sentence = `${s} had been ${ingForm(v)} ${timeWord(hint)}.`; break;
+      }
+    }
+    return sentence.replace(/\s+/g,' ').replace(/ \./g,'.');
+  }
+  function timeWord(hint){ return hint?hint:''.trim(); }
+  function extraObject(v,tenseId){
+    const objMap = {
+      read:"a book",
+      go:"to school",
+      play:"football",
+      study:"maths",
+      watch:"a film",
+      write:"an email",
+      eat:"breakfast",
+      drive:"home",
+      work:"in the office",
+      swim:"in the pool",
+      run:"in the park",
+      make:"dinner",
+      take:"the bus",
+      see:"the doctor",
+      visit:"London",
+      call:"my friend",
+      help:"my parents",
+      cook:"dinner",
+      listen:"to music",
+      open:"the window"
+    };
+    let end = objMap[v]||"";
+    if(tenseId===2 && end && Math.random()<0.5) end += " yesterday";
+    return end;
+  }
+
+  // ---------------------- Cheat sheet render ----------------------
+  function renderCheat(){
+    const wrap = $('#cheatContent');
+    wrap.innerHTML = CHEAT.map(c=>`
+      <div class="cs-item">
+        <h3><span class="tense-num">${c.num})</span> ${c.nameEn} <span class="muted">(${c.nameHu})</span></h3>
+        <p><strong>Képzés (EN):</strong> ${c.formEn ?? ''}</p>
+        <p><strong>Képzés (HU):</strong> ${c.formHu}</p>
+        <p><strong>Jelzőszavak:</strong> <span class="muted">${c.signalsEn}</span> <span class="muted">/ ${c.signalsHu}</span></p>
+        ${c.examples.map(ex=>`<p>• <em>${ex.en}</em> — ${ex.hu}</p>`).join('')}
+      </div>
+    `).join('');
+  }
+
+  // ---------------------- a) Így képezd ----------------------
+  const IgyGame = {
+    currentTense: null,
+    queue: [],
+    current: null,
+    init(){ this.renderTenseButtons(); },
+    renderTenseButtons(){
+      const grid = $('#igyTenseGrid');
+      grid.innerHTML = TENSES.map(t=>`<button class=\"btn\" onclick=\"IgyGame.open(${t.id})\"><span class=\"tense-num\">${t.num})</span> ${t.en} <span class=\"muted\">(${t.hu})</span></button>`).join('');
+      $('#igyPanel').classList.add('hidden');
+    },
+    open(id){
+      this.currentTense = id;
+      const t = TENSES.find(x=>x.id===id);
+      $('#igyTitle').innerHTML = `<span class=\"tense-num\">${t.num})</span> ${t.en} <span class=\"muted\">(${t.hu})</span>`;
+      $('#igyPanel').classList.remove('hidden');
+      this.queue = shuffle(INV.filter(x=>x.tenseId===id).map(x=>x.id));
+      this.next();
+    },
+    backToTenseList(){ this.renderTenseButtons(); },
+    ensureQueue(){ if(this.queue.length===0){ this.queue = shuffle(INV.filter(x=>x.tenseId===this.currentTense).map(x=>x.id)); } },
+    next(){
+      this.ensureQueue();
+      const id = this.queue.pop();
+      this.current = INV.find(x=>x.id===id);
+      $('#igyHu').textContent = this.current.hu;
+      $('#igyEnCloze').innerHTML = this.current.cloze;
+      $('#igyInput').value = '';
+      $('#igyFeedback').textContent = '';
+      Stats.bumpView('igy');
+      this.renderStats();
+    },
+    check(){
+      const input = normalize($('#igyInput').value);
+      if(!input) return;
+      const okSet = [
+  ...this.current.answers.map(normalize),
+  ...((this.current.variants || []).map(v => normalize(v.replace(/’/g, "'"))))
+];
+      if(okSet.includes(input)){
+        $('#igyFeedback').innerHTML = `<span class=\"ok\">Mr. Susu says: Well done!</span>`;
+        Stats.bumpCorrect('igy');
+      }else{
+        $('#igyFeedback').innerHTML = `<span class=\"bad\">Mr. Susu believes in you, try again!</span>`;
+      }
+      Stats.bumpAttempt('igy');
+      this.renderStats();
+    },
+    showSolution(){ $('#igyFeedback').innerHTML = `<span class=\"muted\">Megoldás:</span> <strong>${this.current.en}</strong>`; },
+    renderStats(){ const s = Stats.get('igy'); $('#igyStats').textContent = `Próbálkozások: ${s.attempts} · Helyes: ${s.correct}`; }
+  };
+
+  // ---------------------- b) Cloze game ----------------------
+  const ClozeGame = {
+    idx: -1,
+    queue: [],
+    current: null,
+    ensureQueue(){ if(this.queue.length===0){ this.queue = shuffle(INV.map(x=>x.id)); } },
+    next(){ this.ensureQueue(); const id = this.queue.pop(); this.current = INV.find(x=>x.id===id); this.render(); Stats.bumpView('cloze'); this.renderStats(); },
+    render(){
+      $('#clozeHu').textContent = this.current.hu;
+      $('#clozeEn').innerHTML = this.current.cloze;
+      const t = TENSES.find(t=>t.id===this.current.tenseId);
+      $('#clozeMeta').textContent = `Véletlen igeidő – ${t.num}..`; // tense hidden in task
+      $('#clozeInput').value = '';
+      $('#clozeFeedback').textContent = '';
+    },
+    check(){
+      const input = normalize($('#clozeInput').value);
+      if(!input) return;
+      const okSet = [
+  ...this.current.answers.map(normalize),
+  ...((this.current.variants || []).map(v => normalize(v.replace(/’/g, "'"))))
+];
+      if(okSet.includes(input)){
+        $('#clozeFeedback').innerHTML = `<span class="ok">Mr. Susu says: Well done!</span>`;
+        Stats.bumpCorrect('cloze');
+      }else{
+        $('#clozeFeedback').innerHTML = `<span class="bad">Mr. Susu believes in you, try again!</span>`;
+      }
+      Stats.bumpAttempt('cloze');
+      this.renderStats();
+    },
+    renderStats(){ const s=Stats.get('cloze'); $('#clozeStats').textContent = `Próbálkozások: ${s.attempts} · Helyes: ${s.correct}`; }
+  };
+
+  // ---------------------- c) Choose tense ----------------------
+  const ChooseGame = {
+    current:null, count:0,
+    start(){ this.count=0; this.next(); this.renderButtons(); },
+    renderButtons(){
+      const wrap = $('#chooseButtons');
+      wrap.innerHTML = TENSES.map(t=>`<button class="btn" onclick="ChooseGame.pick(${t.id})"><span class="tense-num">${t.num})</span> ${t.en}</button>`).join('');
+    },
+    next(){ this.current = pick(INV); $('#chooseHu').textContent = this.current.hu; $('#chooseEnSample').textContent = this.current.en; $('#chooseFeedback').textContent=''; this.count++; $('#chooseCounter').textContent = `Feladat #${this.count}`; Stats.bumpView('choose'); },
+    pick(id){ if(id===this.current.tenseId){ $('#chooseFeedback').innerHTML = `<span class="ok">Mr. Susu says: Well done!</span>`; Stats.bumpCorrect('choose'); setTimeout(()=>this.next(),650); } else { $('#chooseFeedback').innerHTML = `<span class="bad">Próbáld újra!</span>`; } Stats.bumpAttempt('choose'); }
+  };
+
+  // ---------------------- d) Translate ----------------------
+  const TrGame = {
+    current:null, done:0,
+    next(){ this.current = pick(INV); $('#trHu').textContent = this.current.hu; $('#trInput').value=''; $('#trModelWrap').classList.add('hidden'); $('#trModel').textContent=''; this.done++; this.renderStats(); Stats.bumpView('tr'); },
+    showModel(){ $('#trModel').textContent = this.current.en; $('#trModelWrap').classList.remove('hidden'); },
+    renderStats(){ $('#trStats').textContent = `Kész feladatok: ${this.done}`; }
+  };
+
+  // ---------------------- Stats (localStorage) ----------------------
+  const Stats = {
+    get(key){ const raw = localStorage.getItem('susu-stats-'+key); return raw?JSON.parse(raw):{views:0, attempts:0, correct:0}; },
+    set(key,val){ localStorage.setItem('susu-stats-'+key, JSON.stringify(val)); },
+    bumpView(key){ const s=this.get(key); s.views++; this.set(key,s); },
+    bumpAttempt(key){ const s=this.get(key); s.attempts++; this.set(key,s); },
+    bumpCorrect(key){ const s=this.get(key); s.correct++; this.set(key,s); }
+  };
+
+  // ---------------------- Cheat sheet wiring ----------------------
+  $('#cheatToggle').addEventListener('click',()=>{ $('#cheatModal').classList.add('active'); $('#cheatModal').setAttribute('aria-hidden','false'); });
+  $('#cheatClose').addEventListener('click',()=>{ $('#cheatModal').classList.remove('active'); $('#cheatModal').setAttribute('aria-hidden','true'); });
+
+  // ---------------------- Boot ----------------------
+  renderCheat();
+  if(!location.hash) location.hash = '#home';
+  showScreen(location.hash || '#home');
+  </script>
+</body>
+</html>

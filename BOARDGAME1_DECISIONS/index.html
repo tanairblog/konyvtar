@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Decision-Making Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome for the board peg icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom Styles for a Board Game Feel */
+        :root {
+            --color-bg: #FFF7ED; /* Soft Off-White/Cream */
+            --color-primary: #FDBA74; /* Soft Orange */
+            --color-secondary: #FEF3C7; /* Pale Yellow */
+            --color-text: #44403C; /* Dark Brown/Charcoal */
+            --color-success: #34D399; /* Green */
+            --color-failure: #F87171; /* Red */
+            --board-square-size: 50px; /* Base size for squares */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            transition: all 0.5s ease;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.15);
+        }
+        .choice-button {
+            transition: all 0.2s;
+        }
+        .choice-button:hover {
+            background-color: #F97316; /* Deeper Orange */
+            transform: scale(1.02);
+        }
+        .score-box {
+            background-color: var(--color-primary);
+            border-radius: 9999px; /* Pill shape */
+            padding: 8px 16px;
+            font-weight: 800;
+            color: white;
+            min-width: 120px;
+            text-align: center;
+        }
+        /* Style for positive/negative results */
+        .positive-result {
+            background-color: #DCFCE7; /* Pale Green */
+            color: #15803D; /* Dark Green */
+        }
+        .negative-result {
+            background-color: #FEE2E2; /* Pale Red */
+            color: #B91C1C; /* Dark Red */
+        }
+        .neutral-result {
+            background-color: #F3F4F6; /* Light Gray */
+            color: #4B5563; /* Dark Gray */
+        }
+        
+        /* --- BOARD STYLES --- */
+        #game-board-container {
+            border: 4px solid var(--color-text);
+            background-color: #A3A3A3; /* Dark gray track background */
+            position: relative;
+            padding: 8px;
+            overflow-x: auto;
+            border-radius: 1rem;
+        }
+        #game-board {
+            display: grid;
+            /* Create 26 columns (0 to 25) */
+            grid-template-columns: repeat(26, var(--board-square-size));
+            grid-auto-rows: var(--board-square-size);
+            gap: 4px;
+            position: relative;
+            padding: 0;
+            min-width: calc(26 * var(--board-square-size) + 25 * 4px); /* Ensure it spans all squares */
+        }
+        .board-square {
+            width: var(--board-square-size);
+            height: var(--board-square-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--color-text);
+            border-radius: 0.5rem;
+            background-color: var(--color-secondary); /* Pale Yellow */
+            position: relative;
+            z-index: 10;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .board-square:nth-child(5n + 1) {
+            background-color: var(--color-primary); /* Highlight every 5th square */
+            color: white;
+        }
+        .board-square:first-child {
+            background-color: var(--color-success); /* Start square */
+            color: white;
+        }
+        .board-square:last-child {
+            background-color: #EF4444; /* Max square - red for caution/end */
+            color: white;
+        }
+
+        /* Player Token Peg */
+        #player-token {
+            position: absolute;
+            top: 50%;
+            /* transform: translate(-50%, -50%) centers the peg. We only need to adjust the X position */
+            transform: translate(0, -50%); /* Start with no X offset */
+            width: 30px;
+            height: 30px;
+            background-color: #4F46E5; /* Indigo */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            z-index: 20;
+            transition: transform 0.8s ease-in-out; /* Smooth movement animation */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 3px solid white;
+        }
+        
+        /* Media query to adjust layout for larger screens */
+        @media (min-width: 1024px) {
+            #main-content-layout {
+                grid-template-columns: 2fr 1fr; /* Decision card wider than board */
+                gap: 2rem;
+            }
+        }
+    </style>
+    <script>
+        // --- GAME DATA ---
+        const gameData = [
+            {
+                scenario: "On your way home you bump into an old friend of yours in the underground. You had a row and haven’t talked to each other for 4 years. Here is a chance to become friends again. Do you...",
+                choices: [
+                    {
+                        text: "Stop and start a conversation to patch things up?",
+                        result: "Well done, you made a good choice! You ended up in a pub talking about good old times and having a great time. You had a wonderful evening.",
+                        move: 2,
+                        moveText: "Move +2 Squares"
+                    },
+                    {
+                        text: "Just say 'Hello' quickly and keep walking?",
+                        result: "You walked on and started thinking about the row you had 4 years ago. You realised you don’t even remember what the problem was and you feel sorry you missed the chance to talk to them. You couldn’t sleep well.",
+                        move: 0,
+                        moveText: "Stay Where You Are (0)"
+                    }
+                ]
+            },
+            {
+                scenario: "You fell in love with your best friend’s girlfriend/boyfriend. You know that your best friend doesn’t really love him/her. But you do! Your best friend is your best friend, however... Do you...",
+                choices: [
+                    {
+                        text: "Keep your feelings to yourself and never tell either of them?",
+                        result: "Oh, you tried your best, but your feelings were stronger. You were talking to the person and all of a sudden you told them about your feelings. S/he was shocked at first, but then s/he said s/he felt the same way. You started going out, but you lost your best friend.",
+                        move: 1,
+                        moveText: "Move +1 Square"
+                    },
+                    {
+                        text: "Tell your best friend the truth and see how s/he feels about it?",
+                        result: "Your best friend was shocked and disappointed at first, but then s/he said it was not your fault. So, in the end you had a new partner and you still have your best friend. Excellent choice!",
+                        move: 3,
+                        moveText: "Move +3 Squares"
+                    }
+                ]
+            },
+            {
+                scenario: "You are offered a scholarship to study abroad for 1 year. You would really like to go, but your parents and friends try to talk you out of it. Do you...",
+                choices: [
+                    {
+                        text: "Listen to them and give up the scholarship?",
+                        result: "From that time on, you felt you had lost something. You are always thinking about what could have happened if you had gone there. Your family and friends try to help, but you feel depressed.",
+                        move: -1,
+                        moveText: "Move -1 Square (Setback)"
+                    },
+                    {
+                        text: "Go anyway?",
+                        result: "The school was really good, but you missed your family and friends so much! You felt lonely and couldn’t wait to go back home. You are sorry you took the scholarship.",
+                        move: 0,
+                        moveText: "Stay Where You Are (0)"
+                    }
+                ]
+            },
+            {
+                scenario: "You feel you don’t have many friends and you would like the others to like you more. Do you...",
+                choices: [
+                    {
+                        text: "Start to make a lot of jokes all the time hoping that people will think you’re funny?",
+                        result: "The jokes were really funny and many people found them amusing. However, others thought that you have become too loud. All in all, the strategy paid off.",
+                        move: 1,
+                        moveText: "Move +1 Square"
+                    },
+                    {
+                        text: "Start a new sport and hope to meet new friends there?",
+                        result: "Great idea! You have made a lot of new friends and you feel really happy! Great choice!",
+                        move: 2,
+                        moveText: "Move +2 Squares"
+                    }
+                ]
+            },
+            {
+                scenario: "You had a terrible row with your parents and you feel you can’t take it any more. Do you...",
+                choices: [
+                    {
+                        text: "Decide to leave home and live with some friends?",
+                        result: "You realised that you needed some money to live away from your parents, so you started a part-time job. As a result, you were always tired and couldn’t concentrate on your studies.",
+                        move: 0,
+                        moveText: "Stay Where You Are (0)"
+                    },
+                    {
+                        text: "Decide to give your parents a good telling off?",
+                        result: "Your parents were quite shocked, but surprisingly, they saw your point of view and promised to listen to you more. Excellent decision!",
+                        move: 3,
+                        moveText: "Move +3 Squares"
+                    }
+                ]
+            },
+            {
+                scenario: "You have been feeling really tired recently, you don’t feel like studying, all you want to do is sleep. Do you...",
+                choices: [
+                    {
+                        text: "Decide to take a week off and have some rest?",
+                        result: "You relaxed a lot, but it meant that later you had to work even harder to make up for the time lost. So, you became even more stressed.",
+                        move: 0,
+                        moveText: "Stay Where You Are (0)"
+                    },
+                    {
+                        text: "Decide to start drinking more coffee and work even harder so that you can rest in the summer?",
+                        result: "It worked! You could overcome your tiredness and were able to work more and harder, passing all your tests. You were lucky and could relax in the spring break.",
+                        move: 2,
+                        moveText: "Move +2 Squares"
+                    }
+                ]
+            },
+            {
+                scenario: "You get on a bus and sit next to an incredibly attractive boy/girl. Do you...",
+                choices: [
+                    {
+                        text: "Imagine it would be nice to talk to him/her but keep on reading your physics book?",
+                        result: "You should really be more self-confident. You missed a potential opportunity.",
+                        move: 0,
+                        moveText: "Stay Where You Are (0)"
+                    },
+                    {
+                        text: "Smile at him/her and try to start a conversation?",
+                        result: "Way to go! Go ahead, make friendships, meet people and enjoy yourself. Good choice!",
+                        move: 1,
+                        moveText: "Move +1 Square"
+                    }
+                ]
+            },
+            {
+                scenario: "You have a difficult chemistry test tomorrow. Your friends ask you to go with them to a great concert. Do you...",
+                choices: [
+                    {
+                        text: "Stay at home and prepare for the test?",
+                        result: "Wrong choice! You couldn't study, kept thinking about the concert, and wasted 3 completely useless hours looking at the book and your notes.",
+                        move: -2,
+                        moveText: "Move -2 Squares (Major Setback)"
+                    },
+                    {
+                        text: "Go to the concert trying to enjoy yourself?",
+                        result: "Wrong choice! You felt really stressed out during the concert and regretted not having stayed at home to prepare for the test.",
+                        move: -2,
+                        moveText: "Move -2 Squares (Major Setback)"
+                    }
+                ]
+            },
+            {
+                scenario: "You haven’t done your English homework. You know the teacher is going to be angry. Do you...",
+                choices: [
+                    {
+                        text: "Try and be funny about it? The shortest distance between two people is a joke.",
+                        result: "Not quite the right choice. Your teacher doesn’t appreciate your sense of humour and thinks you don’t care about the homework. You get a 1.",
+                        move: -1,
+                        moveText: "Move -1 Square (Setback)"
+                    },
+                    {
+                        text: "Decide to be honest about it and promise to do some extra work to make up for it?",
+                        result: "Excellent choice. Your teacher understands now that you are honest. S/he is not angry and you even got a 5 for being ready to do extra work!",
+                        move: 1,
+                        moveText: "Move +1 Square"
+                    }
+                ]
+            },
+            {
+                scenario: "You would like to buy a new guitar, but you don’t have enough money. Do you...",
+                choices: [
+                    {
+                        text: "Decide to find some work at the weekends and during the summer?",
+                        result: "Are you sure this was a good decision? All your weekends are busy now; you don’t even have time to study, so you never get to play the guitar. Your parents said you can’t play as your marks are bad. This is a vicious circle.",
+                        move: -3,
+                        moveText: "Move -3 Squares (Critical Setback)"
+                    },
+                    {
+                        text: "Ask your parents to give you the money you need?",
+                        result: "Well done! Your parents said you can play the guitar provided you do all the homework and get good marks. This pays off as you have a chance of becoming a really good guitar player.",
+                        move: 2,
+                        moveText: "Move +2 Squares"
+                    }
+                ]
+            }
+        ];
+
+        let currentStep = 0;
+        let currentScore = 0;
+        const maxSquares = 25; // Board goes from 0 to 25
+        let isGameActive = true;
+        let choiceMade = false; 
+
+        // Element variables declared globally but initialized later
+        let elScenario, elChoices, elScore, elStepCounter, elCard, elResultBox, elMainContent, elIntro, elConclusion, elResultText, elResultMove, elContinueButton, elPlayerToken, elBoardContainer;
+
+        // Function to initialize DOM elements
+        function initializeElements() {
+            elScenario = document.getElementById('scenario-text');
+            elChoices = document.getElementById('choices-container');
+            elScore = document.getElementById('current-score');
+            elStepCounter = document.getElementById('step-counter');
+            elCard = document.getElementById('game-card');
+            elResultBox = document.getElementById('result-box');
+            elMainContent = document.getElementById('main-content');
+            elIntro = document.getElementById('intro-screen');
+            elConclusion = document.getElementById('conclusion-screen');
+            elResultText = document.getElementById('result-text');
+            elResultMove = document.getElementById('result-move');
+            elContinueButton = document.getElementById('continue-button'); 
+            elPlayerToken = document.getElementById('player-token');
+            elBoardContainer = document.getElementById('game-board-container');
+            
+            createBoardSquares(); // Call board creation on init
+        }
+
+        // Creates the squares (0 to 25) for the visualization
+        function createBoardSquares() {
+            const board = document.getElementById('game-board');
+            if (!board) return;
+            for (let i = 0; i <= maxSquares; i++) {
+                const square = document.createElement('div');
+                square.className = 'board-square';
+                square.textContent = i;
+                square.id = `square-${i}`;
+                board.appendChild(square);
+            }
+        }
+
+        // Moves the player token visually on the board
+        function moveToken(newScore) {
+            // Clamp the score to ensure it stays within the board boundaries (0 to maxSquares)
+            const clampedScore = Math.max(0, Math.min(newScore, maxSquares));
+            
+            // Define fixed values matching CSS
+            const squareWidth = 50; 
+            const gap = 4;
+            const stepDistance = squareWidth + gap;
+            const pegOffset = 30 / 2; // Half the peg width (30px)
+
+            // The target X position is the start of the square (clampedScore * stepDistance) 
+            // PLUS half the square width (squareWidth / 2)
+            // MINUS the peg's own offset (pegOffset) to center it perfectly.
+            const newX = (clampedScore * stepDistance) + (squareWidth / 2) - pegOffset;
+
+            // FIX: Use the calculated newX to position the token
+            elPlayerToken.style.transform = `translateX(${newX}px) translateY(-50%)`;
+            
+            // Auto-scroll the board container to keep the token in view
+            if (elBoardContainer) {
+                // Scroll to keep the token visible, centering the scroll view on the token's position
+                elBoardContainer.scrollLeft = Math.max(0, newX - elBoardContainer.clientWidth / 2 + pegOffset);
+            }
+            
+            // Update the actual game score after movement animation finishes
+            setTimeout(() => {
+                currentScore = clampedScore;
+                elScore.textContent = currentScore;
+            }, 800); // Match CSS transition time
+        }
+        
+        // --- GAME LOGIC ---
+
+        function updateUI() {
+            if (!elScore || !elStepCounter || !elScenario || !elChoices || !elContinueButton) return; 
+
+            elScore.textContent = currentScore; // Display the current score immediately
+
+            if (currentStep < gameData.length) {
+                // Display the current step
+                elStepCounter.textContent = `${currentStep + 1} / ${gameData.length}`;
+                const step = gameData[currentStep];
+                elScenario.innerHTML = `
+                    <div class="text-3xl font-extrabold text-gray-700 mb-4">${currentStep + 1}.</div>
+                    <p class="text-xl md:text-2xl font-semibold">${step.scenario}</p>
+                `;
+                renderChoices(step.choices);
+            } else {
+                endGame();
+            }
+        }
+
+        function renderChoices(choices) {
+            if (!elChoices || !elResultBox || !elContinueButton) return; 
+
+            choiceMade = false; 
+            elContinueButton.classList.add('hidden'); 
+            elChoices.classList.remove('pointer-events-none', 'opacity-50'); 
+            elResultBox.classList.add('hidden'); 
+
+            elChoices.innerHTML = choices.map((choice, index) => `
+                <button
+                    onclick="handleChoice(${index})"
+                    class="choice-button w-full p-4 md:p-6 bg-orange-500 text-white text-lg font-bold rounded-xl card-shadow hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-300 transition duration-150 ease-in-out"
+                >
+                    <span class="mr-3 font-extrabold text-2xl">${index === 0 ? 'A' : 'B'}</span>
+                    ${choice.text}
+                </button>
+            `).join('');
+        }
+
+        function handleChoice(choiceIndex) {
+            if (!isGameActive || choiceMade || !elScore || !elChoices || !elResultBox || !elResultText || !elResultMove || !elContinueButton) return; 
+
+            choiceMade = true; 
+            
+            const step = gameData[currentStep];
+            const chosen = step.choices[choiceIndex];
+
+            const newScore = currentScore + chosen.move;
+
+            // 1. Trigger animated token movement
+            moveToken(newScore);
+
+            // 2. Determine result style
+            let resultClass = 'neutral-result';
+            if (chosen.move > 0) resultClass = 'positive-result';
+            else if (chosen.move < 0) resultClass = 'negative-result';
+
+            // 3. Show the result box
+            elResultText.textContent = chosen.result;
+            elResultMove.textContent = chosen.moveText;
+
+            elResultBox.className = `p-4 rounded-xl text-center card-shadow mt-6 ${resultClass}`;
+            elResultBox.classList.remove('hidden');
+
+            // 4. Show the Continue button 
+            elContinueButton.classList.remove('hidden');
+        }
+        
+        // Function to move to the next step (called by the continue button)
+        window.nextStep = function() {
+            if (!isGameActive || !choiceMade) return;
+            currentStep++;
+            updateUI();
+        }
+
+        function startGame() {
+            if (!elIntro || !elMainContent) {
+                console.error("DOM elements not initialized. Call initializeElements() first.");
+                return;
+            }
+            elIntro.classList.add('hidden');
+            elMainContent.classList.remove('hidden');
+            currentStep = 0;
+            currentScore = 0;
+            isGameActive = true;
+            moveToken(0); // Initialize token position at Square 0
+            updateUI();
+        }
+
+        function restartGame() {
+            if (!elConclusion) return;
+            elConclusion.classList.add('hidden');
+            startGame();
+        }
+
+        function getConclusionText() {
+            const score = currentScore;
+            let title, message, color;
+
+            if (score >= 18) {
+                title = "🎉 The Leader: Excellent! 🎉";
+                message = "You are excellent at making smart, balanced choices that benefit you and others. You choose actions that lead to **long-term happiness and success**.";
+                color = 'text-green-600';
+            } else if (score >= 10) {
+                title = "⭐ The Explorer: Well Done! ⭐";
+                message = "You often make good choices, but sometimes you take risks that don't pay off, or you miss opportunities. You are **still learning about the consequences** of big decisions.";
+                color = 'text-yellow-600';
+            } else {
+                title = "🧠 The Thinker: Good Effort! 🧠";
+                message = "You might have moved backward a few times, but that's okay! It means you are thoughtful, and your choices taught you an important lesson: **not every good idea works out perfectly in reality.**";
+                color = 'text-red-600';
+            }
+
+            return { title, message, color };
+        }
+
+        function endGame() {
+            if (!elMainContent || !elConclusion) return; // Guard
+
+            isGameActive = false;
+            elMainContent.classList.add('hidden');
+            elConclusion.classList.remove('hidden');
+
+            const result = getConclusionText();
+
+            document.getElementById('final-score').textContent = currentScore;
+            document.getElementById('conclusion-title').textContent = result.title;
+            document.getElementById('conclusion-message').innerHTML = result.message;
+            document.getElementById('conclusion-title').className = `text-3xl font-extrabold mb-4 ${result.color}`;
+        }
+        
+        window.onload = initializeElements;
+    </script>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex justify-center items-start">
+
+    <!-- Overall Game Container -->
+    <div class="w-full max-w-6xl">
+
+        <!-- Header / Scoreboard -->
+        <header class="flex justify-between items-center py-4 px-2 mb-6">
+            <div class="text-xl md:text-2xl font-bold text-gray-700">The Decision Game</div>
+            <div class="flex space-x-4 items-center">
+                <div class="text-lg font-semibold text-gray-700 hidden sm:block">Current Score:</div>
+                <div id="current-score" class="score-box text-2xl">0</div>
+            </div>
+        </header>
+
+        <!-- INTRO SCREEN -->
+        <section id="intro-screen" class="p-8 md:p-12 bg-white rounded-3xl card-shadow w-full">
+            <h1 class="text-4xl font-extrabold mb-6 text-gray-800">👋 Welcome to The Decision-Making Game!</h1>
+            <p class="text-lg mb-4 text-gray-600">Life is full of choices, and every choice has a consequence. In this game, you'll face **ten different real-life situations** and decide what to do.</p>
+            
+            <h2 class="text-2xl font-bold mt-8 mb-4 text-orange-600">How to Play:</h2>
+            <ul class="list-disc list-inside space-y-3 text-lg text-gray-700 ml-4">
+                <li>You start at **Square 0**.</li>
+                <li>For each situation, you must choose **A or B**.</li>
+                <li>Read the result of your choice.</li>
+                <li>The result will tell you how many squares to move:
+                    <ul class="list-none space-y-1 mt-2">
+                        <li class="font-semibold text-green-600">
+                            — **Move Forward** <span class="text-xl font-extrabold text-gray-900">(+):</span> Your choice had a positive result.
+                        </li>
+                        <li class="font-semibold text-red-600">
+                            — **Move Back** <span class="text-xl font-extrabold text-gray-900">(&minus;):</span> Your choice led to a negative result or setback.
+                        </li>
+                        <li class="font-semibold text-gray-500">
+                            — **Stay Where You Are** <span class="text-xl font-extrabold text-gray-900">(0):</span> Your action didn't help or hurt your progress.
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="text-center mt-10">
+                <button onclick="startGame()" class="px-8 py-4 bg-orange-500 text-white text-xl font-extrabold rounded-xl card-shadow hover:bg-orange-600 transition duration-200">
+                    Start Your Adventure!
+                </button>
+            </div>
+        </section>
+
+        <!-- MAIN GAME CONTENT -->
+        <main id="main-content" class="hidden">
+            
+            <!-- BOARD VISUALIZATION (Top section) -->
+            <div id="board-section" class="mb-8 lg:mb-10 w-full">
+                <h3 class="text-xl font-bold mb-4 text-gray-700">Game Board (Squares 0 - 25)</h3>
+                <div id="game-board-container">
+                    <div id="player-token"><i class="fas fa-shield-alt"></i></div>
+                    <div id="game-board">
+                        <!-- Squares are generated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="main-content-layout" class="grid lg:grid-cols-3 gap-8">
+                
+                <!-- DECISION CARD (Left/Center) -->
+                <div class="lg:col-span-2">
+                    <div id="game-card" class="p-6 md:p-10 bg-white rounded-3xl card-shadow w-full">
+
+                        <!-- Step Header -->
+                        <div class="flex justify-between items-center mb-6 border-b pb-4 border-orange-200">
+                            <h2 class="text-xl font-bold text-orange-600">Decision</h2>
+                            <div class="text-lg font-semibold text-gray-500">Step <span id="step-counter">1 / 10</span></div>
+                        </div>
+
+                        <!-- Scenario -->
+                        <div id="scenario-text" class="mb-8 min-h-[100px] text-gray-700">
+                            <!-- Scenario text inserted here by JS -->
+                        </div>
+
+                        <!-- Choices -->
+                        <div id="choices-container" class="space-y-4">
+                            <!-- Choice buttons inserted here by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESULTS / CONTINUE COLUMN (Right) -->
+                <div class="lg:col-span-1">
+                    <h3 class="text-xl font-bold mb-4 text-gray-700">Consequence</h3>
+                    <!-- Result Message Box (Initially Hidden) -->
+                    <div id="result-box" class="hidden transition duration-500 ease-in-out">
+                        <div class="p-6 rounded-2xl">
+                            <p id="result-text" class="text-xl mb-4 font-medium"></p>
+                            <p id="result-move" class="text-3xl font-extrabold"></p>
+                        </div>
+                    </div>
+
+                    <!-- Continue Button (Hidden until choice is made) -->
+                    <div class="text-center mt-6">
+                        <button id="continue-button" onclick="nextStep()" class="hidden w-full px-6 py-4 bg-green-500 text-white text-lg font-bold rounded-xl card-shadow hover:bg-green-600 transition duration-200">
+                            Continue to Next Decision →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- CONCLUSION SCREEN -->
+        <section id="conclusion-screen" class="hidden p-8 md:p-12 bg-white rounded-3xl card-shadow w-full text-center">
+            <h1 class="text-4xl font-extrabold mb-4 text-gray-800">🏁 Game Over!</h1>
+            <p class="text-xl text-gray-700 mb-6">You've finished all ten decision points. Your Final Score is:</p>
+            
+            <div id="final-score-display" class="my-8">
+                <span id="final-score" class="text-7xl font-extrabold text-orange-500 bg-orange-100 p-6 rounded-full inline-block min-w-[120px] shadow-lg">0</span>
+            </div>
+
+            <h2 id="conclusion-title" class="text-3xl font-extrabold mb-4"></h2>
+            <p id="conclusion-message" class="text-lg text-gray-600 mb-8"></p>
+            
+            <button onclick="restartGame()" class="px-8 py-4 bg-orange-500 text-white text-xl font-extrabold rounded-xl card-shadow hover:bg-orange-600 transition duration-200">
+                Play Again
+            </button>
+        </section>
+
+    </div>
+
+    <script>
+        // Initial setup on load
+        window.onload = initializeElements;
+    </script>
+</body>
+</html>

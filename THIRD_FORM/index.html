@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Irregular Verbs Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--primary-500:#F4A329;--primary-700:#B45309;--bg:#FFF7F2;--surface:#fff;--surface-alt:#F5F7FA;--border:#E6E9EF;--text:#1F2937;--text-2:#4B5563;--muted:#6B7280;--inverse:#fff;--shadow:0 8px 30px rgba(17,24,39,.10);--r:16px;--pill:9999px}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--text)}
+.container{max-width:1000px;margin:0 auto;padding:24px} h1{margin:0;font-size:32px;font-weight:700}
+.sub{color:var(--muted);font-size:13px} .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{cursor:pointer;border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:10px 14px;font-weight:600}
+.btn.warn{background:#F59F00;color:#fff} .btn.primary{background:var(--primary-700);color:#fff} .btn.ok{background:#2F9E44;color:#fff}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 16px} .tab{padding:10px 14px;border-radius:var(--pill);border:1px solid var(--border);background:var(--surface-alt);cursor:pointer;color:var(--text-2);font-weight:600}
+.tab.active{background:var(--primary-500);color:var(--inverse);border-color:transparent}
+.panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin-bottom:18px} .panel.active{display:block}
+.muted{color:var(--muted)} .small{font-size:12px} .pill{display:inline-flex;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--pill);background:rgba(244,163,41,.12);color:var(--text-2);font-size:13px}
+.input{padding:10px 12px;border:1px solid var(--border);border-radius:12px;min-width:220px}
+.flash-wrap{perspective:1100px;margin:12px 0} .flash-inner{position:relative;min-height:160px;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.flash-inner.flipped{transform:rotateY(180deg)} .face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;backface-visibility:hidden;border-radius:var(--r);background:linear-gradient(180deg,#fff,#fafbff);border:1px solid var(--border);box-shadow:var(--shadow);padding:28px}
+.face.back{transform:rotateY(180deg)} .front-text{font-size:24px;font-weight:700} .back-text{font-size:22px;color:var(--text-2)}
+.learn-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px} .learn-col{border:1px dashed var(--border);border-radius:12px;padding:14px;background:#fff;min-height:80px}
+.learn-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em} .learn-value{font-size:22px;font-weight:700;margin-top:6px} .learn-value .hu{font-size:15px;font-weight:600;color:var(--text-2)}
+.placeholder{display:inline-block;min-width:48px;border-bottom:2px dotted var(--border)} .empty{text-align:center;padding:20px;color:var(--text-2);background:linear-gradient(180deg,#fff,#fafafa);border:1px solid var(--border);border-radius:14px}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Irregular Verbs Trainer</h1>
+    <div class="sub">Practice the irregular verbs</div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn warn" id="reset-flash">Reset Flashcards</button>
+      <button class="btn warn" id="reset-learn">Reset Learn</button>
+      <button class="btn warn" id="reset-practice">Reset Practice</button>
+      <button class="btn warn" id="reset-translate">Reset Translate</button>
+      <button class="btn warn" id="reset-all">Reset All</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <div class="tab active" data-tab="flash">Flashcards</div>
+    <div class="tab" data-tab="learn">Learn</div>
+    <div class="tab" data-tab="practice">Practice</div>
+    <div class="tab" data-tab="translate">Translate</div>
+  </nav>
+
+  <section class="panel active" id="panel-flash">
+    <div class="row" style="justify-content:space-between">
+      <div class="muted">Cards remaining: <b id="flash-count">—</b></div>
+      <div class="muted">Known cards: <b id="known-count">0</b></div>
+    </div>
+    <div class="flash-wrap">
+      <div id="flash-inner" class="flash-inner">
+        <div class="face front"><div class="front-text" id="flash-front">—</div></div>
+        <div class="face back"><div class="back-text" id="flash-back">—</div></div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="flash-flip">Flip (F)</button>
+      <button class="btn ok" id="flash-know">Known (K)</button>
+      <button class="btn" id="flash-next">Next (R)</button>
+      <button class="btn" id="flash-skip">Skip</button>
+    </div>
+    <div class="small muted" style="margin-top:6px">Tip: click the card to flip it — with 3D animation.</div>
+  </section>
+
+  <section class="panel" id="panel-learn">
+    <div class="row" style="justify-content:space-between">
+      <span class="pill">Score: <b id="learn-score">0</b></span>
+      <span class="pill">Time: <b id="learn-timer">30</b></span>
+    </div>
+    <div style="margin-top:12px">
+      <div class="learn-grid">
+        <div class="learn-col"><div class="learn-label">Infinitive</div><div class="learn-value" id="learn-inf">—</div></div>
+        <div class="learn-col"><div class="learn-label">Past Simple</div><div class="learn-value" id="learn-past">—</div></div>
+        <div class="learn-col"><div class="learn-label">Past Participle</div><div class="learn-value" id="learn-part">—</div></div>
+      </div>
+      <div id="learn-feedback" class="small muted" style="margin-top:8px"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <input class="input" id="learn-input" placeholder="Missing form">
+      <button class="btn primary" id="learn-submit">Check</button>
+      <button class="btn" id="learn-pass">Next</button>
+      <button class="btn" id="learn-show">Solution</button>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-practice">
+    <div class="row" style="justify-content:space-between">
+      <span class="pill">Score: <b id="practice-score">0</b></span>
+      <span class="pill">Time: <b id="practice-timer">30</b></span>
+    </div>
+    <div id="practice-task" style="margin-top:12px"><div class="empty">Switch tabs to start.</div></div>
+    <div class="row" style="margin-top:12px">
+      <input class="input" id="practice-input" placeholder="3rd form (V3)">
+      <button class="btn primary" id="practice-submit">Check</button>
+      <button class="btn" id="practice-pass">Next</button>
+      <button class="btn" id="practice-show">Solution</button>
+    </div>
+    <div id="practice-feedback" class="small muted" style="margin-top:6px"></div>
+  </section>
+
+  <section class="panel" id="panel-translate">
+    <div class="row" style="justify-content:space-between">
+      <span class="pill">Score: <b id="translate-score">0</b></span>
+    </div>
+    <div id="translate-task" style="margin-top:12px"><div class="empty">Hungarian → English translation. No time limit.</div></div>
+    <div class="row" style="margin-top:12px">
+      <input class="input" id="translate-input" placeholder="Translation (English)">
+      <button class="btn primary" id="translate-submit">Check</button>
+      <button class="btn" id="translate-pass">Next</button>
+      <button class="btn" id="translate-show">Solution</button>
+    </div>
+    <div id="translate-feedback" class="small muted" style="margin-top:6px"></div>
+  </section>
+
+  <footer class="small muted" style="margin-top:24px">Irregular Verbs Trainer — FIX v4</footer>
+</div>
+
+<script>
+let translateLocked=false; // lock to prevent repeat scoring
+let practiceLocked=false; // lock to prevent repeat scoring
+let learnLocked=false; // lock to prevent repeat scoring
+// ==== DATA (embedded JSON) ====
+const VERBS = [
+  {"base":"be","past":"was/were","part":"been","translation":"lenni"},
+  {"base":"become","past":"became","part":"become","translation":"válni vmivé"},
+  {"base":"begin","past":"began","part":"begun","translation":"kezdeni"},
+  {"base":"break","past":"broke","part":"broken","translation":"eltörni"},
+  {"base":"bring","past":"brought","part":"brought","translation":"hozni"},
+  {"base":"build","past":"built","part":"built","translation":"építeni"},
+  {"base":"buy","past":"bought","part":"bought","translation":"venni"},
+  {"base":"catch","past":"caught","part":"caught","translation":"elkapni"},
+  {"base":"choose","past":"chose","part":"chosen","translation":"választani"},
+  {"base":"come","past":"came","part":"come","translation":"jönni"},
+  {"base":"cost","past":"cost","part":"cost","translation":"kerül vmibe"},
+  {"base":"cut","past":"cut","part":"cut","translation":"vágni"},
+  {"base":"do","past":"did","part":"done","translation":"csinálni"},
+  {"base":"draw","past":"drew","part":"drawn","translation":"rajzolni"},
+  {"base":"drink","past":"drank","part":"drunk","translation":"inni"},
+  {"base":"drive","past":"drove","part":"driven","translation":"vezetni"},
+  {"base":"eat","past":"ate","part":"eaten","translation":"enni"},
+  {"base":"fall","past":"fell","part":"fallen","translation":"esni"},
+  {"base":"feel","past":"felt","part":"felt","translation":"érezni"},
+  {"base":"fight","past":"fought","part":"fought","translation":"harcolni"},
+  {"base":"find","past":"found","part":"found","translation":"találni"},
+  {"base":"fly","past":"flew","part":"flown","translation":"repülni"},
+  {"base":"forget","past":"forgot","part":"forgotten","translation":"elfelejteni"},
+  {"base":"forgive","past":"forgave","part":"forgiven","translation":"megbocsátani"},
+  {"base":"get","past":"got","part":"got/gotten","translation":"kapni"},
+  {"base":"give","past":"gave","part":"given","translation":"adni"},
+  {"base":"go","past":"went","part":"gone","translation":"menni"},
+  {"base":"grow","past":"grew","part":"grown","translation":"nőni"},
+  {"base":"have","past":"had","part":"had","translation":"birtokolni"},
+  {"base":"hear","past":"heard","part":"heard","translation":"hallani"},
+  {"base":"hide","past":"hid","part":"hidden","translation":"elbújni"},
+  {"base":"hit","past":"hit","part":"hit","translation":"ütni"},
+  {"base":"hold","past":"held","part":"held","translation":"tartani"},
+  {"base":"keep","past":"kept","part":"kept","translation":"tartani/megőrizni"},
+  {"base":"know","past":"knew","part":"known","translation":"tudni/ismerni"},
+  {"base":"learn","past":"learnt/learned","part":"learnt/learned","translation":"tanulni"},
+  {"base":"leave","past":"left","part":"left","translation":"elhagyni/otthagyni"},
+  {"base":"lend","past":"lent","part":"lent","translation":"kölcsönadni"},
+  {"base":"let","past":"let","part":"let","translation":"hagyni/engedni"},
+  {"base":"lie","past":"lay","part":"lain","translation":"feküdni"},
+  {"base":"lose","past":"lost","part":"lost","translation":"elveszíteni"},
+  {"base":"make","past":"made","part":"made","translation":"készíteni"},
+  {"base":"mean","past":"meant","part":"meant","translation":"jelenteni"},
+  {"base":"meet","past":"met","part":"met","translation":"találkozni"},
+  {"base":"pay","past":"paid","part":"paid","translation":"fizetni"},
+  {"base":"put","past":"put","part":"put","translation":"tenni/rakni"},
+  {"base":"read","past":"read /red/","part":"read /red/","translation":"olvasni"},
+  {"base":"ride","past":"rode","part":"ridden","translation":"lovagolni/utazni (járművön)"},
+  {"base":"ring","past":"rang","part":"rung","translation":"csengetni/csörögni"},
+  {"base":"run","past":"ran","part":"run","translation":"futni"},
+  {"base":"say","past":"said","part":"said","translation":"mondani"},
+  {"base":"see","past":"saw","part":"seen","translation":"látni"},
+  {"base":"sell","past":"sold","part":"sold","translation":"eladni"},
+  {"base":"send","past":"sent","part":"sent","translation":"küldeni"},
+  {"base":"show","past":"showed","part":"shown","translation":"mutatni"},
+  {"base":"sing","past":"sang","part":"sung","translation":"énekelni"},
+  {"base":"sit","past":"sat","part":"sat","translation":"ülni"},
+  {"base":"sleep","past":"slept","part":"slept","translation":"aludni"},
+  {"base":"speak","past":"spoke","part":"spoken","translation":"beszélni"},
+  {"base":"spend","past":"spent","part":"spent","translation":"költeni/tölteni (időt)"},
+  {"base":"stand","past":"stood","part":"stood","translation":"állni"},
+  {"base":"swim","past":"swam","part":"swum","translation":"úszni"},
+  {"base":"take","past":"took","part":"taken","translation":"venni/vinni"},
+  {"base":"teach","past":"taught","part":"taught","translation":"tanítani"},
+  {"base":"tell","past":"told","part":"told","translation":"mondani/elmondani"},
+  {"base":"think","past":"thought","part":"thought","translation":"gondolni"},
+  {"base":"throw","past":"threw","part":"thrown","translation":"dobni"},
+  {"base":"understand","past":"understood","part":"understood","translation":"érteni"},
+  {"base":"wear","past":"wore","part":"worn","translation":"viselni"},
+  {"base":"win","past":"won","part":"won","translation":"nyerni"},
+  {"base":"write","past":"wrote","part":"written","translation":"írni"},
+  {"base":"bite","past":"bit","part":"bitten","translation":"harapni"},
+  {"base":"blow","past":"blew","part":"blown","translation":"fújni"},
+  {"base":"burn","past":"burnt/burned","part":"burnt/burned","translation":"égni/égetni"},
+  {"base":"catch","past":"caught","part":"caught","translation":"elkapni"},
+  {"base":"deal","past":"dealt","part":"dealt","translation":"üzletelni/alkut kötni"},
+  {"base":"dig","past":"dug","part":"dug","translation":"ásni"},
+  {"base":"feed","past":"fed","part":"fed","translation":"etetni"},
+  {"base":"freeze","past":"froze","part":"frozen","translation":"megfagyni/fagyasztani"},
+  {"base":"hang","past":"hung","part":"hung","translation":"akasztani/lógni"},
+  {"base":"hit","past":"hit","part":"hit","translation":"ütni"},
+  {"base":"keep","past":"kept","part":"kept","translation":"tartani/megőrizni"},
+  {"base":"light","past":"lit/lighted","part":"lit/lighted","translation":"meggyújtani"},
+  {"base":"mean","past":"meant","part":"meant","translation":"jelenteni"},
+  {"base":"meet","past":"met","part":"met","translation":"találkozni"},
+  {"base":"ring","past":"rang","part":"rung","translation":"csengetni"},
+  {"base":"rise","past":"rose","part":"risen","translation":"emelkedni/kelni"},
+  {"base":"shoot","past":"shot","part":"shot","translation":"lőni"},
+  {"base":"shut","past":"shut","part":"shut","translation":"becsukni"},
+  {"base":"smell","past":"smelt/smelled","part":"smelt/smelled","translation":"szagolni/illatot árasztani"},
+  {"base":"spell","past":"spelt/spelled","part":"spelt/spelled","translation":"betűzni"},
+  {"base":"spend","past":"spent","part":"spent","translation":"költeni/tölteni"},
+  {"base":"steal","past":"stole","part":"stolen","translation":"lopni"},
+  {"base":"stick","past":"stuck","part":"stuck","translation":"ragadni"},
+  {"base":"swim","past":"swam","part":"swum","translation":"úszni"},
+  {"base":"teach","past":"taught","part":"taught","translation":"tanítani"},
+  {"base":"tear","past":"tore","part":"torn","translation":"tépni"},
+  {"base":"wake","past":"woke","part":"woken","translation":"ébredni/ébredtetni"},
+  {"base":"win","past":"won","part":"won","translation":"nyerni"},
+  {"base":"write","past":"wrote","part":"written","translation":"írni"}
+];
+const PRACTISE_DATA = [{"kind": "negative", "base": "write", "participle": "written", "english": "I have not written the essay yet.", "cloze_en": "I have not _____ (write) the essay yet."}, {"kind": "affirmative", "base": "send", "participle": "sent", "english": "He has already sent a message to my friend.", "cloze_en": "He has already _____ (send) a message to my friend."}, {"kind": "affirmative", "base": "eat", "participle": "eaten", "english": "They have already eaten breakfast.", "cloze_en": "They have already _____ (eat) breakfast."}, {"kind": "affirmative", "base": "run", "participle": "run", "english": "He has just run five kilometers.", "cloze_en": "He has just _____ (run) five kilometers."}, {"kind": "question", "base": "go", "participle": "gone", "english": "Have I gone to the shop yet?", "cloze_en": "Have I _____ (go) to the shop yet?"}, {"kind": "question", "base": "send", "participle": "sent", "english": "Have they sent an application to the office yet?", "cloze_en": "Have they _____ (send) an application to the office yet?"}, {"kind": "affirmative", "base": "choose", "participle": "chosen", "english": "She has already chosen a present.", "cloze_en": "She has already _____ (choose) a present."}, {"kind": "negative", "base": "meet", "participle": "met", "english": "She has not met the new student yet.", "cloze_en": "She has not _____ (meet) the new student yet."}, {"kind": "negative", "base": "see", "participle": "seen", "english": "They have not seen the movie yet.", "cloze_en": "They have not _____ (see) the movie yet."}, {"kind": "question", "base": "build", "participle": "built", "english": "Has she built a model yet?", "cloze_en": "Has she _____ (build) a model yet?"}, {"kind": "affirmative", "base": "find", "participle": "found", "english": "He has already found my keys.", "cloze_en": "He has already _____ (find) my keys."}, {"kind": "negative", "base": "drink", "participle": "drunk", "english": "I have not drunk tea yet.", "cloze_en": "I have not _____ (drink) tea yet."}, {"kind": "affirmative", "base": "hang", "participle": "hung", "english": "She has just hung a coat on the hook.", "cloze_en": "She has just _____ (hang) a coat on the hook."}, {"kind": "question", "base": "meet", "participle": "met", "english": "Have you met my teacher yet?", "cloze_en": "Have you _____ (meet) my teacher yet?"}, {"kind": "negative", "base": "lose", "participle": "lost", "english": "You have not lost my phone yet.", "cloze_en": "You have not _____ (lose) my phone yet."}, {"kind": "question", "base": "take", "participle": "taken", "english": "Have they already taken a photo?", "cloze_en": "Have they already _____ (take) a photo?"}, {"kind": "affirmative", "base": "break", "participle": "broken", "english": "She has just broken the glass.", "cloze_en": "She has just _____ (break) the glass."}, {"kind": "question", "base": "run", "participle": "run", "english": "Have we run ten kilometers yet?", "cloze_en": "Have we _____ (run) ten kilometers yet?"}, {"kind": "negative", "base": "write", "participle": "written", "english": "They have not written the story yet.", "cloze_en": "They have not _____ (write) the story yet."}, {"kind": "affirmative", "base": "go", "participle": "gone", "english": "They have already gone home.", "cloze_en": "They have already _____ (go) home."}, {"kind": "affirmative", "base": "hang", "participle": "hung", "english": "You have already hung a coat on the hook.", "cloze_en": "You have already _____ (hang) a coat on the hook."}, {"kind": "affirmative", "base": "see", "participle": "seen", "english": "I have already seen the message.", "cloze_en": "I have already _____ (see) the message."}, {"kind": "negative", "base": "run", "participle": "run", "english": "She has not run ten kilometers yet.", "cloze_en": "She has not _____ (run) ten kilometers yet."}, {"kind": "affirmative", "base": "pay", "participle": "paid", "english": "I have just paid the fine.", "cloze_en": "I have just _____ (pay) the fine."}, {"kind": "negative", "base": "lose", "participle": "lost", "english": "They have not lost the ticket yet.", "cloze_en": "They have not _____ (lose) the ticket yet."}, {"kind": "affirmative", "base": "drive", "participle": "driven", "english": "I have already driven to school.", "cloze_en": "I have already _____ (drive) to school."}, {"kind": "question", "base": "make", "participle": "made", "english": "Has she already made a plan?", "cloze_en": "Has she already _____ (make) a plan?"}, {"kind": "question", "base": "put", "participle": "put", "english": "Has he put the bag on the bed yet?", "cloze_en": "Has he _____ (put) the bag on the bed yet?"}, {"kind": "question", "base": "drive", "participle": "driven", "english": "Has he already driven home?", "cloze_en": "Has he already _____ (drive) home?"}, {"kind": "question", "base": "find", "participle": "found", "english": "Have I already found a seat?", "cloze_en": "Have I already _____ (find) a seat?"}, {"kind": "negative", "base": "give", "participle": "given", "english": "I have not given some advice to my parents yet.", "cloze_en": "I have not _____ (give) some advice to my parents yet."}, {"kind": "affirmative", "base": "ride", "participle": "ridden", "english": "He has already ridden a bike.", "cloze_en": "He has already _____ (ride) a bike."}, {"kind": "affirmative", "base": "tell", "participle": "told", "english": "They have just told a secret.", "cloze_en": "They have just _____ (tell) a secret."}, {"kind": "negative", "base": "go", "participle": "gone", "english": "He has not gone home yet.", "cloze_en": "He has not _____ (go) home yet."}, {"kind": "question", "base": "ride", "participle": "ridden", "english": "Have you ridden a bike yet?", "cloze_en": "Have you _____ (ride) a bike yet?"}, {"kind": "negative", "base": "show", "participle": "shown", "english": "They have not shown the message to my friend yet.", "cloze_en": "They have not _____ (show) the message to my friend yet."}, {"kind": "question", "base": "break", "participle": "broken", "english": "Have I already broken the window?", "cloze_en": "Have I already _____ (break) the window?"}, {"kind": "question", "base": "read", "participle": "read", "english": "Has he already read the article?", "cloze_en": "Has he already _____ (read) the article?"}, {"kind": "negative", "base": "run", "participle": "run", "english": "She has not run five kilometers yet.", "cloze_en": "She has not _____ (run) five kilometers yet."}, {"kind": "negative", "base": "find", "participle": "found", "english": "They have not found a solution yet.", "cloze_en": "They have not _____ (find) a solution yet."}, {"kind": "affirmative", "base": "spend", "participle": "spent", "english": "I have just spent the afternoon together.", "cloze_en": "I have just _____ (spend) the afternoon together."}, {"kind": "question", "base": "draw", "participle": "drawn", "english": "Have they drawn a map yet?", "cloze_en": "Have they _____ (draw) a map yet?"}, {"kind": "negative", "base": "choose", "participle": "chosen", "english": "She has not chosen a topic yet.", "cloze_en": "She has not _____ (choose) a topic yet."}, {"kind": "question", "base": "win", "participle": "won", "english": "Have you already won the match?", "cloze_en": "Have you already _____ (win) the match?"}, {"kind": "negative", "base": "understand", "participle": "understood", "english": "I have not understood everything yet.", "cloze_en": "I have not _____ (understand) everything yet."}, {"kind": "question", "base": "drink", "participle": "drunk", "english": "Have we already drunk juice?", "cloze_en": "Have we already _____ (drink) juice?"}, {"kind": "affirmative", "base": "draw", "participle": "drawn", "english": "I have just drawn a tree.", "cloze_en": "I have just _____ (draw) a tree."}, {"kind": "question", "base": "wear", "participle": "worn", "english": "Have I worn boots yet?", "cloze_en": "Have I _____ (wear) boots yet?"}, {"kind": "question", "base": "make", "participle": "made", "english": "Has he already made the cake?", "cloze_en": "Has he already _____ (make) the cake?"}, {"kind": "negative", "base": "choose", "participle": "chosen", "english": "I have not chosen a seat yet.", "cloze_en": "I have not _____ (choose) a seat yet."}, {"kind": "negative", "base": "send", "participle": "sent", "english": "They have not sent an application to the office yet.", "cloze_en": "They have not _____ (send) an application to the office yet."}, {"kind": "affirmative", "base": "win", "participle": "won", "english": "They have just won the race.", "cloze_en": "They have just _____ (win) the race."}, {"kind": "negative", "base": "wear", "participle": "worn", "english": "She has not worn a uniform yet.", "cloze_en": "She has not _____ (wear) a uniform yet."}, {"kind": "affirmative", "base": "wear", "participle": "worn", "english": "He has already worn a jacket.", "cloze_en": "He has already _____ (wear) a jacket."}, {"kind": "affirmative", "base": "buy", "participle": "bought", "english": "She has just bought a present.", "cloze_en": "She has just _____ (buy) a present."}, {"kind": "affirmative", "base": "meet", "participle": "met", "english": "We have just met our coach.", "cloze_en": "We have just _____ (meet) our coach."}, {"kind": "question", "base": "eat", "participle": "eaten", "english": "Has she eaten dinner yet?", "cloze_en": "Has she _____ (eat) dinner yet?"}, {"kind": "affirmative", "base": "write", "participle": "written", "english": "She has already written the report.", "cloze_en": "She has already _____ (write) the report."}, {"kind": "question", "base": "take", "participle": "taken", "english": "Has she already taken some notes?", "cloze_en": "Has she already _____ (take) some notes?"}, {"kind": "question", "base": "show", "participle": "shown", "english": "Has he already shown a photo to the class?", "cloze_en": "Has he already _____ (show) a photo to the class?"}, {"kind": "negative", "base": "say", "participle": "said", "english": "I have not said nothing yet.", "cloze_en": "I have not _____ (say) nothing yet."}, {"kind": "affirmative", "base": "sleep", "participle": "slept", "english": "She has just slept badly.", "cloze_en": "She has just _____ (sleep) badly."}, {"kind": "affirmative", "base": "say", "participle": "said", "english": "They have just said sorry.", "cloze_en": "They have just _____ (say) sorry."}, {"kind": "negative", "base": "hang", "participle": "hung", "english": "You have not hung a coat on the hook yet.", "cloze_en": "You have not _____ (hang) a coat on the hook yet."}, {"kind": "question", "base": "understand", "participle": "understood", "english": "Have you understood the rules yet?", "cloze_en": "Have you _____ (understand) the rules yet?"}, {"kind": "affirmative", "base": "send", "participle": "sent", "english": "You have already sent an email to the teacher.", "cloze_en": "You have already _____ (send) an email to the teacher."}, {"kind": "question", "base": "find", "participle": "found", "english": "Have I found the wallet yet?", "cloze_en": "Have I _____ (find) the wallet yet?"}, {"kind": "negative", "base": "put", "participle": "put", "english": "She has not put the phone on the shelf yet.", "cloze_en": "She has not _____ (put) the phone on the shelf yet."}, {"kind": "question", "base": "speak", "participle": "spoken", "english": "Have you spoken to my friend yet?", "cloze_en": "Have you _____ (speak) to my friend yet?"}, {"kind": "negative", "base": "draw", "participle": "drawn", "english": "We have not drawn a map yet.", "cloze_en": "We have not _____ (draw) a map yet."}, {"kind": "question", "base": "lose", "participle": "lost", "english": "Have I lost the ticket yet?", "cloze_en": "Have I _____ (lose) the ticket yet?"}, {"kind": "question", "base": "hang", "participle": "hung", "english": "Has he already hung a picture on the wall?", "cloze_en": "Has he already _____ (hang) a picture on the wall?"}, {"kind": "question", "base": "pay", "participle": "paid", "english": "Has she already paid the rent?", "cloze_en": "Has she already _____ (pay) the rent?"}, {"kind": "question", "base": "read", "participle": "read", "english": "Have we read the message yet?", "cloze_en": "Have we _____ (read) the message yet?"}, {"kind": "negative", "base": "spend", "participle": "spent", "english": "We have not spent time yet.", "cloze_en": "We have not _____ (spend) time yet."}, {"kind": "affirmative", "base": "lose", "participle": "lost", "english": "We have just lost the ticket.", "cloze_en": "We have just _____ (lose) the ticket."}, {"kind": "negative", "base": "take", "participle": "taken", "english": "You have not taken the medicine yet.", "cloze_en": "You have not _____ (take) the medicine yet."}, {"kind": "affirmative", "base": "pay", "participle": "paid", "english": "I have just paid the rent.", "cloze_en": "I have just _____ (pay) the rent."}, {"kind": "question", "base": "come", "participle": "come", "english": "Have they come back yet?", "cloze_en": "Have they _____ (come) back yet?"}, {"kind": "negative", "base": "show", "participle": "shown", "english": "You have not shown the results to my parents yet.", "cloze_en": "You have not _____ (show) the results to my parents yet."}, {"kind": "negative", "base": "break", "participle": "broken", "english": "He has not broken the glass yet.", "cloze_en": "He has not _____ (break) the glass yet."}, {"kind": "negative", "base": "say", "participle": "said", "english": "He has not said sorry yet.", "cloze_en": "He has not _____ (say) sorry yet."}, {"kind": "affirmative", "base": "read", "participle": "read", "english": "You have already read the story.", "cloze_en": "You have already _____ (read) the story."}, {"kind": "negative", "base": "speak", "participle": "spoken", "english": "You have not spoken to my friend yet.", "cloze_en": "You have not _____ (speak) to my friend yet."}, {"kind": "negative", "base": "eat", "participle": "eaten", "english": "You have not eaten a sandwich yet.", "cloze_en": "You have not _____ (eat) a sandwich yet."}, {"kind": "question", "base": "run", "participle": "run", "english": "Have they already run ten kilometers?", "cloze_en": "Have they already _____ (run) ten kilometers?"}, {"kind": "affirmative", "base": "wear", "participle": "worn", "english": "You have just worn a uniform.", "cloze_en": "You have just _____ (wear) a uniform."}, {"kind": "negative", "base": "win", "participle": "won", "english": "He has not won a prize yet.", "cloze_en": "He has not _____ (win) a prize yet."}, {"kind": "question", "base": "break", "participle": "broken", "english": "Has she broken a rule yet?", "cloze_en": "Has she _____ (break) a rule yet?"}, {"kind": "affirmative", "base": "say", "participle": "said", "english": "You have already said nothing.", "cloze_en": "You have already _____ (say) nothing."}, {"kind": "question", "base": "choose", "participle": "chosen", "english": "Have they chosen a seat yet?", "cloze_en": "Have they _____ (choose) a seat yet?"}, {"kind": "negative", "base": "take", "participle": "taken", "english": "You have not taken some notes yet.", "cloze_en": "You have not _____ (take) some notes yet."}, {"kind": "negative", "base": "put", "participle": "put", "english": "You have not put the book on the table yet.", "cloze_en": "You have not _____ (put) the book on the table yet."}, {"kind": "affirmative", "base": "speak", "participle": "spoken", "english": "He has already spoken to my friend.", "cloze_en": "He has already _____ (speak) to my friend."}, {"kind": "negative", "base": "pay", "participle": "paid", "english": "She has not paid the bill yet.", "cloze_en": "She has not _____ (pay) the bill yet."}, {"kind": "negative", "base": "read", "participle": "read", "english": "We have not read the message yet.", "cloze_en": "We have not _____ (read) the message yet."}, {"kind": "affirmative", "base": "drink", "participle": "drunk", "english": "We have already drunk tea.", "cloze_en": "We have already _____ (drink) tea."}, {"kind": "affirmative", "base": "read", "participle": "read", "english": "He has just read the book.", "cloze_en": "He has just _____ (read) the book."}, {"kind": "question", "base": "write", "participle": "written", "english": "Have we written the homework yet?", "cloze_en": "Have we _____ (write) the homework yet?"}, {"kind": "affirmative", "base": "make", "participle": "made", "english": "They have already made a plan.", "cloze_en": "They have already _____ (make) a plan."}, {"kind": "question", "base": "tell", "participle": "told", "english": "Has he told the truth yet?", "cloze_en": "Has he _____ (tell) the truth yet?"}, {"kind": "affirmative", "base": "lose", "participle": "lost", "english": "You have already lost my phone.", "cloze_en": "You have already _____ (lose) my phone."}, {"kind": "question", "base": "sleep", "participle": "slept", "english": "Has she slept badly yet?", "cloze_en": "Has she _____ (sleep) badly yet?"}, {"kind": "negative", "base": "give", "participle": "given", "english": "She has not given the message to the teacher yet.", "cloze_en": "She has not _____ (give) the message to the teacher yet."}, {"kind": "question", "base": "spend", "participle": "spent", "english": "Have we already spent the money?", "cloze_en": "Have we already _____ (spend) the money?"}, {"kind": "question", "base": "lose", "participle": "lost", "english": "Have I already lost my keys?", "cloze_en": "Have I already _____ (lose) my keys?"}, {"kind": "negative", "base": "ride", "participle": "ridden", "english": "He has not ridden a bike yet.", "cloze_en": "He has not _____ (ride) a bike yet."}, {"kind": "negative", "base": "make", "participle": "made", "english": "They have not made the cake yet.", "cloze_en": "They have not _____ (make) the cake yet."}, {"kind": "question", "base": "drink", "participle": "drunk", "english": "Have we already drunk tea?", "cloze_en": "Have we already _____ (drink) tea?"}, {"kind": "question", "base": "buy", "participle": "bought", "english": "Have I already bought a book?", "cloze_en": "Have I already _____ (buy) a book?"}, {"kind": "affirmative", "base": "run", "participle": "run", "english": "We have just run five kilometers.", "cloze_en": "We have just _____ (run) five kilometers."}, {"kind": "negative", "base": "drive", "participle": "driven", "english": "You have not driven to school yet.", "cloze_en": "You have not _____ (drive) to school yet."}, {"kind": "question", "base": "hang", "participle": "hung", "english": "Have I already hung a picture on the wall?", "cloze_en": "Have I already _____ (hang) a picture on the wall?"}, {"kind": "question", "base": "meet", "participle": "met", "english": "Has she already met our coach?", "cloze_en": "Has she already _____ (meet) our coach?"}, {"kind": "negative", "base": "meet", "participle": "met", "english": "He has not met your brother yet.", "cloze_en": "He has not _____ (meet) your brother yet."}, {"kind": "affirmative", "base": "choose", "participle": "chosen", "english": "He has just chosen a seat.", "cloze_en": "He has just _____ (choose) a seat."}, {"kind": "question", "base": "win", "participle": "won", "english": "Have we won the match yet?", "cloze_en": "Have we _____ (win) the match yet?"}, {"kind": "affirmative", "base": "break", "participle": "broken", "english": "You have just broken a rule.", "cloze_en": "You have just _____ (break) a rule."}, {"kind": "question", "base": "wear", "participle": "worn", "english": "Have I worn boots yet?", "cloze_en": "Have I _____ (wear) boots yet?"}, {"kind": "affirmative", "base": "drive", "participle": "driven", "english": "He has already driven home.", "cloze_en": "He has already _____ (drive) home."}, {"kind": "affirmative", "base": "give", "participle": "given", "english": "You have already given the message to the teacher.", "cloze_en": "You have already _____ (give) the message to the teacher."}, {"kind": "question", "base": "give", "participle": "given", "english": "Have they already given the book to my friend?", "cloze_en": "Have they already _____ (give) the book to my friend?"}, {"kind": "affirmative", "base": "make", "participle": "made", "english": "They have just made the bed.", "cloze_en": "They have just _____ (make) the bed."}, {"kind": "negative", "base": "tell", "participle": "told", "english": "They have not told a secret yet.", "cloze_en": "They have not _____ (tell) a secret yet."}, {"kind": "question", "base": "eat", "participle": "eaten", "english": "Have you eaten lunch yet?", "cloze_en": "Have you _____ (eat) lunch yet?"}, {"kind": "question", "base": "say", "participle": "said", "english": "Has he already said sorry?", "cloze_en": "Has he already _____ (say) sorry?"}, {"kind": "affirmative", "base": "understand", "participle": "understood", "english": "She has already understood the rules.", "cloze_en": "She has already _____ (understand) the rules."}, {"kind": "negative", "base": "hang", "participle": "hung", "english": "He has not hung a coat on the hook yet.", "cloze_en": "He has not _____ (hang) a coat on the hook yet."}, {"kind": "negative", "base": "ride", "participle": "ridden", "english": "You have not ridden a bike yet.", "cloze_en": "You have not _____ (ride) a bike yet."}, {"kind": "negative", "base": "build", "participle": "built", "english": "We have not built a model yet.", "cloze_en": "We have not _____ (build) a model yet."}, {"kind": "negative", "base": "find", "participle": "found", "english": "I have not found the ticket yet.", "cloze_en": "I have not _____ (find) the ticket yet."}, {"kind": "affirmative", "base": "meet", "participle": "met", "english": "We have just met my teacher.", "cloze_en": "We have just _____ (meet) my teacher."}, {"kind": "question", "base": "send", "participle": "sent", "english": "Has she sent a message to my friend yet?", "cloze_en": "Has she _____ (send) a message to my friend yet?"}, {"kind": "negative", "base": "break", "participle": "broken", "english": "They have not broken a rule yet.", "cloze_en": "They have not _____ (break) a rule yet."}, {"kind": "affirmative", "base": "see", "participle": "seen", "english": "I have just seen an accident.", "cloze_en": "I have just _____ (see) an accident."}, {"kind": "affirmative", "base": "show", "participle": "shown", "english": "I have already shown the results to my parents.", "cloze_en": "I have already _____ (show) the results to my parents."}, {"kind": "negative", "base": "drive", "participle": "driven", "english": "She has not driven home yet.", "cloze_en": "She has not _____ (drive) home yet."}, {"kind": "affirmative", "base": "give", "participle": "given", "english": "They have already given the book to my friend.", "cloze_en": "They have already _____ (give) the book to my friend."}, {"kind": "negative", "base": "wear", "participle": "worn", "english": "I have not worn a jacket yet.", "cloze_en": "I have not _____ (wear) a jacket yet."}, {"kind": "question", "base": "show", "participle": "shown", "english": "Have we shown a photo to the class yet?", "cloze_en": "Have we _____ (show) a photo to the class yet?"}, {"kind": "negative", "base": "send", "participle": "sent", "english": "She has not sent a message to my friend yet.", "cloze_en": "She has not _____ (send) a message to my friend yet."}, {"kind": "question", "base": "see", "participle": "seen", "english": "Have we seen a rainbow yet?", "cloze_en": "Have we _____ (see) a rainbow yet?"}, {"kind": "negative", "base": "eat", "participle": "eaten", "english": "I have not eaten lunch yet.", "cloze_en": "I have not _____ (eat) lunch yet."}, {"kind": "affirmative", "base": "put", "participle": "put", "english": "He has just put the phone on the shelf.", "cloze_en": "He has just _____ (put) the phone on the shelf."}, {"kind": "affirmative", "base": "take", "participle": "taken", "english": "We have already taken a photo.", "cloze_en": "We have already _____ (take) a photo."}, {"kind": "affirmative", "base": "find", "participle": "found", "english": "They have just found a solution.", "cloze_en": "They have just _____ (find) a solution."}, {"kind": "question", "base": "choose", "participle": "chosen", "english": "Have you already chosen a present?", "cloze_en": "Have you already _____ (choose) a present?"}, {"kind": "negative", "base": "make", "participle": "made", "english": "He has not made a presentation yet.", "cloze_en": "He has not _____ (make) a presentation yet."}, {"kind": "affirmative", "base": "tell", "participle": "told", "english": "We have already told the story.", "cloze_en": "We have already _____ (tell) the story."}, {"kind": "question", "base": "pay", "participle": "paid", "english": "Has he paid the bill yet?", "cloze_en": "Has he _____ (pay) the bill yet?"}, {"kind": "affirmative", "base": "build", "participle": "built", "english": "She has just built a robot.", "cloze_en": "She has just _____ (build) a robot."}, {"kind": "affirmative", "base": "show", "participle": "shown", "english": "I have already shown the message to my friend.", "cloze_en": "I have already _____ (show) the message to my friend."}, {"kind": "question", "base": "ride", "participle": "ridden", "english": "Have we ridden a bike yet?", "cloze_en": "Have we _____ (ride) a bike yet?"}, {"kind": "negative", "base": "buy", "participle": "bought", "english": "They have not bought a phone yet.", "cloze_en": "They have not _____ (buy) a phone yet."}, {"kind": "affirmative", "base": "write", "participle": "written", "english": "I have just written the homework.", "cloze_en": "I have just _____ (write) the homework."}, {"kind": "affirmative", "base": "win", "participle": "won", "english": "He has just won the race.", "cloze_en": "He has just _____ (win) the race."}, {"kind": "negative", "base": "come", "participle": "come", "english": "You have not come home yet.", "cloze_en": "You have not _____ (come) home yet."}, {"kind": "affirmative", "base": "ride", "participle": "ridden", "english": "I have already ridden a bike.", "cloze_en": "I have already _____ (ride) a bike."}, {"kind": "affirmative", "base": "put", "participle": "put", "english": "I have already put the book on the table.", "cloze_en": "I have already _____ (put) the book on the table."}, {"kind": "negative", "base": "tell", "participle": "told", "english": "He has not told the truth yet.", "cloze_en": "He has not _____ (tell) the truth yet."}, {"kind": "question", "base": "tell", "participle": "told", "english": "Have they already told the truth?", "cloze_en": "Have they already _____ (tell) the truth?"}, {"kind": "negative", "base": "see", "participle": "seen", "english": "We have not seen an accident yet.", "cloze_en": "We have not _____ (see) an accident yet."}, {"kind": "question", "base": "say", "participle": "said", "english": "Has he already said sorry?", "cloze_en": "Has he already _____ (say) sorry?"}, {"kind": "question", "base": "see", "participle": "seen", "english": "Have we seen the message yet?", "cloze_en": "Have we _____ (see) the message yet?"}, {"kind": "negative", "base": "win", "participle": "won", "english": "I have not won the race yet.", "cloze_en": "I have not _____ (win) the race yet."}, {"kind": "affirmative", "base": "come", "participle": "come", "english": "He has just come home.", "cloze_en": "He has just _____ (come) home."}, {"kind": "negative", "base": "pay", "participle": "paid", "english": "You have not paid the bill yet.", "cloze_en": "You have not _____ (pay) the bill yet."}, {"kind": "negative", "base": "read", "participle": "read", "english": "He has not read the email yet.", "cloze_en": "He has not _____ (read) the email yet."}, {"kind": "question", "base": "write", "participle": "written", "english": "Have I written the story yet?", "cloze_en": "Have I _____ (write) the story yet?"}, {"kind": "question", "base": "give", "participle": "given", "english": "Have you given the book to my friend yet?", "cloze_en": "Have you _____ (give) the book to my friend yet?"}, {"kind": "affirmative", "base": "take", "participle": "taken", "english": "We have already taken the medicine.", "cloze_en": "We have already _____ (take) the medicine."}, {"kind": "question", "base": "put", "participle": "put", "english": "Has he already put the bag on the bed?", "cloze_en": "Has he already _____ (put) the bag on the bed?"}, {"kind": "question", "base": "buy", "participle": "bought", "english": "Has he bought a book yet?", "cloze_en": "Has he _____ (buy) a book yet?"}, {"kind": "question", "base": "drive", "participle": "driven", "english": "Have I driven home yet?", "cloze_en": "Have I _____ (drive) home yet?"}, {"kind": "affirmative", "base": "eat", "participle": "eaten", "english": "He has already eaten breakfast.", "cloze_en": "He has already _____ (eat) breakfast."}, {"kind": "affirmative", "base": "buy", "participle": "bought", "english": "I have already bought a book.", "cloze_en": "I have already _____ (buy) a book."}, {"kind": "negative", "base": "drink", "participle": "drunk", "english": "We have not drunk water yet.", "cloze_en": "We have not _____ (drink) water yet."}, {"kind": "affirmative", "base": "drink", "participle": "drunk", "english": "I have just drunk coffee.", "cloze_en": "I have just _____ (drink) coffee."}, {"kind": "negative", "base": "sleep", "participle": "slept", "english": "She has not slept well yet.", "cloze_en": "She has not _____ (sleep) well yet."}, {"kind": "negative", "base": "buy", "participle": "bought", "english": "They have not bought a phone yet.", "cloze_en": "They have not _____ (buy) a phone yet."}];
+const TRANSLATION_DATA = [{"hungarian": "Még nem mondtam a történetet.", "english": "I have not told the story yet.", "base": "tell"}, {"hungarian": "Még nem láttam az üzenetet.", "english": "I have not seen the message yet.", "base": "see"}, {"hungarian": "Már megvett(em) egy jegyet.", "english": "I have already bought a ticket.", "base": "buy"}, {"hungarian": "Még nem olvastam a könyvet.", "english": "I have not read the book yet.", "base": "read"}, {"hungarian": "Épp most találkoztam a tanárommal.", "english": "I have just met my teacher.", "base": "meet"}, {"hungarian": "Épp most megittam teát.", "english": "I have just drunk tea.", "base": "drink"}, {"hungarian": "Már kiválasztottam egy helyet?", "english": "Have I chosen a seat yet?", "base": "choose"}, {"hungarian": "Már elküldtem egy e-mailt a tanárnak?", "english": "Have I already sent an email to the teacher?", "base": "send"}, {"hungarian": "Még nem értettem a feladatot.", "english": "I have not understood the task yet.", "base": "understand"}, {"hungarian": "Már elolvastam a cikket?", "english": "Have I already read the article?", "base": "read"}, {"hungarian": "Már megírtam az e-mailt?", "english": "Have I written the email yet?", "base": "write"}, {"hungarian": "Épp most megettem a tortát.", "english": "I have just eaten the cake.", "base": "eat"}, {"hungarian": "Még nem választottam egy témát.", "english": "I have not chosen a topic yet.", "base": "choose"}, {"hungarian": "Már megittam vizet?", "english": "Have I already drunk water?", "base": "drink"}, {"hungarian": "Már láttam a filmet?", "english": "Have I seen the movie yet?", "base": "see"}, {"hungarian": "Még nem ittam gyümölcslevet.", "english": "I have not drunk juice yet.", "base": "drink"}, {"hungarian": "Épp most elvesztettem a jegyet.", "english": "I have just lost the ticket.", "base": "lose"}, {"hungarian": "Már elolvastam az üzenetet?", "english": "Have I read the message yet?", "base": "read"}, {"hungarian": "Már találkoztam a tanárommal?", "english": "Have I met my teacher yet?", "base": "meet"}, {"hungarian": "Már elolvastam a könyvet?", "english": "Have I already read the book?", "base": "read"}, {"hungarian": "Épp most megittam gyümölcslevet.", "english": "I have just drunk juice.", "base": "drink"}, {"hungarian": "Már megittam gyümölcslevet?", "english": "Have I already drunk juice?", "base": "drink"}, {"hungarian": "Már elvesztettem a jegyet?", "english": "Have I lost the ticket yet?", "base": "lose"}, {"hungarian": "Már láttam egy szivárványt?", "english": "Have I already seen a rainbow?", "base": "see"}, {"hungarian": "Már megértettem a feladatot?", "english": "Have I already understood the task?", "base": "understand"}, {"hungarian": "Még nem mondtam az igazat.", "english": "I have not told the truth yet.", "base": "tell"}, {"hungarian": "Még nem találtam egy megoldást.", "english": "I have not found a solution yet.", "base": "find"}, {"hungarian": "Már megtaláltam a pénztárcát?", "english": "Have I found the wallet yet?", "base": "find"}, {"hungarian": "Már megírtam az esszét.", "english": "I have already written the essay.", "base": "write"}, {"hungarian": "Még nem ittam vizet.", "english": "I have not drunk water yet.", "base": "drink"}, {"hungarian": "Már kifizettem a számlát?", "english": "Have I already paid the bill?", "base": "pay"}, {"hungarian": "Még nem írtam az esszét.", "english": "I have not written the essay yet.", "base": "write"}, {"hungarian": "Épp most kifizettem a lakbért.", "english": "I have just paid the rent.", "base": "pay"}, {"hungarian": "Még nem vesztettem a telefonomat.", "english": "I have not lost my phone yet.", "base": "lose"}, {"hungarian": "Már elolvastam a könyvet.", "english": "I have already read the book.", "base": "read"}, {"hungarian": "Épp most megírtam a jelentést.", "english": "I have just written the report.", "base": "write"}, {"hungarian": "Még nem vettem egy telefont.", "english": "I have not bought a phone yet.", "base": "buy"}, {"hungarian": "Már megértettem a feladatot.", "english": "I have already understood the task.", "base": "understand"}, {"hungarian": "Még nem vesztettem a jegyet.", "english": "I have not lost the ticket yet.", "base": "lose"}, {"hungarian": "Még nem írtam az e-mailt.", "english": "I have not written the email yet.", "base": "write"}, {"hungarian": "Még nem nyertem a meccset.", "english": "I have not won the match yet.", "base": "win"}, {"hungarian": "Még nem láttam egy szivárványt.", "english": "I have not seen a rainbow yet.", "base": "see"}, {"hungarian": "Épp most megírtam a levelet.", "english": "I have just written the letter.", "base": "write"}, {"hungarian": "Már megvett(em) egy könyvet.", "english": "I have already bought a book.", "base": "buy"}, {"hungarian": "Épp most elmondtam a történetet.", "english": "I have just told the story.", "base": "tell"}, {"hungarian": "Már megettem az ebédet?", "english": "Have I eaten lunch yet?", "base": "eat"}, {"hungarian": "Épp most elküldtem egy e-mailt a tanárnak.", "english": "I have just sent an email to the teacher.", "base": "send"}, {"hungarian": "Még nem készítettem a gyógyszert.", "english": "I have not taken the medicine yet.", "base": "take"}, {"hungarian": "Már megvett(em) egy könyvet?", "english": "Have I bought a book yet?", "base": "buy"}, {"hungarian": "Már láttam az üzenetet?", "english": "Have I already seen the message?", "base": "see"}, {"hungarian": "Már megtaláltam a kulcsaimat?", "english": "Have I found my keys yet?", "base": "find"}, {"hungarian": "Épp most elolvastam a cikket.", "english": "I have just read the article.", "base": "read"}, {"hungarian": "Épp most megittam vizet.", "english": "I have just drunk water.", "base": "drink"}, {"hungarian": "Már megvett(em) egy jegyet?", "english": "Have I already bought a ticket?", "base": "buy"}, {"hungarian": "Még nem értettem mindent.", "english": "I have not understood everything yet.", "base": "understand"}, {"hungarian": "Még nem nyertem egy díjat.", "english": "I have not won a prize yet.", "base": "win"}, {"hungarian": "Már készítettem egy fotót?", "english": "Have I already taken a photo?", "base": "take"}, {"hungarian": "Már megittam kávét?", "english": "Have I already drunk coffee?", "base": "drink"}, {"hungarian": "Már megettem az ebédet.", "english": "I have already eaten lunch.", "base": "eat"}, {"hungarian": "Épp most megtaláltam egy megoldást.", "english": "I have just found a solution.", "base": "find"}, {"hungarian": "Már elküldtem egy üzenetet a barátomnak?", "english": "Have I already sent a message to my friend?", "base": "send"}, {"hungarian": "Már megírtam az esszét?", "english": "Have I already written the essay?", "base": "write"}, {"hungarian": "Már megírtam a jelentést?", "english": "Have I written the report yet?", "base": "write"}, {"hungarian": "Épp most megettem a reggelit.", "english": "I have just eaten breakfast.", "base": "eat"}, {"hungarian": "Még nem találkoztam a tanárommal.", "english": "I have not met my teacher yet.", "base": "meet"}, {"hungarian": "Épp most elvesztettem a telefonomat.", "english": "I have just lost my phone.", "base": "lose"}, {"hungarian": "Még nem olvastam az üzenetet.", "english": "I have not read the message yet.", "base": "read"}, {"hungarian": "Már megittam teát?", "english": "Have I drunk tea yet?", "base": "drink"}, {"hungarian": "Még nem választottam egy helyet.", "english": "I have not chosen a seat yet.", "base": "choose"}, {"hungarian": "Még nem találkoztam a testvéreddel.", "english": "I have not met your brother yet.", "base": "meet"}, {"hungarian": "Még nem ettem a reggelit.", "english": "I have not eaten breakfast yet.", "base": "eat"}, {"hungarian": "Még nem ettem a tortát.", "english": "I have not eaten the cake yet.", "base": "eat"}, {"hungarian": "Épp most megírtam az e-mailt.", "english": "I have just written the email.", "base": "write"}, {"hungarian": "Épp most kiválasztottam egy helyet.", "english": "I have just chosen a seat.", "base": "choose"}, {"hungarian": "Még nem készítettem egy fotót.", "english": "I have not taken a photo yet.", "base": "take"}, {"hungarian": "Már elmondtam az igazat?", "english": "Have I already told the truth?", "base": "tell"}, {"hungarian": "Még nem olvastam a cikket.", "english": "I have not read the article yet.", "base": "read"}, {"hungarian": "Már megtaláltam egy megoldást?", "english": "Have I already found a solution?", "base": "find"}, {"hungarian": "Épp most elküldtem egy üzenetet a barátomnak.", "english": "I have just sent a message to my friend.", "base": "send"}, {"hungarian": "Már kiválasztottam egy témát?", "english": "Have I chosen a topic yet?", "base": "choose"}, {"hungarian": "Már megvett(em) egy telefont?", "english": "Have I already bought a phone?", "base": "buy"}, {"hungarian": "Már megnyertem egy díjat?", "english": "Have I already won a prize?", "base": "win"}, {"hungarian": "Már megtaláltam a pénztárcát.", "english": "I have already found the wallet.", "base": "find"}, {"hungarian": "Már megittam kávét.", "english": "I have already drunk coffee.", "base": "drink"}, {"hungarian": "Már készítettem a gyógyszert.", "english": "I have already taken the medicine.", "base": "take"}, {"hungarian": "Már kiválasztottam egy témát.", "english": "I have already chosen a topic.", "base": "choose"}, {"hungarian": "Már megettem a vacsorát?", "english": "Have I already eaten dinner?", "base": "eat"}, {"hungarian": "Már láttam az üzenetet.", "english": "I have already seen the message.", "base": "see"}, {"hungarian": "Még nem ittam teát.", "english": "I have not drunk tea yet.", "base": "drink"}, {"hungarian": "Már megettem a reggelit?", "english": "Have I eaten breakfast yet?", "base": "eat"}, {"hungarian": "Még nem találkoztam a testvéreddel.", "english": "I have not met your brother yet.", "base": "meet"}, {"hungarian": "Még nem találtam a kulcsaimat.", "english": "I have not found my keys yet.", "base": "find"}, {"hungarian": "Még nem találtam a pénztárcát.", "english": "I have not found the wallet yet.", "base": "find"}, {"hungarian": "Már elmondtam az igazat.", "english": "I have already told the truth.", "base": "tell"}, {"hungarian": "Épp most megettem a vacsorát.", "english": "I have just eaten dinner.", "base": "eat"}, {"hungarian": "Épp most megvett(em) egy telefont.", "english": "I have just bought a phone.", "base": "buy"}, {"hungarian": "Még nem küldtem egy üzenetet a barátomnak.", "english": "I have not sent a message to my friend yet.", "base": "send"}, {"hungarian": "Már megértettem mindent?", "english": "Have I understood everything yet?", "base": "understand"}, {"hungarian": "Már láttam a filmet.", "english": "I have already seen the movie.", "base": "see"}, {"hungarian": "Még nem ettem az ebédet.", "english": "I have not eaten lunch yet.", "base": "eat"}, {"hungarian": "Már megírtam a levelet?", "english": "Have I already written the letter?", "base": "write"}, {"hungarian": "Még nem fizettem a lakbért.", "english": "I have not paid the rent yet.", "base": "pay"}, {"hungarian": "Még nem vettem egy könyvet.", "english": "I have not bought a book yet.", "base": "buy"}, {"hungarian": "Már készítettem a gyógyszert?", "english": "Have I already taken the medicine?", "base": "take"}, {"hungarian": "Már készítettem egy fotót.", "english": "I have already taken a photo.", "base": "take"}, {"hungarian": "Már elmondtam a történetet?", "english": "Have I already told the story?", "base": "tell"}, {"hungarian": "Még nem ettem a vacsorát.", "english": "I have not eaten dinner yet.", "base": "eat"}, {"hungarian": "Épp most megnyertem egy díjat.", "english": "I have just won a prize.", "base": "win"}, {"hungarian": "Még nem küldtem egy e-mailt a tanárnak.", "english": "I have not sent an email to the teacher yet.", "base": "send"}, {"hungarian": "Már kifizettem a lakbért?", "english": "Have I paid the rent yet?", "base": "pay"}, {"hungarian": "Már megettem a tortát?", "english": "Have I already eaten the cake?", "base": "eat"}, {"hungarian": "Már megnyertem a meccset.", "english": "I have already won the match.", "base": "win"}, {"hungarian": "Épp most találkoztam a testvéreddel.", "english": "I have just met your brother.", "base": "meet"}, {"hungarian": "Épp most megértettem mindent.", "english": "I have just understood everything.", "base": "understand"}, {"hungarian": "Még nem írtam a levelet.", "english": "I have not written the letter yet.", "base": "write"}, {"hungarian": "Még nem ittam kávét.", "english": "I have not drunk coffee yet.", "base": "drink"}, {"hungarian": "Még nem vettem egy jegyet.", "english": "I have not bought a ticket yet.", "base": "buy"}];
+</script>
+
+<script>
+function $(s){return document.querySelector(s)}; function $all(s){return Array.from(document.querySelectorAll(s))};
+function shuffle(a){return a.map(x=>({x,r:Math.random()})).sort((a,b)=>a.r-b.r).map(o=>o.x)}
+
+// Tabs
+$all('.tab').forEach(t=>t.addEventListener('click',()=>{
+  $all('.tab').forEach(x=>x.classList.remove('active'));
+  $all('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('#panel-'+t.dataset.tab).classList.add('active');
+  if(t.dataset.tab==='learn') startLearn();
+  if(t.dataset.tab==='practice') startPractice();
+  if(t.dataset.tab==='translate') startTranslate();
+}));
+
+// FLASHCARDS
+let flashDeck=[], flashIndex=0, flashKnown=new Set();
+const flashFront=$('#flash-front'), flashBack=$('#flash-back'), flashInner=$('#flash-inner');
+function initFlash(){ flashDeck=shuffle(VERBS.slice()); flashIndex=0; flashKnown.clear(); updateFlashCounts(); renderFlash(); }
+function updateFlashCounts(){ $('#flash-count').textContent=Math.max(0,flashDeck.length-flashIndex); $('#known-count').textContent=flashKnown.size; }
+function renderFlash(){
+  if(flashIndex>=flashDeck.length){ flashFront.textContent='The end'; flashBack.textContent=''; flashInner.classList.remove('flipped'); return; }
+  const c=flashDeck[flashIndex];
+  flashInner.classList.remove('flipped');
+  flashFront.textContent=`${c.base} — ${c.translation}`;
+  flashBack.textContent=`${c.past} — ${c.part}`;
+}
+function flipFlash(){ if(flashIndex<flashDeck.length) flashInner.classList.toggle('flipped'); }
+function nextFlash(){ if(flashIndex<flashDeck.length){ flashIndex++; updateFlashCounts(); renderFlash(); } }
+function knowFlash(){ if(flashIndex<flashDeck.length){ flashKnown.add(flashDeck[flashIndex].base);} nextFlash(); }
+$('.flash-wrap').addEventListener('click', flipFlash); $('#flash-flip').addEventListener('click', flipFlash);
+$('#flash-next').addEventListener('click', nextFlash); $('#flash-skip').addEventListener('click', nextFlash); $('#flash-know').addEventListener('click', knowFlash);
+
+// LEARN (+1 only)
+let learnScore=0, learnTimer=null, learnLeft=30, learnCurrent=null, learnMissing='past', learnShowed=false;
+function startLearn(){
+  learnLocked=false;
+  if(learnTimer) clearInterval(learnTimer);
+  learnCurrent=VERBS[Math.floor(Math.random()*VERBS.length)];
+  learnMissing=Math.random()<0.5?'past':'part';
+  learnLeft=30; learnShowed=false; // Reset "shown" flag on new item
+  $('#learn-inf').innerHTML=`${learnCurrent.base} <span class="hu">— ${learnCurrent.translation}</span>`;
+  if(learnMissing==='past'){ $('#learn-past').innerHTML='<span class="placeholder">???</span>'; $('#learn-part').textContent=learnCurrent.part;}
+  else { $('#learn-past').textContent=learnCurrent.past; $('#learn-part').innerHTML='<span class="placeholder">???</span>'; }
+  $('#learn-feedback').textContent=''; $('#learn-score').textContent=learnScore; $('#learn-timer').textContent=learnLeft;
+  learnTimer=setInterval(()=>{ learnLeft--; $('#learn-timer').textContent=learnLeft; if(learnLeft<=0){ clearInterval(learnTimer); showLearnAnswer(); } },1000);
+  $('#learn-input').value=''; $('#learn-input').focus();
+}
+function submitLearn(){
+  if(learnLocked) return;
+  if(learnShowed) return; // Prevent scoring if solution was shown
+  const val=$('#learn-input').value.trim().toLowerCase();
+  if(!val){ $('#learn-feedback').textContent='Enter an answer or pass!'; return; }
+  const correct=learnCurrent[learnMissing].toLowerCase();
+  if(val===correct){ learnScore+=1;
+  learnLocked=true; $('#learn-score').textContent=learnScore; $('#learn-feedback').textContent='Correct! +1 point'; clearInterval(learnTimer); /* manual next: disabled auto-advance */; }
+  else { $('#learn-feedback').textContent='Incorrect. Solution: '+learnCurrent[learnMissing]; clearInterval(learnTimer); /* manual next: disabled auto-advance */; }
+}
+function showLearnAnswer(){ if(learnShowed) return; learnShowed=true; $('#learn-feedback').textContent='Solution: '+learnCurrent[learnMissing]; clearInterval(learnTimer); }
+$('#learn-submit').addEventListener('click', submitLearn); $('#learn-pass').addEventListener('click', startLearn); $('#learn-show').addEventListener('click', showLearnAnswer);
+$('#learn-input').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.repeat) submitLearn(); });
+
+// PRACTICE
+let practiceScore=0, practiceTimer=null, practiceLeft=30, practiceCurrent=null, practiceShown=false;
+function startPractice(){
+  practiceLocked=false;
+  const DATA=PRACTISE_DATA;
+  if(!DATA.length){ $('#practice-task').innerHTML='<div class="empty">No sentence available.</div>'; return; }
+  if(practiceTimer) clearInterval(practiceTimer);
+  practiceLeft=30; practiceShown=false; // Reset "shown" flag on new item
+  practiceCurrent=DATA[Math.floor(Math.random()*DATA.length)];
+  $('#practice-task').innerHTML='<div>'+practiceCurrent.cloze_en+'</div>';
+  $('#practice-input').value=''; $('#practice-input').focus();
+  $('#practice-feedback').textContent='';
+  $('#practice-score').textContent=practiceScore; $('#practice-timer').textContent=practiceLeft;
+  practiceTimer=setInterval(()=>{ practiceLeft--; $('#practice-timer').textContent=practiceLeft; if(practiceLeft<=0){ clearInterval(practiceTimer); showPracticeAnswer(); } },1000);
+}
+function submitPractice(){
+  if(practiceLocked) return;
+  if(practiceShown) return; // Prevent scoring if solution was shown
+  if(!practiceCurrent) return;
+  const val=$('#practice-input').value.trim().toLowerCase();
+  if(!val){ $('#practice-feedback').textContent='Enter an answer or pass!'; return; }
+  const correct=(practiceCurrent.participle||'').toLowerCase();
+  if(val===correct){ practiceScore+=10;
+  practiceLocked=true; $('#practice-score').textContent=practiceScore; $('#practice-feedback').textContent='Correct!'; clearInterval(practiceTimer); /* manual next: disabled auto-advance */; }
+  else { $('#practice-feedback').textContent='Incorrect. Solution: '+(practiceCurrent.participle||''); clearInterval(practiceTimer); /* manual next: disabled auto-advance */; }
+}
+function showPracticeAnswer(){ if(practiceShown) return; practiceShown=true; $('#practice-feedback').textContent='Solution: '+(practiceCurrent?.participle||''); clearInterval(practiceTimer); }
+$('#practice-submit').addEventListener('click', submitPractice); $('#practice-pass').addEventListener('click', startPractice); $('#practice-show').addEventListener('click', showPracticeAnswer);
+$('#practice-input').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.repeat) submitPractice(); });
+
+// TRANSLATE (no timer; HU-only)
+let translateScore=0, translateCurrent=null, translateShown=false;
+function startTranslate(){
+  translateLocked=false;
+  const DATA=TRANSLATION_DATA;
+  if(!DATA.length){ $('#translate-task').innerHTML='<div class="empty">No data for translation.</div>'; return; }
+  translateShown=false; // Reset "shown" flag on new item
+  translateCurrent=DATA[Math.floor(Math.random()*DATA.length)];
+  $('#translate-task').innerHTML='<div>'+translateCurrent.hungarian+'</div>';
+  $('#translate-input').value=''; $('#translate-input').focus();
+  $('#translate-feedback').textContent='';
+  $('#translate-score').textContent=translateScore;
+}
+function normalizeEN(s){ return s.replace(/\bI've\b/ig,'I have').replace(/\bHe's\b/ig,'He has').replace(/\bShe's\b/ig,'She has').replace(/\bWe've\b/ig,'We have').replace(/\bThey've\b/ig,'They have').replace(/\bYou've\b/ig,'You have').toLowerCase().replace(/\s+/g,' ').replace(/\s+([?.!])/g,'$1').trim(); }
+function submitTranslate(){
+  if(translateLocked) return;
+  if(translateShown) return; // Prevent scoring if solution was shown
+  if(!translateCurrent) return;
+  const val=$('#translate-input').value.trim();
+  if(!val){ $('#translate-feedback').textContent='Enter a translation or ask for the next one!'; return; }
+  const ok = normalizeEN(val)===normalizeEN(translateCurrent.english);
+  if(ok){ translateScore+=10;
+  translateLocked=true; $('#translate-score').textContent=translateScore; $('#translate-feedback').textContent='Correct!'; /* manual next: disabled auto-advance */; }
+  else { $('#translate-feedback').textContent='Not entirely correct. Solution: '+translateCurrent.english; /* manual next: disabled auto-advance */; }
+}
+function showTranslateAnswer(){ if(translateShown) return; translateShown=true; $('#translate-feedback').textContent='Solution: '+(translateCurrent?.english||''); }
+$('#translate-submit').addEventListener('click', submitTranslate); $('#translate-pass').addEventListener('click', startTranslate); $('#translate-show').addEventListener('click', showTranslateAnswer);
+$('#translate-input').addEventListener('keydown', e=>{ if(e.key==='Enter' && !e.repeat) submitTranslate(); });
+
+// RESET
+function resetFlash(){ initFlash(); } function resetLearn(){ learnScore=0; startLearn(); } function resetPractice(){ practiceScore=0; startPractice(); } function resetTranslate(){ translateScore=0; startTranslate(); }
+function resetAll(){ resetFlash(); resetLearn(); resetPractice(); resetTranslate(); }
+$('#reset-flash').addEventListener('click', resetFlash); $('#reset-learn').addEventListener('click', resetLearn); $('#reset-practice').addEventListener('click', resetPractice); $('#reset-translate').addEventListener('click', resetTranslate); $('#reset-all').addEventListener('click', resetAll);
+
+// INIT
+document.addEventListener('DOMContentLoaded', ()=>{ initFlash(); });
+</script>
+
+<style>
+#adm-fab{position:fixed;right:18px;bottom:18px;z-index:9999}
+.adm-overlay{position:fixed;inset:0;background:rgba(17,24,39,.45);display:none;align-items:center;justify-content:center;z-index:9998}
+.adm-modal{width:min(880px,94vw);max-height:90vh;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px}
+.adm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.adm-title{font-weight:800;font-size:20px}
+.adm-close{cursor:pointer;border:1px solid var(--border);border-radius:12px;padding:6px 10px;background:#fff}
+.adm-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.adm-pill{display:inline-flex;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#fafafa;color:#111;font-size:13px}
+.adm-input{padding:10px 12px;border:1px solid var(--border);border-radius:12px;min-width:240px}
+.adm-table{width:100%;border-collapse:collapse;font-size:13px}
+.adm-table th,.adm-table td{border-bottom:1px solid var(--border);padding:8px;text-align:left}
+.adm-kbd{font-family:ui-monospace,Menlo,monospace;background:#F5F7FA;border:1px solid var(--border);border-radius:6px;padding:2px 6px}
+</style>
+<div id="adm-fab"><button class="btn" id="adm-open">Admin</button></div>
+
+<div class="adm-overlay" id="student-login">
+  <div class="adm-modal">
+    <div class="adm-head"><div class="adm-title">Log in</div><button class="adm-close" id="student-login-close">×</button></div>
+    <div class="adm-row">
+      <input class="adm-input" id="adm-student-name" placeholder="Name or ID">
+      <input class="adm-input" id="adm-student-class" placeholder="Class (optional)">
+      <button class="btn primary" id="adm-student-save">Log in</button>
+    </div>
+  </div>
+</div>
+
+<div class="adm-overlay" id="adm-panel">
+  <div class="adm-modal">
+    <div class="adm-head"><div class="adm-title">Admin Panel</div><button class="adm-close" id="adm-close">Close</button></div>
+    <div id="adm-auth"><div class="adm-row">
+      <input class="adm-input" type="password" id="adm-pass" placeholder="Admin password">
+      <button class="btn primary" id="adm-login">Log in</button>
+    </div></div>
+    <div id="adm-content" style="display:none">
+      <div class="adm-row" style="justify-content:space-between">
+        <div class="adm-pill">Active User: <b id="adm-current-user">–</b></div>
+        <div class="adm-row">
+          <button class="btn" id="adm-switch-user">Switch User</button>
+          <button class="btn" id="adm-export-all">Export CSV (All)</button>
+          <button class="btn" id="adm-export-json">Export JSON</button>
+          <button class="btn warn" id="adm-clear-all">Clear All</button>
+        </div>
+      </div>
+      <table class="adm-table" id="adm-user-table"><thead><tr><th>User</th><th>Events</th><th>Last Activity</th></tr></thead><tbody></tbody></table>
+      <div style="height:8px"></div>
+      <table class="adm-table" id="adm-log-table"><thead><tr><th>Time</th><th>User</th><th>Tab</th><th>Action</th><th>Verb/Item</th><th>Input</th><th>Correct?</th><th>Score</th><th>Note</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</div>
+
+<div style="position:fixed;left:18px;bottom:18px;z-index:9999">
+  <button class="btn" id="adm-export-me">Export (Me)</button>
+  <button class="btn" id="exit-open" style="margin-left:8px">Exit Card</button>
+</div>
+
+<!-- Exit Card -->
+<div class="adm-overlay" id="exit-card" style="display:none">
+  <div class="adm-modal">
+    <div class="adm-head"><div class="adm-title">Exit Card</div><button class="adm-close" id="exit-close">Close</button></div>
+    <div class="adm-row" style="gap:18px;margin-bottom:6px">
+      <div class="adm-pill">Name: <b id="exit-name">–</b></div>
+      <div class="adm-pill">Class: <b id="exit-class">–</b></div>
+      <div class="adm-pill">Total Score: <b id="exit-score">0</b></div>
+    </div>
+    <div class="adm-row" style="gap:18px;margin-bottom:6px">
+      <div class="adm-pill">Attempts: <b id="exit-attempts">0</b></div>
+      <div class="adm-pill">Correct: <b id="exit-correct">0</b></div>
+      <div class="adm-pill">Incorrect: <b id="exit-incorrect">0</b></div>
+    </div>
+    <div class="adm-muted" style="margin-bottom:6px">Tabs: <span id="exit-tabs">–</span></div>
+    <div class="adm-muted">Period: <span id="exit-span">–</span></div>
+    <div class="adm-sep"></div>
+    <div class="adm-row" style="justify-content:flex-end">
+      <button class="btn" id="exit-copy">Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const ADMIN_PASSWORD = "tanar";
+  const LS_KEY = "ivt_logs_v1", USER_KEY="ivt_current_user", CLASS_KEY="ivt_current_class";
+  const getAll = () => JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+  const saveAll = (rows) => localStorage.setItem(LS_KEY, JSON.stringify(rows));
+  const curUser = () => (localStorage.getItem(USER_KEY)||"").trim() || null;
+  const curClass = () => (localStorage.getItem(CLASS_KEY)||"").trim() || null;
+  const setUser = (u,c)=>{ if(u) localStorage.setItem(USER_KEY,u.trim()); localStorage.setItem(CLASS_KEY,(c||"").trim()); };
+  const nowISO = () => new Date().toISOString();
+  function logEvent(evt){
+    const user = curUser() || "ANON";
+    const row = { ts: nowISO(), user, class: curClass()||"", ...evt };
+    const all = getAll(); all.push(row); saveAll(all);
+    try{ updateAdminTables(); }catch(e){}
+  }
+  function el(id){ return document.getElementById(id); }
+
+  // CSV with per-user SUMMARY
+  function downloadCSV(rows, filename){
+    const headers = ["ts","user","class","tab","action","base","past","part","translation","prompt","input","correct","score","note"];
+    const esc = (s)=>{ if(s===undefined||s===null) return ""; s=String(s); return /[\",\n;]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
+    const lines = [headers.join(";")].concat(rows.map(r=>headers.map(h=>esc(r[h])).join(";")));
+    // summary
+    const byUser = {};
+    rows.forEach(r=>{ (byUser[r.user||"ANON"]=byUser[r.user||"ANON"]||[]).push(r); });
+    function num(n){ const x=parseInt(n,10); return isNaN(x)?null:x; }
+    function summarize(rr){
+      let finalScore=0; for(let i=rr.length-1;i>=0;i--){ const v=num(rr[i].score); if(v!==null){ finalScore=v; break; } }
+      const submitTabs=new Set(["learn","practice","translate"]);
+      let attempts=0,correct=0,incorrect=0;
+      rr.forEach(r=>{ if(r.action==="submit" && submitTabs.has(r.tab)){ attempts++; if(r.correct===true||r.correct==="true"||r.correct==="✓") correct++; else if(r.correct===false||r.correct==="false"||r.correct==="✗") incorrect++; } });
+      return {finalScore, attempts, correct, incorrect};
+    }
+    lines.push("");
+    lines.push(["SUMMARY","User","Total Score","Correct","Incorrect","Attempts"].join(";"));
+    Object.keys(byUser).forEach(u=>{
+      const s=summarize(byUser[u]);
+      lines.push(["SUMMARY",u,s.finalScore,s.correct,s.incorrect,s.attempts].join(";"));
+    });
+    const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+    const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download=filename||"export.csv"; a.click(); URL.revokeObjectURL(url);
+  }
+
+  // admin ui
+  el("adm-open").addEventListener("click", ()=>{
+    el("adm-panel").style.display="flex";
+    if(sessionStorage.getItem("adm_ok")==="1"){ el("adm-auth").style.display="none"; el("adm-content").style.display="block"; updateAdminTables(); }
+    el("adm-current-user").textContent = curUser() || "–";
+  });
+  el("adm-close").addEventListener("click", ()=> el("adm-panel").style.display="none");
+  el("adm-login").addEventListener("click", ()=>{
+    if((el("adm-pass").value||"") === ADMIN_PASSWORD){ sessionStorage.setItem("adm_ok","1"); el("adm-auth").style.display="none"; el("adm-content").style.display="block"; updateAdminTables(); }
+    else alert("Incorrect password.");
+  });
+
+  el("adm-student-save").addEventListener("click", ()=>{
+    const name=(el("adm-student-name").value||"").trim(); const cls=(el("adm-student-class").value||"").trim();
+    if(!name) return alert("Please enter your name/ID.");
+    setUser(name, cls); el("student-login").style.display="none"; logEvent({tab:"system",action:"login"});
+  });
+  el("student-login-close").addEventListener("click", ()=>{ if(!curUser()) setUser("ANON",""); el("student-login").style.display="none"; });
+  el("adm-switch-user").addEventListener("click", ()=>{ document.getElementById("student-login").style.display="flex"; });
+
+  el("adm-export-me").addEventListener("click", ()=>{
+    const u = curUser() || "ANON";
+    const rows = getAll().filter(r=>r.user===u);
+    downloadCSV(rows, `irregular_${u.replace(/\s+/g,'_')}.csv`);
+  });
+  el("adm-export-all").addEventListener("click", ()=> downloadCSV(getAll(),"irregular_all.csv"));
+  el("adm-export-json").addEventListener("click", ()=>{
+    const rows=getAll(); const blob=new Blob([JSON.stringify(rows,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="irregular_all.json"; a.click(); URL.revokeObjectURL(url);
+  });
+  el("adm-clear-all").addEventListener("click", ()=>{ if(confirm("Are you sure you want to delete all logs?")){ localStorage.setItem(LS_KEY,"[]"); updateAdminTables(); } });
+
+  function updateAdminTables(){
+    const rows=getAll(); const utb=document.querySelector("#adm-user-table tbody"); const ltb=document.querySelector("#adm-log-table tbody");
+    const byUser={};
+    rows.forEach(r=>{ (byUser[r.user]=byUser[r.user]||[]).push(r); });
+    utb.innerHTML=""; Object.entries(byUser).sort((a,b)=>b[1].length-a[1].length).forEach(([u,arr])=>{
+      const last=arr.slice(-1)[0]?.ts||""; const tr=document.createElement("tr");
+      tr.innerHTML = `<td>${u}</td><td>${arr.length}</td><td>${(last||"").replace('T',' ').slice(0,16)}</td>`; utb.appendChild(tr);
+    });
+    ltb.innerHTML=""; rows.slice(-300).reverse().forEach(r=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML = `<td>${r.ts.replace('T',' ').slice(0,19)}</td><td>${r.user}</td><td>${r.tab||""}</td><td>${r.action||""}</td>
+        <td>${[r.base,r.past,r.part].filter(Boolean).join(' / ') || (r.translation||r.prompt||'')}</td>
+        <td>${r.input||""}</td><td>${r.correct===true?"✓":(r.correct===false?"✗":"")}</td><td>${r.score??""}</td><td>${r.note||""}</td>`;
+      ltb.appendChild(tr);
+    });
+  }
+
+  // Hooks (best-effort)
+  function txt(id){ const n=document.getElementById(id); return n?(n.textContent||"").trim():""; }
+  function html(id){ const n=document.getElementById(id); return n?(n.innerText||"").trim():""; }
+  [["flash-flip","flip","flash"],["flash-know","know","flash"],["flash-next","next","flash"],["flash-skip","skip","flash"]].forEach(([id,action,tab])=>{
+    const b=document.getElementById(id); if(b) b.addEventListener("click",()=>logEvent({tab,action,base:txt("flash-front")}));
+  });
+  [["learn-submit","submit"],["learn-pass","pass"],["learn-show","show"]].forEach(([id,a])=>{
+    const b=document.getElementById(id); if(b) b.addEventListener("click",()=>{ const base=txt("learn-inf"),past=txt("learn-past"),part=txt("learn-part"); setTimeout(()=>{ const fb=txt("learn-feedback"),score=parseInt(txt("learn-score")||"0",10); const correct=/correct|✓/i.test(fb); logEvent({tab:"learn",action:a,base,past,part,input:(document.getElementById("learn-input")||{}).value||"",correct,score,note:fb}); },50); });
+  });
+  [["practice-submit","submit"],["practice-pass","pass"],["practice-show","show"]].forEach(([id,a])=>{
+    const b=document.getElementById(id); if(b) b.addEventListener("click",()=>{ const prompt=html("practice-task"); setTimeout(()=>{ const fb=txt("practice-feedback"),score=parseInt(txt("practice-score")||"0",10); const correct=/correct|✓/i.test(fb); logEvent({tab:"practice",action:a,prompt,input:(document.getElementById("practice-input")||{}).value||"",correct,score,note:fb}); },50); });
+  });
+  [["translate-submit","submit"],["translate-pass","pass"],["translate-show","show"]].forEach(([id,a])=>{
+    const b=document.getElementById(id); if(b) b.addEventListener("click",()=>{ const prompt=html("translate-task"); setTimeout(()=>{ const fb=txt("translate-feedback"),score=parseInt(txt("translate-score")||"0",10); const correct=/correct|✓/i.test(fb); logEvent({tab:"translate",action:a,prompt,input:(document.getElementById("translate-input")||{}).value||"",correct,score,note:fb}); },50); });
+  });
+
+  // Exit card logic
+  function summarize(rows){
+    const tabs=new Set(); let attempts=0,correct=0,incorrect=0; let first=null,last=null;
+    rows.forEach(r=>{
+      if(r.tab) tabs.add(r.tab);
+      const t=new Date(r.ts).getTime(); if(!isNaN(t)){ if(first===null||t<first) first=t; if(last===null||t>last) last=t; }
+      if(r.action==="submit" && ["learn","practice","translate"].includes(r.tab)){
+        attempts++; if(r.correct===true||r.correct==="true"||r.correct==="✓") correct++; else if(r.correct===false||r.correct==="false"||r.correct==="✗") incorrect++;
+      }
+    });
+    let finalScore=0; for(let i=rows.length-1;i>=0;i--){ const v=parseInt(rows[i].score,10); if(!isNaN(v)){ finalScore=v; break; } }
+    const span=(first&&last)?(new Date(first).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+" – "+new Date(last).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})):"–";
+    return {finalScore,attempts,correct,incorrect,tabs:Array.from(tabs).join(", ")||"–",span};
+  }
+  document.getElementById("exit-open").addEventListener("click", ()=>{
+    const u = curUser() || "ANON", c = curClass() || "–";
+    const rows = getAll().filter(r=>(r.user||"ANON")===u);
+    const s = summarize(rows);
+    document.getElementById("exit-name").textContent=u;
+    document.getElementById("exit-class").textContent=c;
+    document.getElementById("exit-score").textContent=s.finalScore;
+    document.getElementById("exit-attempts").textContent=s.attempts;
+    document.getElementById("exit-correct").textContent=s.correct;
+    document.getElementById("exit-incorrect").textContent=s.incorrect;
+    document.getElementById("exit-tabs").textContent=s.tabs;
+    document.getElementById("exit-span").textContent=s.span;
+    document.getElementById("exit-card").style.display="flex";
+  });
+  document.getElementById("exit-close").addEventListener("click", ()=> document.getElementById("exit-card").style.display="none" );
+
+  // Force login if no user
+  window.addEventListener("load", ()=>{ if(!curUser()) document.getElementById("student-login").style.display="flex"; });
+})();
+</script>
+
+
+<script>
+// ===== Robust delegated logging hooks (fix for Exit card counters) - Translated =====
+(function(){
+  const LS_KEY = "ivt_logs_v1";
+  const USER_KEY = "ivt_current_user";
+  const CLASS_KEY = "ivt_current_class";
+  const getAll = () => JSON.parse(localStorage.getItem(LS_KEY) || "[]");
+  const saveAll = (rows) => localStorage.setItem(LS_KEY, JSON.stringify(rows));
+  const curUser = () => (localStorage.getItem(USER_KEY)||"").trim() || "ANON";
+  const curClass = () => (localStorage.getItem(CLASS_KEY)||"").trim() || "";
+  const nowISO = () => new Date().toISOString();
+
+  function logEvent(evt){
+    const row = { ts: nowISO(), user: curUser(), class: curClass(), ...evt };
+    const all = getAll(); all.push(row); saveAll(all);
+  }
+
+  function t(sel){ const n=document.querySelector(sel); return n?(n.textContent||"").trim():""; }
+  function v(sel){ const n=document.querySelector(sel); return n?(n.value||"").trim():""; }
+
+  // read score/feedback after UI updates
+  function captureLearn(action){
+    const base=t("#learn-inf"), past=t("#learn-past"), part=t("#learn-part");
+    setTimeout(()=>{
+      const fb=t("#learn-feedback");
+      // Check for English translation of "Correct"
+      const correct=/correct|✓/i.test(fb);
+      const score=parseInt(t("#learn-score")||"0",10);
+      const input=v("#learn-input");
+      logEvent({tab:"learn", action, base, past, part, input, correct, score, note: fb});
+    }, 40);
+  }
+  function capturePractice(action){
+    const prompt=t("#practice-task");
+    setTimeout(()=>{
+      const fb=t("#practice-feedback");
+      const correct=/correct|✓/i.test(fb);
+      const score=parseInt(t("#practice-score")||"0",10);
+      const input=v("#practice-input");
+      logEvent({tab:"practice", action, prompt, input, correct, score, note: fb});
+    }, 40);
+  }
+  function captureTranslate(action){
+    const prompt=t("#translate-task");
+    setTimeout(()=>{
+      const fb=t("#translate-feedback");
+      const correct=/correct|✓/i.test(fb);
+      const score=parseInt(t("#translate-score")||"0",10);
+      const input=v("#translate-input");
+      logEvent({tab:"translate", action, prompt, input, correct, score, note: fb});
+    }, 40);
+  }
+
+  // delegated click handler to survive DOM changes
+  document.addEventListener("click", function(e){
+    const btn = e.target.closest("button");
+    const id = btn && btn.id ? btn.id : (e.target.id||"");
+    switch(id){
+      // learn
+      case "learn-submit": captureLearn("submit"); break;
+      case "learn-pass":   captureLearn("pass"); break;
+      case "learn-show":   captureLearn("show"); break;
+      // practice
+      case "practice-submit": capturePractice("submit"); break;
+      case "practice-pass":   capturePractice("pass"); break;
+      case "practice-show":   capturePractice("show"); break;
+      // translate
+      case "translate-submit": captureTranslate("submit"); break;
+      case "translate-pass":   captureTranslate("pass"); break;
+      case "translate-show":   captureTranslate("show"); break;
+      // resets
+      case "reset-flash":
+      case "reset-learn":
+      case "reset-practice":
+      case "reset-translate":
+      case "reset-all":
+        logEvent({tab:"system", action:id}); break;
+    }
+  }, true);
+
+})();
+</script>
+
+
+<script>
+// ===== Robust Exit Card: MutationObserver-based logging + DOM score fallback - Translated (FIXED TOTAL) =====
+(function(){
+  const LS_LOG = "ivt_logs_v1";
+  const LS_SCORE = "ivt_score_cache_v1";
+  const USER_KEY = "ivt_current_user";
+  const CLASS_KEY = "ivt_current_class";
+  const getAll = () => JSON.parse(localStorage.getItem(LS_LOG) || "[]");
+  const saveAll = (rows) => localStorage.setItem(LS_LOG, JSON.stringify(rows));
+  const curUser = () => (localStorage.getItem(USER_KEY)||"").trim() || "ANON";
+  const curClass = () => (localStorage.getItem(CLASS_KEY)||"").trim() || "";
+  const nowISO = () => new Date().toISOString();
+
+  function log(evt){
+    const row = { ts: nowISO(), user: curUser(), class: curClass(), ...evt };
+    const all = getAll(); all.push(row); saveAll(all);
+  }
+
+  function readScoreText(id){
+    const n = document.getElementById(id);
+    if(!n) return null;
+    const txt = (n.textContent||"").replace(/[^\d\-]+/g," ").trim();
+    // pick last number in string
+    const m = txt.match(/(-?\d+)\s*$/);
+    return m ? parseInt(m[1],10) : null;
+  }
+
+  function cacheScore(tab, value){
+    const u = curUser();
+    const cache = JSON.parse(localStorage.getItem(LS_SCORE) || "{}");
+    cache[u] = cache[u] || {learn:0,practice:0,translate:0};
+    cache[u][tab] = value;
+    localStorage.setItem(LS_SCORE, JSON.stringify(cache));
+  }
+
+  function getCachedScores(){
+    const u = curUser();
+    const cache = JSON.parse(localStorage.getItem(LS_SCORE) || "{}");
+    return (cache[u] || {learn:0,practice:0,translate:0});
+  }
+
+  function setupScoreObserver(tab, id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const obs = new MutationObserver(()=>{
+      const v = readScoreText(id);
+      if(v!==null){
+        cacheScore(tab, v);
+        log({tab, action:"score_update", score:v});
+      }
+    });
+    obs.observe(el, {childList:true, characterData:true, subtree:true});
+  }
+
+  function setupFeedbackObserver(tab, fbId, inputId, promptId){
+    const el = document.getElementById(fbId);
+    if(!el) return;
+    const getText = (id)=>{ const n=document.getElementById(id); return n?(n.innerText||n.textContent||"").trim():""; };
+    const getVal  = (id)=>{ const n=document.getElementById(id); return n?(n.value||"").trim():""; };
+    const obs = new MutationObserver(()=>{
+      const fb = getText(fbId);
+      if(!fb) return;
+      // Check for English translation of "Correct"
+      const correct = /correct|✓/i.test(fb);
+      const score = readScoreText(tab+"-score"); // read rendered score
+      const input = getVal(inputId);
+      const prompt = getText(promptId);
+      log({tab, action:"submit", input, prompt, correct, score, note: fb});
+    });
+    obs.observe(el, {childList:true, characterData:true, subtree:true});
+  }
+
+  // Attach observers (if elements exist)
+  setupScoreObserver("learn","learn-score");
+  setupScoreObserver("practice","practice-score");
+  setupScoreObserver("translate","translate-score");
+
+  setupFeedbackObserver("learn","learn-feedback","learn-input","learn-inf");
+  setupFeedbackObserver("practice","practice-feedback","practice-input","practice-task");
+  setupFeedbackObserver("translate","translate-feedback","translate-input","translate-task");
+
+  // Override Exit card open to use cached scores if logs are missing
+  const origExitOpen = (function(){
+    // find any existing handler bound to #exit-open, replace with our wrapper
+    const btn = document.getElementById("exit-open");
+    if(btn){
+      const clone = btn.cloneNode(true);
+      btn.parentNode.replaceChild(clone, btn);
+      return function(handler){ clone.addEventListener("click", handler); };
+    }
+    return function(){};
+  })();
+
+  origExitOpen(function(){
+    const u = curUser();
+    const rows = getAll().filter(r => (r.user||"ANON") === u);
+    // compute attempts/correct/incorrect from logs
+    const submitTabs = new Set(["learn","practice","translate"]);
+    let attempts=0, correct=0, incorrect=0;
+    rows.forEach(r=>{
+      if(r.action==="submit" && submitTabs.has(r.tab)){
+        attempts++;
+        if(r.correct===true || r.correct==="true" || r.correct==="✓") correct++;
+        else incorrect++;
+      }
+    });
+
+    // final score: cached DOM scores (fallback chain)
+    const cached = getCachedScores();
+    const domLearn = readScoreText("learn-score") ?? 0;
+    const domPractice = readScoreText("practice-score") ?? 0;
+    const domTranslate = readScoreText("translate-score") ?? 0;
+    
+    // FIX: Calculate the grand total by summing the highest recorded score for each activity.
+    const learnScoreFinal = Math.max(cached.learn || 0, domLearn);
+    const practiceScoreFinal = Math.max(cached.practice || 0, domPractice);
+    const translateScoreFinal = Math.max(cached.translate || 0, domTranslate);
+    
+    const grandTotal = learnScoreFinal + practiceScoreFinal + translateScoreFinal;
+
+    // Fill UI
+    document.getElementById("exit-name").textContent = u;
+    document.getElementById("exit-class").textContent = (curClass()||"–");
+    document.getElementById("exit-score").textContent = grandTotal; // Use the sum
+    document.getElementById("exit-attempts").textContent = attempts;
+    document.getElementById("exit-correct").textContent = correct;
+    document.getElementById("exit-incorrect").textContent = incorrect;
+
+    // tabs + span remain from previous implementation if present
+    document.getElementById("exit-card").style.display = "flex";
+  });
+
+})();
+</script>
+
+<script>
+(function(){
+  // Force the student login overlay on every fresh load
+  window.addEventListener("load", function(){
+    var ov = document.getElementById("student-login");
+    if(ov){ ov.style.display = "flex"; }
+  });
+})();
+</script>

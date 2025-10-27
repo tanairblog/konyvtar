@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Napsugárzás szimulátor a Vita kupacnak</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f4f8;
+            color: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px M(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        label {
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .simulation-area {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: linear-gradient(to bottom, #87ceeb 0%, #f0f8ff 80%);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+        .sun-beam {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            width: 80px; /* VASTAGABB SUGÁR */
+            height: 400px;
+            background: linear-gradient(to right, rgba(255, 220, 0, 0), rgba(255, 220, 0, 0.6), rgba(255, 220, 0, 0));
+            transform-origin: bottom center;
+            z-index: 1;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .surface {
+            width: 400px;
+            height: 20px;
+            background-color: #966F33;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 -3px 6px rgba(0,0,0,0.15);
+            z-index: 2;
+        }
+        .surface::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            height: 100%;
+            border-radius: 5px 5px 0 0;
+            transform: translateX(-50%);
+            transition: width 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            width: 0;
+        }
+        .readouts {
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            margin-top: 25px;
+            background-color: #eef7ff;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .readout {
+            flex-basis: 50%;
+        }
+        .readout h3 {
+            margin: 0 0 5px 0;
+            color: #0056b3;
+            font-size: 1em;
+        }
+        .readout p {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        #totalEnergyValue {
+            font-size: 2em;
+            color: #d35400;
+        }
+        .explanation {
+            margin-top: 30px;
+            line-height: 1.6;
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hogyan melegít a napfény?</h1>
+
+        <div class="controls">
+            <div>
+                <label for="angle">Beesési szög: <span id="angleValue">90</span>°</label>
+                <input type="range" id="angle" min="10" max="90" value="90">
+            </div>
+            <div>
+                <label for="duration">Besugárzás Időtartama: <span id="durationValue">12</span> óra</label>
+                <input type="range" id="duration" min="1" max="24" value="12">
+            </div>
+        </div>
+
+        <div class="simulation-area">
+            <div class="sun-beam" id="beam"></div>
+            <div class="surface" id="surface"></div>
+        </div>
+
+        <div class="readouts">
+            <div class="readout">
+                <h3>Energia Intenzitás</h3>
+                <p><span id="intensityValue">100</span>%</p>
+            </div>
+            <div class="readout">
+                <h3>Felhalmozott Hőenergia</h3>
+                <p><span id="totalEnergyValue">1200</span></p>
+            </div>
+        </div>
+
+        <div class="explanation">
+            <h2>Kísérletezz!</h2>
+            <p>Ez a szimulátor segít megérteni, hogy nem csak a napsütéses órák száma számít, hanem a napsugarak beesési szöge is!</p>
+            <ul>
+                <li><strong>Egyenlítői példa:</strong> Állítsd a szöget <strong>90°</strong>-ra és az időt <strong>12 órára</strong>. </li>
+                <li><strong>Sarkvidéki példa:</strong> Állítsd a szöget <strong>20°</strong>-ra, az időt pedig a maximális <strong>24 órára</strong>. </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const angleSlider = document.getElementById('angle');
+        const durationSlider = document.getElementById('duration');
+        const beam = document.getElementById('beam');
+        const surfaceStyle = document.createElement('style');
+        document.head.appendChild(surfaceStyle);
+
+        // Értékek kijelzői
+        const angleValueSpan = document.getElementById('angleValue');
+        const durationValueSpan = document.getElementById('durationValue');
+        const intensityValueSpan = document.getElementById('intensityValue');
+        const totalEnergyValueSpan = document.getElementById('totalEnergyValue');
+
+        function updateSimulation() {
+            const angle = parseInt(angleSlider.value);
+            const duration = parseInt(durationSlider.value);
+
+            // Értékek frissítése a csúszkák mellett
+            angleValueSpan.textContent = angle;
+            durationValueSpan.textContent = duration;
+
+            // 1. INTENZITÁS (energia/terület) a szögtől függően
+            const intensityFactor = Math.sin(angle * Math.PI / 180); // sin(90°)=1, sin(10°)=0.17
+            const intensityPercentage = Math.round(intensityFactor * 100);
+            intensityValueSpan.textContent = intensityPercentage;
+
+            // 2. TELJES HŐENERGIA = Intenzitás * Időtartam
+            const totalEnergy = Math.round(intensityFactor * duration * 100);
+            totalEnergyValueSpan.textContent = totalEnergy;
+
+            // 3. VIZUÁLIS MEGJELENÍTÉS
+            // Sugár forgatása
+            const rotationAngle = 90 - angle;
+            beam.style.transform = `translateX(-50%) rotate(${rotationAngle}deg)`;
+            beam.style.opacity = intensityFactor * 0.7 + 0.1;
+
+            // A "forró" folt szélessége a felületen
+            const baseWidth = 80; // A sugár szélességével egyezik meg
+            const illuminatedWidth = baseWidth / intensityFactor;
+
+            // A "forró" folt színének kiszámítása a teljes energia alapján
+            // A HSL színmodell segítségével (Hue, Saturation, Lightness)
+            const maxEnergyPossible = 24 * 100; // 24 óra * 100% intenzitás
+            const energyRatio = Math.min(totalEnergy / maxEnergyPossible, 1);
+
+            // A szín a vöröstől (H=0) a sárgáig (H=60) változik
+            const hue = 60 * energyRatio;
+            const lightness = 50 + 30 * energyRatio; // Minél több az energia, annál világosabb
+            const shadowOpacity = 0.5 + energyRatio * 0.5;
+            const shadowColor = `hsl(${hue}, 100%, 50%)`;
+
+            // Stílusok frissítése a dinamikus style elemen keresztül
+            surfaceStyle.innerHTML = `
+                .surface::after {
+                    width: ${illuminatedWidth}px;
+                    background-color: hsl(${hue}, 100%, ${lightness}%);
+                    box-shadow: 0 0 25px 8px ${shadowColor};
+                }
+            `;
+        }
+
+        angleSlider.addEventListener('input', updateSimulation);
+        durationSlider.addEventListener('input', updateSimulation);
+        window.addEventListener('load', updateSimulation);
+    </script>
+</body>
+</html>

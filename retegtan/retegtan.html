@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Földtani Metszetek Játéka</title>
+  <style>
+    /* Google-fontok importálása (pl. Roboto) */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+
+    /* Paleo/őslénytani hangulat: háttérkép egy fosszilis mintával
+       Ez csak példa, cserélhető más, ingyenes textura URL-re. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      /* Teljes ablakot kitöltő háttérkép beállítása */
+      background: url('https://img.freepik.com/free-vector/flat-dinosaur-pattern_52683-10970.jpg?t=st=1741171693~exp=1741175293~hmac=eb9f2fe0db2e3db18dcf1b69e3be0e469966a5cdc927029f7e2e8a20fbb8d869&w=900') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+      z-index: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    /* Félig átlátszó overlay, hogy a szöveg olvasható maradjon a háttér előtt.
+       Csökkentettük az átlátszatlanságot 0.4-re, hogy jobban látszódjon a háttér. */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255, 255, 255, 0.4);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    h1 {
+      margin-top: 30px;
+      font-size: 2.2rem;
+      color: #3c3c3c;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.15);
+      z-index: 1;
+      position: relative;
+    }
+
+    .samples-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+      margin: 20px;
+      z-index: 1;
+      position: relative;
+    }
+
+    .sample {
+      width: 200px;
+      background-color: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.2s ease;
+      z-index: 1;
+      position: relative;
+    }
+
+    .sample:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .sample h2 {
+      margin: 10px 0;
+      font-size: 1.2rem;
+      text-align: center;
+      color: #444;
+    }
+
+    .layer {
+      position: relative;
+      width: 90%;
+      height: 40px;
+      margin: 5px 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      border-top: 2px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+      transition: background-color 0.3s;
+    }
+
+    /* Ősmaradvány-jelek */
+    .fossil {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin: 2px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+
+    .fossil:hover {
+      transform: scale(1.3);
+    }
+
+    .trilobite {
+      background-color: #3f51b5; /* Trilobita (Indigó) */
+    }
+    .coral {
+      background-color: #e91e63; /* Korall (Rózsaszín) */
+    }
+    .shark {
+      background-color: #00bcd4; /* Cápa (Cián) */
+    }
+    .lizard {
+      background-color: #ffeb3b; /* Gyík (Sárga) */
+    }
+
+    /* Jelkulcs panel */
+    #legend {
+      background-color: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      margin: 20px;
+      padding: 20px;
+      width: 280px;
+      text-align: center;
+      z-index: 1;
+      position: relative;
+    }
+
+    #legend h2 {
+      margin: 10px 0;
+      font-weight: 500;
+      color: #444;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      font-size: 1rem;
+      color: #333;
+      justify-content: center;
+    }
+
+    .legend-item .fossil {
+      margin-right: 8px;
+    }
+
+    /* Játék vezérlők */
+    #game {
+      background-color: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin: 20px;
+      text-align: center;
+      width: 320px;
+      z-index: 1;
+      position: relative;
+    }
+
+    #game h2 {
+      margin-bottom: 10px;
+      font-size: 1.2rem;
+      color: #444;
+    }
+
+    #order-inputs {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    #order-inputs label {
+      font-weight: 500;
+      color: #333;
+    }
+
+    select {
+      margin-left: 5px;
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      font-size: 0.9rem;
+    }
+
+    select:focus {
+      border-color: #4caf50;
+    }
+
+    #buttons {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+
+    #check-order {
+      background-color: #4caf50;
+      color: #fff;
+    }
+
+    #check-order:hover {
+      background-color: #43a047;
+    }
+
+    #play-again {
+      background-color: #2196f3;
+      color: #fff;
+    }
+
+    #play-again:hover {
+      background-color: #1976d2;
+    }
+
+    #order-result {
+      margin-top: 15px;
+      font-weight: 500;
+      min-height: 20px;
+      color: #333;
+    }
+
+    #big-column {
+      background-color: #fff;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      margin: 20px;
+      padding: 10px;
+      width: 220px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      display: none;
+      transition: all 0.3s ease;
+      z-index: 1;
+      position: relative;
+    }
+
+    #big-column h2 {
+      margin: 10px 0;
+      font-size: 1.2rem;
+      color: #444;
+    }
+
+    #big-column .layer {
+      width: 90%;
+      border-top: 2px solid #444;
+      margin-bottom: 4px;
+      border-radius: 4px;
+    }
+
+  </style>
+</head>
+<body>
+
+  <h1>Földtani Metszetek Játéka</h1>
+
+  <!-- Jelkulcs -->
+  <div id="legend">
+    <h2>Ősmaradvány Jelkulcs</h2>
+    <div class="legend-item">
+      <div class="fossil trilobite"></div>
+      <span>Trilobita</span>
+    </div>
+    <div class="legend-item">
+      <div class="fossil coral"></div>
+      <span>Korall</span>
+    </div>
+    <div class="legend-item">
+      <div class="fossil shark"></div>
+      <span>Cápa</span>
+    </div>
+    <div class="legend-item">
+      <div class="fossil lizard"></div>
+      <span>Gyík</span>
+    </div>
+
+    
+  </div>
+
+  <!-- A véletlenszerűen létrehozott minták tárolója -->
+  <div class="samples-container" id="samples-container"></div>
+
+  <!-- Játék: Találd el a minták sorrendjét (legidősebbtől a legfiatalabbig) -->
+  <div id="game">
+    <h2>Találd el a minták sorrendjét (legidősebbtől a legfiatalabbig)!</h2>
+    <div id="order-inputs">
+      <div>
+        <label for="pos1">Legidősebb minta:</label>
+        <select id="pos1">
+          <option value="">Válassz</option>
+          <option value="Voros Ridge">Vörös-gerinc</option>
+          <option value="Oak Valley">Tölgy-völgy</option>
+          <option value="Lake District">Tóvidék</option>
+        </select>
+      </div>
+      <div>
+        <label for="pos2">Középső minta:</label>
+        <select id="pos2">
+          <option value="">Válassz</option>
+          <option value="Voros Ridge">Vörös-gerinc</option>
+          <option value="Oak Valley">Tölgy-völgy</option>
+          <option value="Lake District">Tóvidék</option>
+        </select>
+      </div>
+      <div>
+        <label for="pos3">Legfiatalabb minta:</label>
+        <select id="pos3">
+          <option value="">Válassz</option>
+          <option value="Voros Ridge">Vörös-gerinc</option>
+          <option value="Oak Valley">Tölgy-völgy</option>
+          <option value="Lake District">Tóvidék</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="buttons">
+      <button id="check-order">Ellenőrzés</button>
+      <button id="play-again">Újra játszom</button>
+    </div>
+
+    <p id="order-result"></p>
+  </div>
+
+  <!-- A teljes földtani oszlop 8 réteggel (0 = legidősebb, 7 = legfiatalabb) -->
+  <div id="big-column">
+    <h2>Teljes földtani oszlop</h2>
+    <div id="big-column-inner"></div>
+  </div>
+
+  <script>
+    //////////////////////////////////////////////
+    // Segédfüggvények és véletlenszerűsítés
+    //////////////////////////////////////////////
+
+    const FOSSIL_TYPES = ["trilobite", "coral", "shark", "lizard"];
+    const COLOR_PALETTE = [
+      "#9c27b0", // lila
+      "#ff9800", // narancs
+      "#2196f3", // kék
+      "#4caf50", // zöld
+      "#fce5cd", // világosnarancs
+      "#ffccf9", // rózsaszínes
+      "#cfd8dc", // szürkéskék
+      "#cddc39"  // lime
+    ];
+
+    // Fisher-Yates keverés
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function getRandomFossils() {
+      // 2..4 ősmaradvány véletlenszerűen
+      const count = Math.floor(Math.random() * 3) + 2;
+      const fossils = [];
+      for (let i = 0; i < count; i++) {
+        const randIndex = Math.floor(Math.random() * FOSSIL_TYPES.length);
+        fossils.push(FOSSIL_TYPES[randIndex]);
+      }
+      return fossils;
+    }
+
+    // Intervallek (bottom, top) részleges átfedés ellenőrzése
+    function strictlyPartialOverlap(r1, r2) {
+      // Legyen átfedés
+      const doOverlap = (r1.bottom <= r2.top) && (r2.bottom <= r1.top);
+      // Viszont egyik se tartalmazza teljesen a másikat
+      const r1ContainsR2 = (r1.bottom <= r2.bottom && r2.top <= r1.top);
+      const r2ContainsR1 = (r2.bottom <= r1.bottom && r1.top <= r2.top);
+      return doOverlap && !r1ContainsR2 && !r2ContainsR1;
+    }
+
+    function rangeMidpoint(r) {
+      return (r.bottom + r.top) / 2;
+    }
+
+    //////////////////////////////////////////////
+    // 8 réteg létrehozása
+    //////////////////////////////////////////////
+
+    let allStrata = [];
+
+    function generateAllStrata() {
+      // 8 réteg 0..7
+      // Az egyes rétegek színeit és ősmaradványait véletlenszerűen állítjuk be
+      const colorOrder = shuffle([...COLOR_PALETTE]);
+      const strata = [];
+      for (let i = 0; i < 8; i++) {
+        strata.push({
+          index: i,
+          fossils: getRandomFossils(),
+          color: colorOrder[i]
+        });
+      }
+      return strata;
+    }
+
+    //////////////////////////////////////////////
+    // 3 véletlen intervallum részleges átfedéssel
+    //////////////////////////////////////////////
+
+    function randomRange() {
+      // bottom: 0..5, top: bottom+1..7
+      const b = Math.floor(Math.random() * 6);
+      const t = Math.floor(Math.random() * (7 - (b + 1) + 1)) + (b + 1);
+      return { bottom: b, top: t };
+    }
+
+    function distinctPartialOverlap(ranges) {
+      // 1) Nincs két azonos bottom-top
+      // 2) Nincs két megegyező középpont (midpoint)
+      // 3) Minden pár strictlyPartialOverlap
+
+      const setOfBottomTops = new Set();
+      const setOfMids = new Set();
+
+      for (let i = 0; i < ranges.length; i++) {
+        const r = ranges[i];
+        const key = `${r.bottom}-${r.top}`;
+        const mid = rangeMidpoint(r);
+
+        if (setOfBottomTops.has(key) || setOfMids.has(mid)) {
+          return false;
+        }
+        setOfBottomTops.add(key);
+        setOfMids.add(mid);
+      }
+
+      for (let i = 0; i < ranges.length; i++) {
+        for (let j = i + 1; j < ranges.length; j++) {
+          if (!strictlyPartialOverlap(ranges[i], ranges[j])) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
+    function getThreeRangesWithPartialOverlap() {
+      while (true) {
+        const candidate = [randomRange(), randomRange(), randomRange()];
+        if (distinctPartialOverlap(candidate)) {
+          return candidate;
+        }
+      }
+    }
+
+    //////////////////////////////////////////////
+    // A három minta neve
+    //////////////////////////////////////////////
+    // 0 => Vörös-gerinc, 1 => Tölgy-völgy, 2 => Tóvidék
+
+    const SAMPLE_NAMES = [
+      "Voros Ridge",       // belső logika
+      "Oak Valley",     // belső logika
+      "Lake District"   // belső logika
+    ];
+
+    //////////////////////////////////////////////
+    // Minták létrehozása + sorrend
+    //////////////////////////////////////////////
+
+    let finalSamples = [];
+    let correctOrder = [];
+
+    function createStrictPartialOverlapSamples() {
+      const ranges = getThreeRangesWithPartialOverlap();
+      const samples = [];
+      for (let i = 0; i < 3; i++) {
+        const r = ranges[i];
+        const midpoint = rangeMidpoint(r);
+        samples.push({
+          name: SAMPLE_NAMES[i],
+          bottom: r.bottom,
+          top: r.top,
+          midpoint: midpoint
+        });
+      }
+      return samples;
+    }
+
+    function buildSampleHTML(s) {
+      // s = { name, bottom, top, midpoint }
+      let html = `<div class="sample" id="sample${s.name}">`;
+      // belső name => megjelenítés magyarul
+      let displayName = '';
+      if (s.name === 'Voros Ridge') {
+        displayName = 'Vörös-gerinc';
+      } else if (s.name === 'Oak Valley') {
+        displayName = 'Tölgy-völgy';
+      } else {
+        displayName = 'Tóvidék';
+      }
+
+      html += `<h2>${displayName}</h2>`;
+      for (let i = s.top; i >= s.bottom; i--) {
+        const stratum = allStrata[i];
+        html += `<div class="layer" style="background-color:${stratum.color}">`;
+        stratum.fossils.forEach(f => {
+          html += `<div class="fossil ${f}"></div>`;
+        });
+        html += `</div>`;
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    function renderSamples() {
+      const container = document.getElementById('samples-container');
+      container.innerHTML = '';
+      let html = '';
+      finalSamples.forEach(s => {
+        html += buildSampleHTML(s);
+      });
+      container.innerHTML = html;
+    }
+
+    function computeCorrectOrder() {
+      const sorted = [...finalSamples].sort((a,b) => a.midpoint - b.midpoint);
+      return sorted.map(s => s.name);
+    }
+
+    //////////////////////////////////////////////
+    // A teljes földtani oszlop megjelenítése
+    //////////////////////////////////////////////
+
+    function renderBigColumn() {
+      const bigColInner = document.getElementById('big-column-inner');
+      let bigHTML = '';
+      for (let i = allStrata.length - 1; i >= 0; i--) {
+        const s = allStrata[i];
+        bigHTML += `<div class="layer" style="background-color:${s.color}">`;
+        s.fossils.forEach(f => {
+          bigHTML += `<div class="fossil ${f}"></div>`;
+        });
+        bigHTML += `</div>`;
+      }
+      bigColInner.innerHTML = bigHTML;
+    }
+
+    function initGame() {
+      allStrata = generateAllStrata();
+      finalSamples = createStrictPartialOverlapSamples();
+      renderSamples();
+      correctOrder = computeCorrectOrder();
+
+      document.getElementById('big-column').style.display = 'none';
+      document.getElementById('big-column-inner').innerHTML = '';
+
+      document.getElementById('pos1').value = '';
+      document.getElementById('pos2').value = '';
+      document.getElementById('pos3').value = '';
+
+      document.getElementById('order-result').textContent = '';
+    }
+
+    document.getElementById('check-order').addEventListener('click', () => {
+      const pos1 = document.getElementById('pos1').value;
+      const pos2 = document.getElementById('pos2').value;
+      const pos3 = document.getElementById('pos3').value;
+
+      if (!pos1 || !pos2 || !pos3) {
+        document.getElementById('order-result').textContent = 'Kérjük, válassz mintát mindhárom pozícióhoz!';
+        return;
+      }
+
+      const userOrder = [pos1, pos2, pos3];
+      if (JSON.stringify(userOrder) === JSON.stringify(correctOrder)) {
+        document.getElementById('order-result').textContent = 'Helyes! Remek munka! Íme a teljes oszlop:';
+        renderBigColumn();
+        document.getElementById('big-column').style.display = 'block';
+      } else {
+        document.getElementById('order-result').textContent = 'Helytelen. Próbáld újra!';
+      }
+    });
+
+    document.getElementById('play-again').addEventListener('click', () => {
+      initGame();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>

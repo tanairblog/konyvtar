@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Story Dice – Interactive Classroom Game (Light v4)</title>
+<style>
+  :root{
+    --bg:#f6f8ff;
+    --panel:#ffffff;
+    --card:#ffffff;
+    --edge:#e5e9ff;
+    --text:#1f2647;
+    --muted:#5c6898;
+    --accent:#4f7cff;
+    --accent2:#ffba3a;
+    --good:#2fbf71;
+    --shadow: 0 8px 24px rgba(53, 73, 164, .15);
+    --shadow-inset: inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial;
+    background: radial-gradient(1200px 800px at 20% -10%, #e9efff 0%, #f6f8ff 60%, #ffffff 100%);
+    min-height:100svh; display:flex; align-items:stretch; justify-content:center;
+  }
+  .wrap{ width:100%; max-width:1200px; padding:20px; display:grid; gap:18px;
+         grid-template-columns: 1fr 330px; }
+  header{
+    grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  }
+  .title{font-weight:800; font-size:clamp(20px,2.8vw,28px); letter-spacing:.3px}
+  .controls{display:flex; gap:10px; flex-wrap:wrap}
+  button{
+    background:linear-gradient(180deg, #6ea1ff 0%, var(--accent) 100%);
+    border:none; color:#fff; font-weight:700; padding:10px 14px; border-radius:12px;
+    box-shadow: var(--shadow); cursor:pointer; transition:transform .06s ease, filter .12s ease;
+  }
+  button.secondary{
+    background:linear-gradient(180deg, #ffd27a 0%, var(--accent2) 100%);
+    color:#2b2f49;
+  }
+  button:active{ transform:translateY(1px) scale(0.99)}
+  .board{
+    background:var(--panel);
+    border:1px solid var(--edge); border-radius:16px; padding:16px 16px 14px;
+    display:grid; gap:10px; box-shadow: var(--shadow);
+  }
+  .diceRow{
+    display:grid; gap:16px;
+    grid-template-columns: repeat(5, minmax(120px,1fr));
+  }
+  /* 3D dice container */
+  .dieCard{
+    position:relative; aspect-ratio:1/1.05; border-radius:16px; background:var(--card);
+    border:1px solid var(--edge); padding:10px; display:flex; flex-direction:column; gap:6px;
+    box-shadow: var(--shadow);
+  }
+  .dieHeader{ display:flex; align-items:center; justify-content:flex-start; gap:8px;}
+  .cat{ font-weight:800; letter-spacing:.3px; color:#33407a}
+  .cubeWrap{
+    flex:1; display:grid; place-items:center; perspective:900px; perspective-origin:50% 40%;
+  }
+  .cube{
+    position:relative; width:92%; aspect-ratio:1/1; transform-style:preserve-3d;
+    transition: transform 1.1s cubic-bezier(.2,.8,.2,1);
+  }
+  .face{
+    position:absolute; inset:0; display:grid; place-items:center;
+    background:linear-gradient(180deg, #f8fbff, #e9f0ff);
+    border:1px solid #d6defa; color:#33407a; border-radius:14px;
+    box-shadow: var(--shadow-inset), inset 0 -8px 18px rgba(0,0,0,.05);
+    font-weight:800; text-align:center; padding:8px;
+  }
+  .face .big{ font-size:clamp(22px,3.8vw,30px); line-height:1; letter-spacing:.4px}
+  .face .label{ font-size:clamp(11px,1.6vw,13px); opacity:.8; margin-top:6px}
+  /* Position cube faces */
+  .front { transform: translateZ(45px); }
+  .back  { transform: rotateY(180deg) translateZ(45px); }
+  .right { transform: rotateY(90deg) translateZ(45px); }
+  .left  { transform: rotateY(-90deg) translateZ(45px); }
+  .top   { transform: rotateX(90deg) translateZ(45px); }
+  .bottom{ transform: rotateX(-90deg) translateZ(45px); }
+
+  /* RESULTS under dice: compact spacing */
+  .results{
+    display:grid; gap:10px;
+    grid-template-columns: repeat(5, minmax(120px,1fr));
+    margin-top:-2px;
+  }
+  .resultCard{
+    background:#f8fbff; border:1px solid #d6defa; border-radius:14px; padding:10px 12px;
+    box-shadow: var(--shadow);
+    min-height:64px; display:flex; flex-direction:column; gap:4px; justify-content:center;
+  }
+  .resultCard h5{ margin:0; font-size:12px; color:#6b76a6; letter-spacing:.3px; text-transform:uppercase}
+  .resultCard .value{ font-weight:700; color:#223056; min-height:1.4em }
+  .placeholder{ color:#a8b1d9 }
+
+  /* Sentence builder */
+  .sentenceBox{
+    background:#f8fbff; border:1px solid #d6defa; border-radius:14px; padding:12px;
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+  }
+  .sentenceBox .out{ flex:1; min-height:2.6em; display:flex; align-items:center }
+  .sentenceBox .out span{ color:#233057 }
+  .sentenceBox .hint{ color:var(--muted); font-size:13px }
+  .sentenceBtn{ background:linear-gradient(180deg, #7de6a2 0%, var(--good) 100%); color:#08391f }
+
+  .help{
+    background:var(--panel);
+    border:1px solid var(--edge); border-radius:16px; padding:16px; position:sticky; top:16px; height:fit-content;
+    box-shadow: var(--shadow);
+  }
+  .help h3{ margin:6px 0 10px; font-size:16px }
+  .help .box{ background:#f8fbff; border:1px solid #d6defa; border-radius:12px; padding:12px; margin-bottom:12px}
+  .help .box h4{ margin:0 0 8px; font-size:14px; color:#2c3e8f}
+  .help ul{ margin:0; padding-left:18px}
+  .help li{ margin:4px 0; color:#2f3965; font-size:14px}
+
+  footer{ grid-column:1 / -1; opacity:.8; font-size:12px; text-align:center}
+
+  @media (max-width: 980px){
+    .wrap{ grid-template-columns:1fr }
+    .results{ grid-template-columns:1fr; }
+    .diceRow{ grid-template-columns: repeat(2, minmax(120px,1fr)); }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">Story Dice – Build a Story from 5 Rolls</div>
+      <div class="controls">
+        <button id="rollAll">Roll All Dice</button>
+        <button class="secondary" id="clearPicks">Clear Picks</button>
+        <button class="secondary" id="copyPicks" title="Copy your current story picks">Copy Picks</button>
+      </div>
+    </header>
+
+    <section class="board">
+      <div class="diceRow" id="diceRow"><!-- Dice injected --></div>
+
+      <!-- Results under the dice -->
+      <div class="results" id="resultsRow"><!-- results injected --></div>
+
+      <!-- Sentence Builder -->
+      <div class="sentenceBox">
+        <div class="out" id="sentenceOut"><span class="hint">Your one-line story will appear here after you roll all five dice.</span></div>
+        <div class="btns">
+          <button class="sentenceBtn" id="copySentence">Copy Sentence</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="help" id="help">
+      <h3>Helpful Language (sentence starters)</h3>
+      <!-- Help boxes injected here -->
+    </aside>
+
+    <footer>
+      Tip: Click each cube to roll a category. Use <b>Roll All Dice</b> to randomize everything at once.
+    </footer>
+  </div>
+
+<script>
+/* ===== DATA ===== */
+const DATASETS = {
+  Hero: [
+    "a student","a parent","a classmate","a bus driver","a shop assistant",
+    "a nurse","a delivery courier","a cleaner","a security guard","a receptionist",
+    "a barista","a coach","a librarian","a neighbor","a tourist"
+  ],
+  Place: [
+    "at school","at the supermarket","on the tram","at the café","at the bus stop",
+    "in a small apartment","in an office","at the gym","at the library","in a parking lot",
+    "at the playground","in a block of flats","at the swimming pool","at the post office","on the sports field"
+  ],
+  Conflict: [
+    "the phone battery dies","the wallet goes missing","the bus leaves early","the keys are locked inside",
+    "the package arrives at the wrong address","the homework is not saved","the printer jams","the Wi-Fi stops working",
+    "someone gets stuck in the elevator","it starts to rain heavily","there is a long queue",
+    "the tram breaks down","the card doesn't work","a child gets lost","a bicycle is stolen"
+  ],
+  Complication: [
+    "there is no mobile signal","they have no cash","the nearest ATM is out of order","the shop is about to close",
+    "the only bus is full","the road is closed for construction","the teacher is absent","nobody answers the phone",
+    "the elevator is out of order","the only charger doesn't fit","the rain ruins the papers",
+    "the ID card was forgotten at home","everyone is in a hurry","there is a strike today","the dog is afraid of crowds"
+  ],
+  Resolution: [
+    "a neighbor offers help","a stranger returns the wallet","the driver waits a minute","someone shares a power bank",
+    "customer service fixes the issue","the package is redirected correctly","the homework is recovered",
+    "they catch the next tram","the spare key is found","the queue moves quickly",
+    "the rain stops","they reschedule and agree","the teacher gives an extension",
+    "the librarian finds the book","everyone apologizes and makes peace"
+  ]
+};
+
+
+// Emoji/icon for each possible result so the cube can match the pick
+
+const ICONS = {
+  Hero: {
+    "a student":"🧑‍🎓",
+    "a parent":"👪",
+    "a classmate":"🧑‍🤝‍🧑",
+    "a bus driver":"🚌",
+    "a shop assistant":"🛒",
+    "a nurse":"🧑‍⚕️",
+    "a delivery courier":"📦",
+    "a cleaner":"🧹",
+    "a security guard":"🛡️",
+    "a receptionist":"☎️",
+    "a barista":"☕️",
+    "a coach":"🧑‍🏫",
+    "a librarian":"📚",
+    "a neighbor":"🏘️",
+    "a tourist":"🧳"
+  },
+  Place: {
+    "at school":"🏫",
+    "at the supermarket":"🛒",
+    "on the tram":"🚋",
+    "at the café":"☕️",
+    "at the bus stop":"🚏",
+    "in a small apartment":"🏠",
+    "in an office":"🏢",
+    "at the gym":"🏋️",
+    "at the library":"📚",
+    "in a parking lot":"🅿️",
+    "at the playground":"🛝",
+    "in a block of flats":"🏙️",
+    "at the swimming pool":"🏊",
+    "at the post office":"📮",
+    "on the sports field":"⚽️"
+  },
+  Conflict: {
+    "the phone battery dies":"🔋",
+    "the wallet goes missing":"👛",
+    "the bus leaves early":"🚌",
+    "the keys are locked inside":"🔑",
+    "the package arrives at the wrong address":"📦",
+    "the homework is not saved":"💾",
+    "the printer jams":"🖨️",
+    "the Wi-Fi stops working":"📶",
+    "someone gets stuck in the elevator":"🛗",
+    "it starts to rain heavily":"🌧️",
+    "there is a long queue":"🧍",
+    "the tram breaks down":"🚋",
+    "the card doesn't work":"💳",
+    "a child gets lost":"🧒",
+    "a bicycle is stolen":"🚲"
+  },
+  Complication: {
+    "there is no mobile signal":"📵",
+    "they have no cash":"💵",
+    "the nearest ATM is out of order":"🏧",
+    "the shop is about to close":"🕔",
+    "the only bus is full":"🚌",
+    "the road is closed for construction":"🚧",
+    "the teacher is absent":"🧑‍🏫",
+    "nobody answers the phone":"📞",
+    "the elevator is out of order":"🛗",
+    "the only charger doesn't fit":"🔌",
+    "the rain ruins the papers":"📄",
+    "the ID card was forgotten at home":"🆔",
+    "everyone is in a hurry":"🏃",
+    "there is a strike today":"✊",
+    "the dog is afraid of crowds":"🐶"
+  },
+  Resolution: {
+    "a neighbor offers help":"🤝",
+    "a stranger returns the wallet":"👛",
+    "the driver waits a minute":"⏱️",
+    "someone shares a power bank":"🔋",
+    "customer service fixes the issue":"🛠️",
+    "the package is redirected correctly":"📦",
+    "the homework is recovered":"💾",
+    "they catch the next tram":"🚋",
+    "the spare key is found":"🗝️",
+    "the queue moves quickly":"🏃",
+    "the rain stops":"🌤️",
+    "they reschedule and agree":"📅",
+    "the teacher gives an extension":"🧑‍🏫",
+    "the librarian finds the book":"📚",
+    "everyone apologizes and makes peace":"🤝"
+  }
+};
+
+
+const HELP_TEXT = {
+  Hero:["The story is about …","The main character is …","At the beginning, we meet …"],
+  Place:["The story takes place …","The setting is …","Everything happens …"],
+  Conflict:["The problem is that …","The trouble begins when …","Suddenly, …"],
+  Complication:["To make it worse, …","The situation gets harder when …","On top of that, …"],
+  Resolution:["In the end, …","Finally, …","As a result, …"]
+};
+
+const categories = ["Hero","Place","Conflict","Complication","Resolution"];
+const currentChoices = { Hero:null, Place:null, Conflict:null, Complication:null, Resolution:null };
+
+function el(tag, cls, html){ const n=document.createElement(tag); if(cls) n.className=cls; if(html!==undefined) n.innerHTML=html; return n; }
+function randomOf(arr){ return arr[Math.floor(Math.random()*arr.length)] }
+function randomChoiceFor(cat){ return randomOf(DATASETS[cat]); }
+
+let diceRow, resultsRow, helpAside, sentenceOut;
+
+function buildHelp(){
+  helpAside.querySelectorAll(".box").forEach(b=>b.remove());
+  categories.forEach(cat=>{
+    const box = el("div","box");
+    box.appendChild(el("h4","",cat));
+    const ul = el("ul");
+    HELP_TEXT[cat].forEach(t=> ul.appendChild(el("li","",t)));
+    box.appendChild(ul);
+    helpAside.appendChild(box);
+  });
+}
+
+// Build a cube with default category icon; later we update faces to the rolled icon
+const DEFAULT_ICON = {"Hero":"🦸","Place":"📍","Conflict":"❗","Complication":"🧩","Resolution":"✅"};
+function makeCubeFaces(cat, icon){
+  const cube = el("div","cube");
+  const faces = ["front","back","right","left","top","bottom"];
+  const useIcon = icon || DEFAULT_ICON[cat] || "🎲";
+  faces.forEach((side)=>{
+    const face = el("div","face "+side, `<div class=\"big\">${useIcon}</div><div class=\"label\">${cat}</div>`);
+    cube.appendChild(face);
+  });
+  return cube;
+}
+function setCubeIcon(cube, cat, choice){
+  const icon = (ICONS[cat] && ICONS[cat][choice]) ? ICONS[cat][choice] : DEFAULT_ICON[cat] || "🎲";
+  cube.querySelectorAll(".face .big").forEach(el=> el.textContent = icon);
+}
+
+function buildDice(){
+  categories.forEach(cat=>{
+    const card = el("div","dieCard");
+    card.dataset.category = cat;
+    const hdr = el("div","dieHeader",`<div class="cat">${cat}</div>`);
+    const wrap = el("div","cubeWrap");
+    const cube = makeCubeFaces(cat);
+    wrap.appendChild(cube);
+    card.appendChild(hdr);
+    card.appendChild(wrap);
+    diceRow.appendChild(card);
+    card.addEventListener("click", ()=> rollDie(card, true));
+  });
+}
+
+function buildResultBoxes(){
+  resultsRow.innerHTML = "";
+  categories.forEach(cat=>{
+    const box = el("div","resultCard");
+    box.id = `result-${cat}`;
+    box.appendChild(el("h5","",cat));
+    const val = el("div","value placeholder","…");
+    box.appendChild(val);
+    resultsRow.appendChild(box);
+  });
+}
+function updateResults(){
+  categories.forEach(cat=>{
+    const v = document.querySelector(`#result-${cat} .value`);
+    if(currentChoices[cat]){
+      v.textContent = currentChoices[cat];
+      v.classList.remove("placeholder");
+      v.style.color = "#223056";
+    }else{
+      v.textContent = "…";
+      v.classList.add("placeholder");
+    }
+  });
+  updateSentence();
+}
+
+/* sentence */
+function updateSentence(){
+  const allHave = categories.every(cat=> !!currentChoices[cat]);
+  if(!allHave){
+    sentenceOut.innerHTML = `<span class="hint">Roll all five dice to generate a one-line story.</span>`;
+    return;
+  }
+  const line = `The story is about ${currentChoices.Hero} ${currentChoices.Place}. `
+             + `The problem is that ${currentChoices.Conflict}, but ${currentChoices.Complication}. `
+             + `In the end, ${currentChoices.Resolution}.`;
+  sentenceOut.textContent = line;
+}
+
+/* roll */
+const ORIENTATIONS = [{x:0,y:0},{x:0,y:180},{x:0,y:90},{x:0,y:-90},{x:-90,y:0},{x:90,y:0}];
+function rollDie(card, withPick=false){
+  const cat = card.dataset.category;
+  const cube = card.querySelector(".cube");
+  const target = randomOf(ORIENTATIONS);
+  const spinX = (Math.floor(Math.random()*4)+2)*360;
+  const spinY = (Math.floor(Math.random()*4)+2)*360;
+  cube.style.transition = "transform 1.1s cubic-bezier(.2,.8,.2,1)";
+  requestAnimationFrame(()=>{
+    cube.style.transform = `rotateX(${target.x + spinX}deg) rotateY(${target.y + spinY}deg)`;
+  });
+  if(withPick){
+    const choice = randomChoiceFor(cat);
+    currentChoices[cat] = choice;
+    setCubeIcon(cube, cat, choice);   // <<< update the dice emoji to match the rolled result
+    updateResults();
+  }
+}
+function rollAll(){ document.querySelectorAll(".dieCard").forEach(card=> rollDie(card, true)); }
+
+/* copy/clear */
+function copyPicks(){
+  const lines = categories.map(cat=> `${cat}: ${currentChoices[cat] ?? "(not rolled)"}`);
+  const text = "Story Picks\n" + lines.join("\n");
+  navigator.clipboard.writeText(text).then(()=> flashButton(document.getElementById("copyPicks"), "Copied!"));
+}
+function clearPicks(){
+  categories.forEach(cat=> currentChoices[cat]=null);
+  // reset cube icons to default
+  document.querySelectorAll(".dieCard").forEach(card=>{
+    const cat = card.dataset.category;
+    const cube = card.querySelector(".cube");
+    setCubeIcon(cube, cat, null);
+  });
+  updateResults();
+}
+function copySentence(){
+  const text = sentenceOut.textContent.trim();
+  if(!text || /Roll all five/.test(text)){ alert("Please roll all five dice first."); return; }
+  navigator.clipboard.writeText(text).then(()=> flashButton(document.getElementById("copySentence"), "Copied!"));
+}
+function flashButton(btn,label){ const old=btn.textContent; btn.textContent=label; btn.disabled=true; setTimeout(()=>{btn.textContent=old; btn.disabled=false;},900); }
+
+function init(){
+  diceRow = document.getElementById("diceRow");
+  resultsRow = document.getElementById("resultsRow");
+  helpAside = document.getElementById("help");
+  sentenceOut = document.getElementById("sentenceOut");
+  buildDice(); buildResultBoxes(); buildHelp(); updateResults();
+  document.getElementById("rollAll").addEventListener("click", rollAll);
+  document.getElementById("copyPicks").addEventListener("click", copyPicks);
+  document.getElementById("clearPicks").addEventListener("click", clearPicks);
+  document.getElementById("copySentence").addEventListener("click", copySentence);
+}
+window.addEventListener("DOMContentLoaded", init);
+</script>
+</body>
+</html>

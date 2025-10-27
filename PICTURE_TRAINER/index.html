@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Picture Description Trainer — Multi‑Topic</title>
+<style>
+  :root{
+    /* ===== Design brief tokens ===== */
+    --primary-300:#F9C97A; --primary-500:#F4A329; --primary-700:#B45309;
+    --secondary-300:#7EDAD6; --secondary-500:#2BB6B4; --secondary-700:#0F766E;
+    --accent-300:#F49DB8; --accent-500:#E8467B; --accent-700:#A61E4D;
+    --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+    --text:#1F2937; --text-2:#4B5563; --text-muted:#6B7280; --text-inverse:#FFFFFF;
+    --success:#2F9E44; --warning:#F59F00; --error:#D92D20; --info:#2563EB;
+
+    --radius-card:16px; --radius-pill:9999px;
+    --shadow-card:0 4px 14px rgba(17,24,39,0.08);
+    --gap-1:4px; --gap-2:8px; --gap-3:12px; --gap-4:16px; --gap-5:24px;
+    --focus-ring:0 0 0 2px var(--secondary-500);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: "Inter","Nunito", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    font-size:16px; line-height:1.5;
+  }
+  h1{font-size:32px; margin:0 0 var(--gap-2)}
+  h2{font-size:24px}
+  h3{font-size:20px}
+  .muted{color:var(--text-muted)}
+
+  /* ===== Layout ===== */
+  header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1200px;margin:0 auto;padding:var(--gap-4)}
+  .toolbar{display:flex;gap:var(--gap-2);flex-wrap:wrap;align-items:center;justify-content:space-between}
+  .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:var(--gap-4)}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+  /* ===== Cards ===== */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:var(--gap-4);box-shadow:var(--shadow-card)}
+  .divider{height:1px;background:var(--border);margin:var(--gap-3) 0}
+
+  /* ===== Controls ===== */
+  select,button,textarea{font:inherit}
+  select,button{appearance:none;border-radius:var(--radius-pill);padding:10px 12px;border:1px solid var(--border);background:var(--surface);
+    transition:box-shadow .18s ease, transform .18s ease, background-color .18s ease, border-color .18s ease}
+  select:focus,button:focus,textarea:focus{outline:none;box-shadow:var(--focus-ring)}
+  button{cursor:pointer}
+  button.primary{background:var(--primary-700);border-color:var(--primary-700);color:var(--text-inverse)}
+  button.primary:hover{filter:brightness(0.95)}
+  button.ghost{background:transparent;color:var(--primary-700);border-color:var(--primary-300)}
+  button.ghost:hover{background:rgba(249,201,122,0.24)}
+  button:disabled{opacity:.6;cursor:not-allowed}
+
+  .pill{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface)}
+  .tag{font-size:12px;padding:2px 8px;border-radius:var(--radius-pill);background:var(--secondary-300);color:#0b3e3c;border:1px solid var(--secondary-300)}
+
+  /* ===== Image area ===== */
+  .imgbox{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap-3)}
+  .img{aspect-ratio:4/3;background:var(--surface-alt);border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;border:1px solid var(--border)}
+  .img>img{width:100%;height:100%;object-fit:cover}
+
+  /* ===== Hint list ===== */
+  .hint-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column-reverse;gap:var(--gap-2)}
+  .hint-item{border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface);transition:box-shadow .18s ease}
+  .hint-item:hover{box-shadow:0 2px 10px rgba(17,24,39,0.06)}
+  .hint-item h4{margin:0 0 6px 0;font-size:14px;color:var(--text-2);font-weight:600}
+
+  /* ===== Notes ===== */
+  .notes textarea{width:100%;min-height:120px;resize:vertical;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--surface)}
+
+  .row{display:flex;gap:var(--gap-2);align-items:center;flex-wrap:wrap}
+  .kbd{font-family:ui-monospace,Menlo,monospace;background:var(--surface-alt);border:1px solid var(--border);padding:2px 6px;border-radius:6px;font-size:12px}
+  .timer{font-variant-numeric:tabular-nums;font-weight:600}
+
+  /* Small list reset for guiding questions */
+  .q-list{margin:0;padding-left:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap toolbar" style="justify-content:space-between">
+    <div class="row">
+      <h1>Picture Description Trainer</h1>
+      <span class="pill muted" id="progress">Step 0 / 0</span>
+      <span class="muted">Timer: <span class="timer" id="timer">00:00</span></span>
+      <button id="toggleTimer">Start</button>
+    </div>
+    <div class="row">
+      <label class="muted" for="topicSel">Topic</label>
+      <select id="topicSel"></select>
+      <label class="muted" for="taskSel">Task</label>
+      <select id="taskSel"></select>
+      <button id="prev" title="Previous hint">Previous</button>
+      <button id="next" class="primary" title="Next hint">Next hint</button>
+      <button id="reset" title="Reset this task">Reset</button>
+      <button id="toggleModel" title="Show model">Model answer</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap grid">
+  <!-- LEFT: Images + Guiding Questions + Notes -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row" style="gap:6px">
+        <span class="tag" id="topicTag">—</span>
+        <span class="tag" id="taskTag">—</span>
+      </div>
+      <div class="muted" id="hintName">Hint: —</div>
+    </div>
+
+    <div class="imgbox" style="margin-top:8px">
+      <div class="img"><img id="imgA" alt="Image A" /></div>
+      <div class="img"><img id="imgB" alt="Image B" /></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <h3 style="margin:8px 0 6px">Guiding questions</h3>
+    <ul class="q-list" id="qList"></ul>
+
+    <div class="notes">
+      <label class="muted" for="notes">Your notes (you can copy these into your answer):</label>
+      <textarea id="notes" placeholder="Brainstorm vocabulary, compare/contrast points, reasons, personal link…"></textarea>
+    </div>
+  </section>
+
+  <!-- RIGHT: Hints stack + Model answer -->
+  <aside class="card">
+    <h3 style="margin:0 0 6px">Hints (stacked — newest on top)</h3>
+    <ol class="hint-list" id="hintList"></ol>
+    <div class="divider"></div>
+    <h3 style="margin:0 0 6px">Model answer</h3>
+    <div id="model" class="model muted">Click <span class="kbd">Model answer</span> to generate a model built from the same hint sequence.</div>
+  </aside>
+</div>
+
+<script>
+// ====== DATA LAYER ======
+// Teacher-provided exact STEPS (do not edit wording)
+const STEPS = [
+  {"title": "1) Introduction / First impression", "prompts": [
+    "Both pictures are about the topic of … (e.g., stress).",
+    "I would like to start with the first picture.",
+    "Actually, the first is quite an interesting / shocking / sad picture.",
+    "At first glance, it looks like …"
+  ]},
+  {"title": "2) Time & place (speculation)", "prompts": [
+    "This picture must/might have been taken … (at a stadium / in an office).",
+    "It seems to be during … (a match / a workday morning)."
+  ]},
+  {"title": "3) Composition", "prompts": [
+    "In the background, there is/are …",
+    "In the foreground, there is/are …",
+    "In the centre of the picture, there is/are …"
+  ]},
+  {"title": "4) People & actions", "prompts": [
+    "The person/people in the picture is/are … (watching / working / reacting).",
+    "They look as if they are …",
+    "They might be feeling … (disappointed, overwhelmed)."
+  ]},
+  {"title": "5) Second picture", "prompts": [
+    "Actually, the first is quite an interesting / shocking / sad picture.",
+    "At first glance, it looks like …",
+    "This picture must/might have been taken … (at a stadium / in an office).",
+    "In the background, there is/are …",
+    "In the foreground, there is/are …",
+    "In the centre of the picture, there is/are …",
+    "The person/people in the picture is/are … (watching / working / reacting).",
+    "They look as if they are …"
+  ]},
+  {"title": "6) Personal reaction", "prompts": [
+    "The (first) picture reminds me of …",
+    "When I look at this picture, I feel … (nervous / sympathetic)."
+  ]},
+  {"title": "7) Compare & contrast", "prompts": [
+    "While in the first picture …, in the second …",
+    "One similarity is that …",
+    "A difference between them is …"
+  ]},
+  {"title": "8) Speculation beyond the picture", "prompts": [
+    "They might be stressed because …",
+    "This situation could lead to …",
+    "The message of this picture might be …"
+  ]},
+  {"title": "9) Conclusion / opinion", "prompts": [
+    "To sum up, the first picture focuses on …, while the second shows …",
+    "If I had to choose, I’d prefer … because …"
+  ]}
+];
+
+
+const DATA = {
+  topics: [
+    { id:'friendship',
+      name:'Friendship',
+      guidingDefaults:[
+        'These pictures show friends. How are they different?',
+        'What do you think is happening?',
+        'How do you think the people might be feeling?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/friendship1.jpg', imgB:'images/friendship2.jpg' }
+      ] },
+    { id:'family',
+      name:'Family life',
+      guidingDefaults:[
+        'What kind of family situation is this?',
+        'How do they feel about each other?',
+        'What do you think is going to happen next?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/familylife1.jpg', imgB:'images/familylife2.jpg' }
+      ] },
+    { id:'technology',
+      name:'Technology',
+      guidingDefaults:[
+        'These pictures are about technology. How are they different?',
+        'What are people in picture 1 doing?',
+        'How do you think the woman in picture 2 is feeling? Why?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/technology1.jpg', imgB:'images/technology2.jpg' }
+      ] },
+    { id:'school',
+      name:'School & Learning',
+      guidingDefaults:[
+        'What is happening at school in these two pictures?',
+        'What is the difference between these students in the pictures?',
+        'What do you think they are going to do next?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/schoollearning1.jpg', imgB:'images/schoollearning2.jpg' }
+      ] },
+    { id:'sports',
+      name:'Sports & Competition',
+      guidingDefaults:[
+        'What do these pictures tell you about sports?',
+        'How are these two pictures different?',
+        'What is good about sports and what might be bad about them?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/sportscompetition1.jpg', imgB:'images/sportscompetition2.jpg' }
+      ] },
+    { id:'celebrations',
+      name:'Celebrations',
+      guidingDefaults:[
+        'What kind of event is this?',
+        'How are people celebrating?',
+        'Why do people celebrate?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/celebrations1.JPG', imgB:'images/celebrations2.jpg' }
+      ] },
+    { id:'work',
+      name:'Work & Jobs',
+      guidingDefaults:[
+        'What kind of work is this?',
+        'How does the person feel about it?',
+        'What makes a job satisfying?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/workjobs1.jpg', imgB:'images/workjobs2.jpg' }
+      ] },
+    { id:'travel',
+      name:'Travel',
+      guidingDefaults:[
+        'Where might these people be travelling?',
+        'Why are they travelling?',
+        'What makes travelling enjoyable?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/travel1.jpg', imgB:'images/travel2.jpg' }
+      ] },
+    { id:'health',
+      name:'Health',
+      guidingDefaults:[
+        'What health-related situation is shown?',
+        'How could it be improved?',
+        'Why is health important?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/health1.jpg', imgB:'images/health2.jpg' }
+      ] },
+    { id:'environment',
+      name:'Environment',
+      guidingDefaults:[
+        'What environmental issue can you see?',
+        'Who is affected and how?',
+        'How can people protect nature?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/environment1.jpg', imgB:'images/environment2.jpg' }
+      ] },
+    { id:'food',
+      name:'Food & Eating',
+      guidingDefaults:[
+        'What kind of food situation is this?',
+        'Who is eating and where?',
+        'Is it healthy? Why / why not?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/foodeating1.jpg', imgB:'images/foodeating2.jpg' }
+      ] },
+    { id:'shopping',
+      name:'Shopping & Money',
+      guidingDefaults:[
+        'Where are the people shopping?',
+        'What are they buying?',
+        'What decisions do people face when shopping?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/shoppingmoney1.jpg', imgB:'images/shoppingmoney2.jpg' }
+      ] },
+    { id:'generations',
+      name:'Generations',
+      guidingDefaults:[
+        'What age groups are visible?',
+        'How do they interact?',
+        'What can generations learn from each other?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/generations1.jpg', imgB:'images/generations2.jpg' }
+      ] },
+    { id:'conflicts',
+      name:'Conflicts',
+      guidingDefaults:[
+        'Who is in conflict?',
+        'What might have caused it?',
+        'How could it be solved?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/conflicts1.jpg', imgB:'images/conflicts2.jpg' }
+      ] },
+    { id:'freetime',
+      name:'Free time & Hobbies',
+      guidingDefaults:[
+        'What activity is shown?',
+        'Why do people enjoy it?',
+        'How important is free time?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/freetimehobbies1.jpg', imgB:'images/freetimehobbies2.jpg' }
+      ] },
+    { id:'helping',
+      name:'Helping others / Volunteering',
+      guidingDefaults:[
+        'Who is helping whom?',
+        'Why are they doing it?',
+        'How does helping others make us feel?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/helpingothersvolunteering1.jpg', imgB:'images/helpingothersvolunteering2.jpg' }
+      ] },
+    { id:'transport',
+      name:'Transport & Daily Routine',
+      guidingDefaults:[
+        'What kind of transport is shown?',
+        'Where are the people going?',
+        'How does transport affect our life?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/transportdailyroutine1.jpg', imgB:'images/transportdailyroutine2.jpg' }
+      ] },
+    { id:'culture',
+      name:'Cultural differences',
+      guidingDefaults:[
+        'What cultural aspect can you see?',
+        'How are people reacting?',
+        'Why is understanding other cultures important?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/culturaldifferences1.jpg', imgB:'images/culturaldifferences2.jpg' }
+      ] },
+    { id:'weather',
+      name:'Weather & Seasons',
+      guidingDefaults:[
+        'What is the weather like?',
+        'How does it affect people?',
+        'What season might it be?'
+      ],
+      hints: STEPS,
+      tasks: [
+        { id:1, imgA:'images/weatherseasons1.jpg', imgB:'images/weatherseasons2.jpg' }
+      ] }
+  ]
+};
+
+// ====== STATE & STORAGE ======
+const $ = sel => document.querySelector(sel);
+const topicSel = $('#topicSel');
+const taskSel  = $('#taskSel');
+const imgA = $('#imgA');
+const imgB = $('#imgB');
+const qList = $('#qList');
+const hintList = $('#hintList');
+const modelBox = $('#model');
+const notes = $('#notes');
+const progress = $('#progress');
+const hintName = $('#hintName');
+const topicTag = $('#topicTag');
+const taskTag = $('#taskTag');
+
+let state = {
+  topicIdx: 0,
+  taskIdx: 0,
+  hintStep: 0,
+  usedHints: [] // array of hint objects already revealed (order of reveal)
+};
+
+const LSKEY = 'pdesc.multi.v1';
+function save(){ localStorage.setItem(LSKEY, JSON.stringify({ state })); }
+function load(){ try{ const x = JSON.parse(localStorage.getItem(LSKEY)); if(x&&x.state) state = x.state; }catch{} }
+
+// ====== HELPERS ======
+function fmtTime(sec){ const m = Math.floor(sec/60).toString().padStart(2,'0'); const s = (sec%60).toString().padStart(2,'0'); return `${m}:${s}`; }
+
+// Timer
+let t = {on:false,sec:0,iv:null};
+function tick(){ t.sec++; $('#timer').textContent = fmtTime(t.sec); save(); }
+$('#toggleTimer').addEventListener('click', ()=>{
+  if(!t.on){ t.on = true; t.iv = setInterval(tick,1000); $('#toggleTimer').textContent='Pause'; }
+  else { t.on = false; clearInterval(t.iv); $('#toggleTimer').textContent='Start'; }
+});
+
+// Build selects
+function populateTopicSelect(){
+  topicSel.innerHTML = '';
+  DATA.topics.forEach((tp,i)=>{
+    const o = document.createElement('option');
+    o.value = i; o.textContent = tp.name; topicSel.appendChild(o);
+  });
+}
+function populateTaskSelect(){
+  taskSel.innerHTML = '';
+  const tp = DATA.topics[state.topicIdx];
+  const tasks = tp.tasks && tp.tasks.length ? tp.tasks : Array.from({length:20}, (_,i)=>({id:i+1, imgA:'', imgB:''}));
+  tp.tasks = tasks; // ensure 20 placeholders if empty
+  tasks.forEach((tk,i)=>{
+    const o = document.createElement('option');
+    o.value = i; o.textContent = `Task ${tk.id ?? (i+1)}`; taskSel.appendChild(o);
+  });
+}
+
+// Render
+function current(){ return DATA.topics[state.topicIdx]; }
+function currentHints(){ return current().hints; }
+function currentTask(){ return current().tasks[state.taskIdx]; }
+function currentGuiding(){ return currentTask().guidingQuestions?.length ? currentTask().guidingQuestions : current().guidingDefaults; }
+
+function renderImages(){
+  const tk = currentTask();
+  imgA.src = tk.imgA || '';
+  imgB.src = tk.imgB || '';
+  imgA.alt = `Topic ${current().name} — Task ${tk.id} — Image A`;
+  imgB.alt = `Topic ${current().name} — Task ${tk.id} — Image B`;
+}
+function renderQuestions(){
+  qList.innerHTML = '';
+  currentGuiding().forEach(q=>{
+    const li = document.createElement('li'); li.textContent = q; qList.appendChild(li);
+  });
+}
+function renderHintHeader(){
+  const hs = currentHints();
+  const cur = hs[state.hintStep] || {title:'—'};
+  hintName.textContent = `Hint: ${cur.title}`;
+  progress.textContent = `Step ${Math.min(state.hintStep+1, hs.length)} / ${hs.length}`;
+}
+function renderTags(){
+  topicTag.textContent = current().name;
+  taskTag.textContent = `Task ${currentTask().id ?? (state.taskIdx+1)}`;
+}
+function renderHintsStack(){
+  hintList.innerHTML = '';
+  state.usedHints.forEach(h=>{
+    const li = document.createElement('li'); li.className='hint-item';
+    const t = document.createElement('h4'); t.textContent = h.title; li.appendChild(t);
+    const ul = document.createElement('ul'); ul.style.margin='0'; ul.style.paddingLeft='18px';
+    (h.prompts||[]).forEach(p=>{ const li2=document.createElement('li'); li2.textContent=p; ul.appendChild(li2); });
+    li.appendChild(ul);
+    hintList.appendChild(li);
+  });
+}
+
+// Model generator — one prompt per step (first prompt), structure follows revealed steps
+function makeModel(){
+  if(!state.usedHints.length){ return 'No hints used yet. Click “Next hint” to start building the scaffold.'; }
+  const lines = [];
+  state.usedHints.forEach((h)=>{
+    lines.push(`【${h.title}】\n`);
+    const prompts = Array.isArray(h.prompts)? h.prompts : [];
+    const chosen = prompts.length ? prompts[0] : '';
+    if(chosen) lines.push(chosen);
+    lines.push('');
+  });
+  return lines.join('\n');
+}
+
+function renderModel(){
+  modelBox.classList.remove('muted');
+  modelBox.textContent = makeModel();
+}
+
+// Navigation / Hint reveal logic (stacked, do not hide old hints)
+$('#next').addEventListener('click', ()=>{
+  const hs = currentHints();
+  if(state.hintStep < hs.length){
+    const h = hs[state.hintStep];
+    state.usedHints.push(h); // keep stack (newest rendered on top via CSS column-reverse)
+    state.hintStep++;
+    renderHintsStack();
+    renderHintHeader();
+    save();
+  }
+});
+$('#prev').addEventListener('click', ()=>{
+  if(state.hintStep>0){
+    state.hintStep--;
+    state.usedHints.pop();
+    renderHintsStack();
+    renderHintHeader();
+    save();
+  }
+});
+$('#reset').addEventListener('click', ()=>{
+  state.hintStep = 0; state.usedHints = []; renderHintsStack(); renderHintHeader(); modelBox.textContent='Click \u00ABModel answer\u00BB to generate a model built from the same hint sequence.'; modelBox.classList.add('muted'); save();
+});
+$('#toggleModel').addEventListener('click', renderModel);
+
+// Topic/task changes
+ topicSel.addEventListener('change', ()=>{
+  state.topicIdx = parseInt(topicSel.value,10) || 0; state.taskIdx = 0; resetTask(); save();
+});
+function resetTask(){ populateTaskSelect(); taskSel.value = state.taskIdx; updateAll(); }
+
+taskSel.addEventListener('change', ()=>{ state.taskIdx = parseInt(taskSel.value,10) || 0; updateAll(); save(); });
+
+function updateAll(){
+  state.hintStep = 0; state.usedHints = [];
+  renderTags(); renderImages(); renderQuestions(); renderHintHeader(); renderHintsStack(); modelBox.textContent='Click \u00ABModel answer\u00BB to generate a model built from the same hint sequence.'; modelBox.classList.add('muted'); notes.value=''; save();
+}
+
+// ====== Simple self-tests (console) ======
+function runSelfTests(){
+  try{
+    console.group('Picture Trainer — Self tests');
+
+    // Test 1: model string type
+    const s1 = makeModel();
+    console.assert(typeof s1 === 'string', 'makeModel returns string');
+
+    // Test 2: titles & first prompts appear
+    const snapshot = JSON.parse(JSON.stringify(state));
+    state.usedHints = [STEPS[0], STEPS[1]];
+    const out = makeModel();
+    console.assert(out.includes('1) Introduction / First impression'), 'Has step 1 title');
+    console.assert(out.includes(STEPS[0].prompts[0]), 'Has step 1 prompt');
+    console.assert(out.includes('2) Time & place (speculation)'), 'Has step 2 title');
+    console.assert(out.includes(STEPS[1].prompts[0]), 'Has step 2 prompt');
+    state = snapshot;
+
+    // Test 3: next/prev boundaries
+    state.hintStep = 0; state.usedHints = [];
+    const hsLen = STEPS.length;
+    for(let i=0;i<hsLen+2;i++){ document.getElementById('next').click(); }
+    console.assert(state.hintStep === hsLen, 'Next stops at last');
+    for(let i=0;i<hsLen+2;i++){ document.getElementById('prev').click(); }
+    console.assert(state.hintStep === 0 && state.usedHints.length===0, 'Prev back to zero');
+
+    console.groupEnd();
+  }catch(e){ console.error('Self-tests failed:', e); }
+}
+
+// INIT
+(function init(){
+  load();
+  populateTopicSelect();
+  if(typeof state.topicIdx!=='number' || state.topicIdx>=DATA.topics.length){ state.topicIdx = 0; }
+  topicSel.value = state.topicIdx;
+  populateTaskSelect();
+  if(typeof state.taskIdx!=='number' || state.taskIdx>=current().tasks.length){ state.taskIdx = 0; }
+  taskSel.value = state.taskIdx;
+  updateAll();
+  runSelfTests();
+})();
+</script>
+</body>
+</html>

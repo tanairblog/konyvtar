@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Szénhidrogén keresztelő</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Rubik:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #16a085;
+      --light: #ecf0f1;
+      --dark: #34495e;
+      --font-sans: 'Rubik', sans-serif;
+      --font-mono: 'Roboto Mono', monospace;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--light); color: var(--primary); font-family: var(--font-sans); }
+    header { background: var(--primary); color: var(--light); padding: 1rem; text-align: center; }
+    main { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
+    label { font-weight: 500; }
+    select, input[type=text] { flex: 1; padding: 0.5rem; border: 1px solid var(--dark); border-radius: 4px; font-family: var(--font-mono); }
+    button { padding: 0.5rem 1rem; background: var(--accent); color: var(--light); border: none; border-radius: 4px; cursor: pointer; }
+    button:disabled { background: #bdc3c7; cursor: not-allowed; }
+    canvas { display: block; margin: 0 auto 1rem; background: #fff; border: 2px solid var(--dark); border-radius: 8px; }
+    #result { font-size: 1.1rem; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
+    #result.success { background: #dff0d8; color: #3c763d; }
+    #result.error { background: #f2dede; color: #a94442; }
+    #stats { background: #fff; padding: 1rem; border: 1px solid var(--dark); border-radius: 8px; }
+    #stats div { display: flex; justify-content: space-between; padding: 0.25rem 0; font-family: var(--font-mono); }
+    footer { text-align: center; margin: 2rem 0; color: var(--dark); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Szénhidrogén keresztelő</h1>
+  </header>
+  <main>
+    <div class="controls">
+      <label for="difficulty">Nehézség:</label>
+      <select id="difficulty">
+        <option value="1">1: Nyílt lánc, elágazás nélkül</option>
+        <option value="2">2: Nyílt lánc, 1 elágazás</option>
+        <option value="3">3: Nyílt lánc, több elág.</option>
+        <option value="4">4: Nyílt lánc/gyűrű</option>
+      </select>
+      <button id="newBtn">Új molekula</button>
+    </div>
+    <canvas id="molecule" width="600" height="250"></canvas>
+    <div class="controls">
+      <label for="nameInput">Molekula neve:</label>
+      <input type="text" id="nameInput" placeholder="pl. 2,5-dimetil-okt-3-én">
+      <button id="checkBtn">Ellenőriz</button>
+    </div>
+    <div id="result" aria-live="polite"></div>
+    <section id="stats">
+      <h2>Statisztika</h2>
+      <div>1-es: <span id="correct1">0</span>✔ / <span id="wrong1">0</span>✘</div>
+      <div>2-es: <span id="correct2">0</span>✔ / <span id="wrong2">0</span>✘</div>
+      <div>3-as: <span id="correct3">0</span>✔ / <span id="wrong3">0</span>✘</div>
+      <div>4-es: <span id="correct4">0</span>✔ / <span id="wrong4">0</span>✘</div>
+    </section>
+  </main>
+  <footer>© 2025 Szénhidrogén Névellenőrző</footer>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const prefixes = ["", "met", "et", "prop", "but", "pent", "hex", "hept", "okt", "non", "dek"];
+      const maxL = 10;
+      let currentName = '';
+      const stats = {1:{correct:0,wrong:0},2:{correct:0,wrong:0},3:{correct:0,wrong:0},4:{correct:0,wrong:0}};
+
+      const newBtn = document.getElementById('newBtn');
+      const checkBtn = document.getElementById('checkBtn');
+      const nameInput = document.getElementById('nameInput');
+      const resultDiv = document.getElementById('result');
+
+      function normalize(str) {
+        return str.normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '')
+                  .replace(/\s+/g, '')
+                  .toLowerCase();
+      }
+
+      function updateStatsUI(level) {
+        document.getElementById(`correct${level}`).textContent = stats[level].correct;
+        document.getElementById(`wrong${level}`).textContent = stats[level].wrong;
+      }
+
+      function drawMolecule() {
+        const canvas = document.getElementById('molecule');
+        const ctx = canvas.getContext('2d');
+        const margin = 20;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const diff = +document.getElementById('difficulty').value;
+        let isCyclic = false;
+        let L;
+        if (diff === 4 && Math.random() < 0.5) {
+          isCyclic = true;
+          L = Math.floor(Math.random() * (maxL - 4)) + 5;
+        } else {
+          L = Math.floor(Math.random() * (maxL - 2)) + 3;
+        }
+
+        // kettőskötések pozíciói
+        const bondPositions = Array.from({length: L-1}, (_, i) => i+1);
+        const dbCount = diff <= 2 ? (Math.random()<0.5?1:0) : Math.floor(Math.random()*Math.min(2, L-1))+1;
+        const dbPos = [];
+        for (let i = 0; i < dbCount; i++) {
+          const idx = Math.floor(Math.random() * bondPositions.length);
+          dbPos.push(bondPositions.splice(idx, 1)[0]);
+        }
+
+        // elágazások generálása
+        const branchCount = diff === 2 ? 1 : (diff >= 3 ? Math.floor(Math.random() * 2) + 1 : 0);
+        const sitePositions = Array.from({length: L}, (_, i) => i+1).filter(x => x>1 && x<L);
+        const branches = [];
+        for (let i = 0; i < branchCount; i++) {
+          if (!sitePositions.length) break;
+          
+          let pos, len, idx;
+          let isValid = false;
+          let attempts = 0; // Biztonsági kilépés a végtelen ciklusok elkerülésére
+
+          while (!isValid && sitePositions.length > 0 && attempts < 50) {
+            idx = Math.floor(Math.random() * sitePositions.length);
+            pos = sitePositions[idx]; // Csak megnézzük a pozíciót
+            len = Math.floor(Math.random() * Math.min(3, L-2)) + 1;
+
+            // Szabályok az IUPAC szerinti leghosszabb lánc biztosítására
+            const isInvalidEthyl = (len === 2 && pos === L - 1);
+            const isInvalidPropyl = (len === 3 && (pos === L - 1 || pos === L - 2));
+
+            if (!isInvalidEthyl && !isInvalidPropyl) {
+              isValid = true;
+              sitePositions.splice(idx, 1); // A pozíció érvényes, eltávolítjuk a lehetőségek közül
+              branches.push({pos, len});
+            }
+            attempts++;
+          }
+        }
+
+        // számozási irány IUPAC (lexicographic)
+        const forwardDb = [...dbPos].sort((a,b)=>a-b);
+        const forwardSub = branches.map(b=>b.pos).sort((a,b)=>a-b);
+        const revDb = dbPos.map(p=>L-p).sort((a,b)=>a-b);
+        const revSub = branches.map(b=>L-b.pos+1).sort((a,b)=>a-b);
+        function lexCompare(a, b) {
+          for (let i=0; i<Math.min(a.length, b.length); i++) {
+            if (a[i] < b[i]) return -1;
+            if (a[i] > b[i]) return 1;
+          }
+          return a.length - b.length;
+        }
+        if (lexCompare([...revDb, ...revSub], [...forwardDb, ...forwardSub]) < 0) {
+          dbPos.splice(0, dbPos.length, ...revDb);
+          branches.forEach(b => b.pos = L - b.pos + 1);
+        } else {
+          dbPos.splice(0, dbPos.length, ...forwardDb);
+        }
+
+        // név összeállítása
+        const subGroups = {};
+        branches.forEach(b => { subGroups[b.len] = subGroups[b.len]||[]; subGroups[b.len].push(b.pos); });
+        const parts = [];
+        Object.keys(subGroups)
+          .sort((a, b) => prefixes[a].localeCompare(prefixes[b], 'hu'))
+          .forEach(lenKey => {
+            const poses = subGroups[lenKey].sort((a,b)=>a-b);
+            const cnt = poses.length;
+            const mult = cnt===2?'di':cnt===3?'tri':cnt===4?'tetra':'';
+            parts.push(`${poses.join(',')}-${mult}${prefixes[lenKey]}il`);
+          });
+        const root = isCyclic ? `ciklo${prefixes[L]}` : prefixes[L];
+        let suffix;
+        if (dbPos.length > 1) {
+          const multi = dbPos.length===2?'dién':dbPos.length===3?'trién':'én';
+          suffix = `${root}-${dbPos.join(',')}-${multi}`;
+        } else if (dbPos.length === 1) {
+          suffix = `${root}-${dbPos[0]}-én`;
+        } else {
+          suffix = `${root}án`;
+        }
+        parts.push(suffix);
+        currentName = parts.join('-');
+
+        // pontok kiszámítása (zigzag)
+        const pts = [];
+        if (isCyclic) {
+          const cx = canvas.width/2, cy = canvas.height/2;
+          const r = (Math.min(canvas.width, canvas.height) - 2*margin)/2;
+          for (let i = 0; i < L; i++) {
+            pts.push({ x: cx + r*Math.cos(2*Math.PI*i/L - Math.PI/2), y: cy + r*Math.sin(2*Math.PI*i/L - Math.PI/2) });
+          }
+        } else {
+          const startX = margin;
+          const startY = canvas.height/2;
+          // fixed bond length as in decane
+          const dx = (canvas.width - 2*margin) / (maxL - 1);
+          const amp = 20;
+          for (let i = 0; i < L; i++) {
+            pts.push({ x: startX + dx*i, y: startY + (i%2 ? amp : -amp) });
+          }
+        }
+
+        // rajzolás
+        ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
+        pts.forEach((p, i) => {
+          ctx.beginPath(); ctx.arc(p.x,p.y,5,0,2*Math.PI); ctx.fill();
+          const next = isCyclic ? pts[(i+1)%pts.length] : pts[i+1];
+          if (next) {
+            if (dbPos.includes(i+1)) {
+              const off = 4, ang = Math.atan2(next.y-p.y, next.x-p.x);
+              [1, -1].forEach(sign => {
+                ctx.beginPath();
+                ctx.moveTo(p.x + sign*Math.sin(ang)*off, p.y - sign*Math.cos(ang)*off);
+                ctx.lineTo(next.x + sign*Math.sin(ang)*off, next.y - sign*Math.cos(ang)*off);
+                ctx.stroke();
+              });
+            } else {
+              ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(next.x,next.y); ctx.stroke();
+            }
+          }
+        });
+        branches.forEach(b => {
+          let prev = pts[b.pos-1];
+          const ang = -Math.PI/2;
+          const len = 30;
+          for (let j = 0; j < b.len; j++) {
+            const nx = prev.x + Math.cos(ang)*len;
+            const ny = prev.y + Math.sin(ang)*len;
+            ctx.beginPath(); ctx.moveTo(prev.x,prev.y); ctx.lineTo(nx,ny); ctx.stroke();
+            ctx.beginPath(); ctx.arc(nx,ny,5,0,2*Math.PI); ctx.fill();
+            prev = {x:nx,y:ny};
+          }
+        });
+      }
+      // események
+      newBtn.addEventListener('click',()=>{const lvl=+document.getElementById('difficulty').value;if(!checkBtn.disabled){stats[lvl].wrong++;updateStatsUI(lvl);}nameInput.value='';resultDiv.textContent='';checkBtn.disabled=false;drawMolecule();});
+      checkBtn.addEventListener('click',()=>{const lvl=+document.getElementById('difficulty').value;if(normalize(nameInput.value)===normalize(currentName)){stats[lvl].correct++;resultDiv.textContent='Helyes! '+currentName;resultDiv.className='success';}else{stats[lvl].wrong++;resultDiv.textContent='Nem helyes! ('+currentName+')';resultDiv.className='error';}updateStatsUI(lvl);checkBtn.disabled=true;});
+
+      checkBtn.disabled=false;drawMolecule();for(let i=1;i<=4;i++)updateStatsUI(i);
+    });
+  </script>
+</body>
+</html>

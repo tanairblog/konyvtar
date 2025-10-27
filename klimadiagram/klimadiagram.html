@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klíma Diagram Készítő</title>
+    <!-- The browser may request a favicon.ico file. A 404 error for this file is harmless and can be ignored. -->
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for creating the climate diagram -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, #d6e8ff, #a6c0e8);
+        }
+        .view-container {
+            height: 600px;
+            width: 100%;
+            border: 4px solid white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        #details-view {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+        .controls-container {
+             background-color: rgba(255, 255, 255, 0.6);
+             backdrop-filter: blur(10px);
+             border-radius: 1.5rem;
+             border: 4px solid white;
+             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-6">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Klíma Diagram Készítő</h1>
+        <p id="instruction-text" class="text-lg text-gray-600 mt-2">Kattints a térképre egy hely kiválasztásához!</p>
+    </div>
+
+    <div class="w-full max-w-4xl">
+        <!-- Map View -->
+        <div id="map" class="view-container"></div>
+        <!-- Details View for the Chart -->
+        <div id="details-view" class="view-container hidden flex-col items-center justify-center p-8 text-center">
+            <p id="details-loading-text" class="text-2xl text-gray-700">Klímaadatok elemzése...</p>
+            <div id="details-content" class="hidden w-full h-full">
+                <p id="details-city-name" class="text-3xl font-bold text-gray-800 mb-4"></p>
+                <div class="relative h-[calc(100%-40px)] w-full">
+                    <canvas id="climate-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Boxes for Axis Control -->
+    <div class="w-full max-w-4xl mt-6 p-4 controls-container">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700">
+            <!-- Temperature Inputs -->
+            <div>
+                <label class="font-bold mb-2 block">Hőmérséklet Tartomány (°C)</label>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <label for="temp-min-input" class="text-sm">Min</label>
+                        <input type="number" id="temp-min-input" value="-10" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="flex-1">
+                        <label for="temp-max-input" class="text-sm">Max</label>
+                        <input type="number" id="temp-max-input" value="40" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+            </div>
+            <!-- Precipitation Inputs -->
+            <div>
+                <label class="font-bold mb-2 block">Csapadék Tartomány (mm)</label>
+                <div class="flex items-center space-x-4">
+                     <div class="flex-1">
+                        <label for="precip-min-input" class="text-sm">Min</label>
+                        <input type="number" id="precip-min-input" value="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                    <div class="flex-1">
+                        <label for="precip-max-input" class="text-sm">Max</label>
+                        <input type="number" id="precip-max-input" value="150" class="w-full p-2 border border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // DOM Element References
+        const mapEl = document.getElementById('map');
+        const detailsViewEl = document.getElementById('details-view');
+        const instructionTextEl = document.getElementById('instruction-text');
+        const detailsLoadingTextEl = document.getElementById('details-loading-text');
+        const detailsContentEl = document.getElementById('details-content');
+        const detailsCityNameEl = document.getElementById('details-city-name');
+        const chartCanvasEl = document.getElementById('climate-chart').getContext('2d');
+        
+        // Input Box DOM elements
+        const tempMinInput = document.getElementById('temp-min-input');
+        const tempMaxInput = document.getElementById('temp-max-input');
+        const precipMinInput = document.getElementById('precip-min-input');
+        const precipMaxInput = document.getElementById('precip-max-input');
+
+        // Global variables
+        let map;
+        let geocoder; 
+        let climateChart;
+        let axisRanges = { tempMin: -10, tempMax: 40, precipMin: 0, precipMax: 150 };
+
+        // Initialize the Google Map
+        function initMap() {
+            map = new google.maps.Map(mapEl, { 
+                center: { lat: 47.4979, lng: 19.0402 }, 
+                zoom: 5, 
+                mapTypeId: 'terrain', 
+                disableDefaultUI: true, 
+                zoomControl: true, 
+                draggableCursor: 'crosshair' 
+            });
+            geocoder = new google.maps.Geocoder();
+            
+            map.addListener('click', (event) => {
+                showDetailsView();
+                getClimateDataAndDrawChart(event.latLng.lat(), event.latLng.lng());
+            });
+        }
+
+        function getCityName(lat, lon) {
+            return new Promise((resolve) => {
+                const latlng = { lat: lat, lng: lon };
+                geocoder.geocode({ location: latlng }, (results, status) => {
+                    if (status === "OK" && results && results.length > 0) {
+                        const firstResult = results[0];
+                        let locationName = '';
+                        const componentPreference = ['locality', 'administrative_area_level_2', 'administrative_area_level_1'];
+                        for (const type of componentPreference) {
+                            const component = firstResult.address_components.find(c => c.types.includes(type));
+                            if (component) {
+                                locationName = component.long_name;
+                                break;
+                            }
+                        }
+                        if (locationName) {
+                            resolve(locationName);
+                            return;
+                        }
+                    }
+                    resolve('Kiválasztott hely');
+                });
+            });
+        }
+
+        async function getClimateDataAndDrawChart(lat, lon) {
+            try {
+                const cityName = await getCityName(lat, lon);
+                detailsLoadingTextEl.textContent = `${cityName} 30 éves napi adatainak lekérése...`;
+                const archiveUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=1991-01-01&end_date=2020-12-31&daily=temperature_2m_mean,precipitation_sum&timezone=GMT`;
+                const response = await fetch(archiveUrl);
+                if (!response.ok) throw new Error('Nem sikerült csatlakozni a klímaadat szerverhez.');
+                const climateData = await response.json();
+                console.log("API Response:", climateData);
+                if (climateData.error || !climateData.daily || !climateData.daily.time || climateData.daily.time.length === 0) {
+                    throw new Error(climateData.reason || 'Nincs elérhető historikus klímaadat ehhez a helyhez.');
+                }
+                detailsLoadingTextEl.textContent = `Havi átlagok számítása...`;
+                const monthlySums = { temps: Array(12).fill(0), precip: Array(12).fill(0), tempCounts: Array(12).fill(0) };
+                for (let i = 0; i < climateData.daily.time.length; i++) {
+                    const month = new Date(climateData.daily.time[i]).getUTCMonth();
+                    const temp = climateData.daily.temperature_2m_mean[i];
+                    const precip = climateData.daily.precipitation_sum[i];
+                    if (temp !== null) {
+                        monthlySums.temps[month] += temp;
+                        monthlySums.tempCounts[month]++;
+                    }
+                    if (precip !== null) {
+                        monthlySums.precip[month] += precip;
+                    }
+                }
+                const monthlyAverages = { temps: [], precip: [] };
+                const numberOfYears = 30;
+                for (let i = 0; i < 12; i++) {
+                    const tempCount = monthlySums.tempCounts[i];
+                    monthlyAverages.temps.push(tempCount > 0 ? (monthlySums.temps[i] / tempCount) : 0);
+                    monthlyAverages.precip.push(monthlySums.precip[i] / numberOfYears);
+                }
+                drawClimateChart(cityName, monthlyAverages.temps, monthlyAverages.precip);
+            } catch (error) {
+                console.error("Data processing failed:", error);
+                detailsLoadingTextEl.textContent = error.message;
+            }
+        }
+
+        function drawClimateChart(cityName, temperatures, precipitations) {
+            detailsCityNameEl.textContent = cityName;
+            if (climateChart) { climateChart.destroy(); }
+            climateChart = new Chart(chartCanvasEl, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Már', 'Ápr', 'Máj', 'Jún', 'Júl', 'Aug', 'Szep', 'Okt', 'Nov', 'Dec'],
+                    datasets: [
+                        { type: 'line', label: 'Átlaghőmérséklet (°C)', data: temperatures, borderColor: 'rgba(239, 68, 68, 1)', backgroundColor: 'rgba(239, 68, 68, 0.2)', yAxisID: 'y_temp', tension: 0.2, fill: false },
+                        { type: 'bar', label: 'Havi átlagos csapadék (mm)', data: precipitations, backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgba(59, 130, 246, 1)', yAxisID: 'y_precip' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y_precip: { type: 'linear', position: 'left', title: { display: true, text: 'Csapadék (mm)' }, min: axisRanges.precipMin, max: axisRanges.precipMax },
+                        y_temp: { type: 'linear', position: 'right', title: { display: true, text: 'Hőmérséklet (°C)' }, grid: { drawOnChartArea: false }, min: axisRanges.tempMin, max: axisRanges.tempMax }
+                    }
+                }
+            });
+            detailsLoadingTextEl.classList.add('hidden');
+            detailsContentEl.classList.remove('hidden');
+        }
+        
+        // Function to update chart axes based on input box values
+        function updateChartAxes() {
+            if (!climateChart) return;
+            climateChart.options.scales.y_temp.min = axisRanges.tempMin;
+            climateChart.options.scales.y_temp.max = axisRanges.tempMax;
+            climateChart.options.scales.y_precip.min = axisRanges.precipMin;
+            climateChart.options.scales.y_precip.max = axisRanges.precipMax;
+            climateChart.update();
+        }
+
+        // Event Listeners for input boxes
+        tempMinInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            axisRanges.tempMin = value;
+            if (axisRanges.tempMax < value) {
+                axisRanges.tempMax = value;
+                tempMaxInput.value = value;
+            }
+            updateChartAxes();
+        });
+        tempMaxInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            axisRanges.tempMax = value;
+            if (axisRanges.tempMin > value) {
+                axisRanges.tempMin = value;
+                tempMinInput.value = value;
+            }
+            updateChartAxes();
+        });
+        precipMinInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            axisRanges.precipMin = value;
+            if (axisRanges.precipMax < value) {
+                axisRanges.precipMax = value;
+                precipMaxInput.value = value;
+            }
+            updateChartAxes();
+        });
+        precipMaxInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            axisRanges.precipMax = value;
+            if (axisRanges.precipMin > value) {
+                axisRanges.precipMin = value;
+                precipMinInput.value = value;
+            }
+            updateChartAxes();
+        });
+
+        function showDetailsView() {
+            mapEl.classList.add('hidden');
+            detailsViewEl.classList.remove('hidden');
+            detailsContentEl.classList.add('hidden');
+            detailsLoadingTextEl.classList.remove('hidden');
+            detailsLoadingTextEl.textContent = 'Helymeghatározás...';
+            instructionTextEl.textContent = 'Kattints a diagramra a térképhez való visszatéréshez!';
+        }
+        
+        function showMapView() {
+            detailsViewEl.classList.add('hidden');
+            mapEl.classList.remove('hidden');
+            instructionTextEl.textContent = 'Kattints a térképre egy hely kiválasztásához!';
+        }
+
+        detailsViewEl.addEventListener('click', showMapView);
+    </script>
+    
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=IDE KELL A KULCSOT BEMÁSOLNI&callback=initMap"></script>
+</body>
+</html>
+
+

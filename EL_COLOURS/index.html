@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Learn Colours – Interactive</title>
+<style>
+  :root{
+    --bg:#f7f7fb; --card:#ffffff; --ink:#1f2937; --muted:#6b7280; --accent:#6366f1;
+    --good:#16a34a; --bad:#dc2626; --ring:0 0 0 3px rgba(99,102,241,.25); --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",sans-serif;
+        background:linear-gradient(180deg,#eef2ff 0,#f7f7fb 140px); color:var(--ink);}
+  header{ padding:20px 16px 6px; text-align:center; position:relative;}
+  h1{ margin:0 0 6px; font-size:1.6rem; letter-spacing:.2px }
+  .sub{ color:var(--muted); font-size:.95rem }
+  .topbar{ position:absolute; right:12px; top:12px; display:flex; gap:8px; align-items:center; }
+  .app{ max-width:1100px; margin:18px auto 40px; padding:0 16px; }
+  .tabs{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:14px; }
+  .tab-btn{ border:1px solid #e5e7eb; background:var(--card); padding:10px 14px; border-radius:999px;
+            cursor:pointer; font-weight:600; transition:.2s; box-shadow:0 1px 0 rgba(0,0,0,.03);}
+  .tab-btn[aria-selected="true"]{ background:#eef2ff; border-color:#c7d2fe; color:#3730a3; box-shadow:var(--ring)}
+  .panel{ background:var(--card); border:1px solid #e5e7eb; border-radius:var(--radius); padding:18px;
+          box-shadow:0 10px 20px rgba(0,0,0,.04);}
+  .controls{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:center}
+  .btn{ border:1px solid #e5e7eb; background:#fff; padding:10px 12px; border-radius:12px; font-weight:600;
+        cursor:pointer; transition:.2s; box-shadow:0 1px 0 rgba(0,0,0,.03); }
+  .btn:hover{ transform:translateY(-1px)}
+  .btn.ghost{ background:transparent }
+  .hint{ color:var(--muted); font-size:.9rem; margin-left:auto}
+  .grid{ display:grid; gap:14px; }
+  .grid.swatches{ grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); }
+  .card{ border:1px solid #e5e7eb; border-radius:14px; padding:12px; background:#fff;
+         display:flex; flex-direction:column; gap:10px; align-items:center; justify-content:center; min-height:120px;}
+  .swatch{ width:72px; height:72px; border-radius:12px; border:3px solid rgba(0,0,0,.08);
+           display:grid; place-items:center; font-weight:800; letter-spacing:.3px; user-select:none; }
+  .swatch.big{ width:88px; height:88px; border-width:4px; }
+  .label{ font-weight:700; transition:color .15s ease }
+  .label.hidden{ color:#ffffff; } /* Learn: click → invisible on white */
+  .palette{ display:flex; flex-wrap:wrap; gap:10px}
+  .chip{ border-radius:999px; padding:10px 12px; font-weight:700; border:1px solid rgba(0,0,0,.1);
+         display:inline-flex; align-items:center; gap:8px; cursor:pointer; background:#fff; }
+  .dot{ width:18px; height:18px; border-radius:50%; border:2px solid rgba(0,0,0,.08); display:inline-block }
+  .dot.big{ width:28px; height:28px; }
+  .chip[aria-pressed="true"]{ outline:none; box-shadow:var(--ring); transform:translateY(-1px)}
+  .canvas{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-top:12px}
+  .shape{ background:#fafafa; border:1px dashed #e5e7eb; border-radius:16px; display:grid; place-items:center;
+          height:140px; cursor:pointer; transition:.15s;}
+  .shape:hover{ transform:translateY(-2px) }
+  svg{ width:90px; height:90px }
+  /* Find game */
+  .prompt{ font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:10px; }
+  .score{ font-weight:700; }
+  .swatch-btn{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:12px;
+               display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .swatch-btn.correct{ outline:none; box-shadow:0 0 0 3px rgba(22,163,74,.25)}
+  .swatch-btn.wrong{ outline:none; box-shadow:0 0 0 3px rgba(220,38,38,.25)}
+  .row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:12px; margin-top:12px}
+  /* Order game */
+  .order-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .tile{ border:1px solid #e5e7eb; background:#fff; border-radius:14px; padding:12px;
+         display:flex; flex-direction:column; align-items:center; gap:10px; min-height:120px; cursor:grab; }
+  .tile:active{ cursor:grabbing }
+  .tile.dragging{ opacity:.5 }
+  .tile.correct{ box-shadow:0 0 0 3px rgba(22,163,74,.25); }
+  .tile.wrong{ box-shadow:0 0 0 3px rgba(220,38,38,.25); }
+  .target{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .mini-tile{ width:24px; height:24px; border-radius:6px; border:2px solid rgba(0,0,0,.08); display:inline-block; }
+  .mini-lbl{ font-size:.9rem; color:var(--muted) }
+  .target-box{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .target-tools{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .tiny{ font-size:.85rem; color:var(--muted) }
+  /* Toast */
+  .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:20px; background:#111827; color:#fff;
+          padding:10px 14px; border-radius:999px; font-weight:700; opacity:0; pointer-events:none; transition:.3s; }
+  .toast.show{ opacity:1 }
+  footer{ text-align:center; color:var(--muted); font-size:.85rem; margin-top:16px }
+  /* Teacher panel */
+  .pill{ border:1px solid #e5e7eb; background:#fff; padding:8px 12px; border-radius:999px; font-weight:700; cursor:pointer; }
+  .teacher-panel{ position:fixed; right:12px; top:56px; width:340px; max-width:92vw; background:#fff; border:1px solid #e5e7eb;
+                  border-radius:16px; padding:14px; box-shadow:0 10px 24px rgba(0,0,0,.08); z-index:50; display:none; }
+  .teacher-panel.open{ display:block; }
+  .tp-sec{ border-top:1px solid #f1f5f9; padding-top:10px; margin-top:10px }
+  .timer{ font-variant-numeric:tabular-nums; font-size:1.3rem; font-weight:800 }
+  .scorebox{ display:flex; align-items:center; gap:10px }
+  .mini{ font-size:.9rem; color:var(--muted) }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Learn Colours – Interactive</h1>
+    <div class="sub">10 main colours: red, blue, yellow, green, orange, purple, pink, brown, black, white</div>
+    <div class="topbar">
+      <button class="pill" id="soundToggle" aria-pressed="true">Sound: On</button>
+      <button class="pill" id="teacherBtn" aria-expanded="false" aria-controls="teacherPanel">Teacher Tools</button>
+    </div>
+  </header>
+
+  <!-- Teacher Panel -->
+  <aside id="teacherPanel" class="teacher-panel" aria-label="Teacher Tools">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <strong>Teacher Tools</strong>
+      <button class="pill" id="closeTeacher">Close</button>
+    </div>
+
+    <div class="tp-sec">
+      <div class="mini">Timer</div>
+      <div class="timer" id="timerDisp">00:00</div>
+      <div style="display:flex; gap:8px; margin-top:6px;">
+        <button class="btn" id="timerStart">Start</button>
+        <button class="btn" id="timerPause">Pause</button>
+        <button class="btn ghost" id="timerReset">Reset</button>
+      </div>
+    </div>
+
+    <div class="tp-sec">
+      <div class="mini">Quick Score</div>
+      <div class="scorebox">
+        <button class="btn" id="scoreMinus">−</button>
+        <div class="timer" id="quickScore">0</div>
+        <button class="btn" id="scorePlus">+</button>
+        <button class="btn ghost" id="scoreReset" title="Reset score">Reset</button>
+      </div>
+    </div>
+
+    <div class="tp-sec">
+      <div class="mini">Live Stats</div>
+      <div id="statFind">Find the Colour — Correct 0 / Attempts 0 (Best streak: 0)</div>
+      <div id="statColour">Colour the Picture — Shapes coloured 0 / 6</div>
+      <div id="statOrder">Order the Colours — Correct positions 0 / 0 (Best: 0)</div>
+    </div>
+  </aside>
+
+  <main class="app" id="app">
+    <nav class="tabs" role="tablist" aria-label="Modes">
+      <button class="tab-btn" role="tab" aria-selected="true" aria-controls="panel-learn" id="tab-learn">1) Learn</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-find" id="tab-find">2) Find the Colour</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-colour" id="tab-colour">3) Colour the Picture</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="panel-order" id="tab-order">4) Order the Colours</button>
+    </nav>
+
+    <!-- Learn Panel -->
+    <section class="panel" role="tabpanel" id="panel-learn" aria-labelledby="tab-learn">
+      <div class="controls">
+        <button class="btn" id="shuffleLearn">Shuffle</button>
+        <button class="btn" id="showAll">Show names</button>
+        <button class="btn ghost" id="hideAll">Hide names</button>
+        <span class="hint">Tip: click a card to toggle the name.</span>
+      </div>
+      <div class="grid swatches" id="learnGrid" aria-live="polite"></div>
+    </section>
+
+    <!-- Find Panel -->
+    <section class="panel" role="tabpanel" id="panel-find" aria-labelledby="tab-find" hidden>
+      <div class="controls">
+        <span class="prompt" id="prompt">Find: —</span>
+        <span class="hint">Rounds: <span class="score" id="score">0/10</span></span>
+        <button class="btn" id="restartFind" style="margin-left:auto">Restart</button>
+      </div>
+      <div class="row" id="findRows"></div>
+    </section>
+
+    <!-- Colour Panel -->
+    <section class="panel" role="tabpanel" id="panel-colour" aria-labelledby="tab-colour" hidden>
+      <div class="controls">
+        <div class="palette" id="palette"></div>
+        <button class="btn" id="resetCanvas">Reset picture</button>
+        <span class="hint">Pick a colour, then click a shape.</span>
+      </div>
+      <div class="canvas" id="canvas"></div>
+    </section>
+
+    <!-- Order Panel -->
+    <section class="panel" role="tabpanel" id="panel-order" aria-labelledby="tab-order" hidden>
+      <div class="controls">
+        <button class="btn" id="orderShuffle">Shuffle grid</button>
+        <button class="btn" id="orderShow">Show names</button>
+        <button class="btn ghost" id="orderHide">Hide names</button>
+        <button class="btn" id="orderReset" title="Reset to default order">Reset grid</button>
+        <span class="hint">Drag the tiles to match the teacher’s order.</span>
+      </div>
+
+      <div class="target-tools">
+        <strong>Target:</strong>
+        <div class="target-box" id="targetBox"></div>
+        <span class="tiny" id="targetLen">(0/10)</span>
+      </div>
+
+      <div class="target-tools" style="margin-top:8px;">
+        <button class="btn" id="recToggle" aria-pressed="false">Start recording</button>
+        <button class="btn" id="recUndo">Undo</button>
+        <button class="btn" id="recClear">Clear</button>
+        <button class="btn" id="recRandom">Random 10</button>
+        <button class="btn" id="recFromGrid">Load current grid</button>
+        <button class="btn primary" id="checkOrder">Check</button>
+        <span class="tiny">Click colours below while recording to set the target order.</span>
+      </div>
+
+      <div class="palette" id="orderPalette" style="margin-top:8px;"></div>
+      <div class="order-grid" id="orderGrid" style="margin-top:12px;"></div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <footer>Made for young learners • No text-to-speech, just clear visuals and clicks.</footer>
+  </main>
+
+<script>
+(() => {
+  const COLOURS = [
+    {name:"red",    hex:"#ef4444"},
+    {name:"blue",   hex:"#3b82f6"},
+    {name:"yellow", hex:"#F7FF00"},  // ← LEMON YELLOW (brighter, greener)
+    {name:"green",  hex:"#22c55e"},
+    {name:"orange", hex:"#fb923c"},
+    {name:"purple", hex:"#8b5cf6"},
+    {name:"pink",   hex:"#ec4899"},
+    {name:"brown",  hex:"#8b5a2b"},
+    {name:"black",  hex:"#111827"},
+    {name:"white",  hex:"#ffffff"},
+  ];
+
+  // ===== Helpers =====
+  const byId = id => document.getElementById(id);
+  const toast = (msg) => { const t = byId('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1200); };
+  const textOn = (hex) => {
+    const c = hex.replace('#','');
+    const r = parseInt(c.substring(0,2),16), g = parseInt(c.substring(2,4),16), b = parseInt(c.substring(4,6),16);
+    const yiq = (r*299 + g*587 + b*114) / 1000;
+    return yiq >= 140 ? "#111827" : "#ffffff";
+  };
+  const shuffle = (arr) => arr.map(v=>[Math.random(),v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+
+  // ===== Sound =====
+  let soundEnabled = true; let audioCtx = null;
+  function beep(freq=880,duration=0.12,type='sine',volume=0.04){
+    if(!soundEnabled) return;
+    if(!audioCtx){ try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ soundEnabled=false; return; } }
+    const t0 = audioCtx.currentTime; const o=audioCtx.createOscillator(); const g=audioCtx.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t0); g.gain.setValueAtTime(volume,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+duration);
+    o.connect(g).connect(audioCtx.destination); o.start(t0); o.stop(t0+duration);
+  }
+  function sfx(kind){ if(!soundEnabled) return;
+    if(kind==='correct') beep(880,0.12,'sine',0.05);
+    else if(kind==='wrong') beep(220,0.18,'sawtooth',0.05);
+    else if(kind==='click') beep(440,0.06,'triangle',0.03);
+  }
+  const soundBtn = byId('soundToggle');
+  soundBtn.addEventListener('click', ()=>{ soundEnabled=!soundEnabled; soundBtn.setAttribute('aria-pressed', String(soundEnabled)); soundBtn.textContent=`Sound: ${soundEnabled?'On':'Off'}`; if(soundEnabled) sfx('click'); });
+
+  // ===== Teacher panel =====
+  const teacherBtn = byId('teacherBtn'), teacherPanel = byId('teacherPanel'), closeTeacher = byId('closeTeacher');
+  teacherBtn.addEventListener('click', ()=>{ const open=teacherPanel.classList.toggle('open'); teacherBtn.setAttribute('aria-expanded', String(open)); if(open) sfx('click'); });
+  closeTeacher.addEventListener('click', ()=>{ teacherPanel.classList.remove('open'); teacherBtn.setAttribute('aria-expanded','false'); });
+
+  // Timer
+  const timerDisp=byId('timerDisp'), timerStart=byId('timerStart'), timerPause=byId('timerPause'), timerReset=byId('timerReset');
+  let timerSec=0, timerRef=null;
+  const renderTimer=()=>{ const m=String(Math.floor(timerSec/60)).padStart(2,'0'); const s=String(timerSec%60).padStart(2,'0'); timerDisp.textContent=`${m}:${s}`; };
+  const startTimer=()=>{ if(timerRef) return; timerRef=setInterval(()=>{ timerSec++; renderTimer(); },1000); };
+  const pauseTimer=()=>{ if(timerRef){ clearInterval(timerRef); timerRef=null; } };
+  const resetTimer=()=>{ pauseTimer(); timerSec=0; renderTimer(); };
+  timerStart.onclick=()=>{ startTimer(); sfx('click'); }; timerPause.onclick=()=>{ pauseTimer(); sfx('click'); }; timerReset.onclick=()=>{ resetTimer(); sfx('click'); }; renderTimer();
+
+  // Quick Score
+  const quickScoreEl=byId('quickScore'), scorePlus=byId('scorePlus'), scoreMinus=byId('scoreMinus'), scoreResetBtn=byId('scoreReset');
+  let quickScore=0; const setQuickScore=v=>{ quickScore=Math.max(0,v); quickScoreEl.textContent=quickScore; };
+  scorePlus.onclick=()=>{ setQuickScore(quickScore+1); sfx('click'); };
+  scoreMinus.onclick=()=>{ setQuickScore(quickScore-1); sfx('click'); };
+  scoreResetBtn.onclick=()=>{ setQuickScore(0); sfx('click'); };
+
+  // Live stats
+  const statFind=byId('statFind'), statColour=byId('statColour'), statOrder=byId('statOrder');
+  const teacherStats={ findCorrect:0, findAttempts:0, findBestStreak:0, findCurrentStreak:0,
+                       colouredCount:0, totalShapes:6,
+                       orderBest:0, orderLastCorrect:0, orderTargetLen:0 };
+  const updateStats=()=>{ 
+    statFind.textContent=`Find the Colour — Correct ${teacherStats.findCorrect} / Attempts ${teacherStats.findAttempts} (Best streak: ${teacherStats.findBestStreak})`;
+    statColour.textContent=`Colour the Picture — Shapes coloured ${teacherStats.colouredCount} / ${teacherStats.totalShapes}`;
+    statOrder.textContent=`Order the Colours — Correct positions ${teacherStats.orderLastCorrect} / ${teacherStats.orderTargetLen} (Best: ${teacherStats.orderBest})`;
+  };
+  updateStats();
+
+  // ===== Tabs =====
+  const tabs=[ {btn:byId('tab-learn'),panel:byId('panel-learn')}, {btn:byId('tab-find'),panel:byId('panel-find')}, {btn:byId('tab-colour'),panel:byId('panel-colour')}, {btn:byId('tab-order'),panel:byId('panel-order')} ];
+  tabs.forEach(({btn,panel})=>{ btn.addEventListener('click', ()=>{ tabs.forEach(t=>{ t.btn.setAttribute('aria-selected', t.btn===btn?'true':'false'); t.panel.hidden = t.panel!==panel; }); sfx('click'); }); });
+
+  // ===== LEARN =====
+  const learnGrid=byId('learnGrid'); let learnOrder=COLOURS.slice();
+  function drawLearn(){
+    learnGrid.innerHTML='';
+    learnOrder.forEach(c=>{
+      const card=document.createElement('div'); card.className='card'; card.tabIndex=0; card.setAttribute('role','button'); card.setAttribute('aria-label','Show or hide name');
+      const sw=document.createElement('div'); sw.className='swatch'; sw.style.background=c.hex; sw.style.color=textOn(c.hex); sw.textContent=" ";
+      const lab=document.createElement('div'); lab.className='label'; lab.textContent=c.name; lab.dataset.visible='true';
+      card.append(sw,lab);
+      const toggle=()=>{ const vis=lab.dataset.visible==='true'; lab.dataset.visible=vis?'false':'true'; lab.classList.toggle('hidden',vis); sfx('click'); };
+      card.addEventListener('click',toggle);
+      card.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); }});
+      learnGrid.appendChild(card);
+    });
+  }
+  drawLearn();
+  byId('shuffleLearn').onclick=()=>{ learnOrder=shuffle(learnOrder); drawLearn(); sfx('click'); };
+  byId('showAll').onclick=()=>{ learnGrid.querySelectorAll('.label').forEach(l=>{ l.dataset.visible='true'; l.classList.remove('hidden'); }); sfx('click'); };
+  byId('hideAll').onclick=()=>{ learnGrid.querySelectorAll('.label').forEach(l=>{ l.dataset.visible='false'; l.classList.add('hidden'); }); sfx('click'); };
+
+  // ===== FIND =====
+  const findRows=byId('findRows'), promptEl=byId('prompt'), scoreEl=byId('score');
+  let queue=[], score=0, target=null;
+
+  function buildFindButtons(){
+    findRows.innerHTML='';
+    COLOURS.forEach(c=>{
+      const btn=document.createElement('button');
+      btn.className='swatch-btn'; btn.setAttribute('aria-label', c.name);
+      btn.innerHTML=`<div class="swatch big" style="background:${c.hex}"></div>`;
+      btn.addEventListener('click', ()=>{
+        if(!target) return;
+        teacherStats.findAttempts++;
+        const correct = c.name===target.name;
+        if(correct){ teacherStats.findCorrect++; teacherStats.findCurrentStreak++; teacherStats.findBestStreak=Math.max(teacherStats.findBestStreak, teacherStats.findCurrentStreak); }
+        else { teacherStats.findCurrentStreak=0; }
+        updateStats();
+
+        btn.classList.add(correct?'correct':'wrong');
+        setTimeout(()=>btn.classList.remove('correct','wrong'),420);
+
+        if(correct){
+          sfx('correct'); score++; scoreEl.textContent=`${score}/10`; nextRound();
+          if(score>=10){ toast('Great job! 10/10'); target=null; }
+        } else { sfx('wrong'); toast('Try again'); }
+      });
+      findRows.appendChild(btn);
+    });
+  }
+  buildFindButtons();
+
+  function nextRound(){
+    if(queue.length===0){ queue = shuffle(COLOURS).slice(0,10); score=0; scoreEl.textContent='0/10'; }
+    target = queue.shift();
+    promptEl.textContent = `Find: ${target.name}`;
+  }
+  nextRound();
+  byId('restartFind').onclick=()=>{ queue=[]; teacherStats.findCurrentStreak=0; nextRound(); toast('Restarted'); sfx('click'); updateStats(); };
+
+  // ===== COLOURING =====
+  const palette=byId('palette'), canvas=byId('canvas'); let activeColour=COLOURS[0];
+  function drawPalette(){
+    palette.innerHTML='';
+    COLOURS.forEach((c,i)=>{
+      const chip=document.createElement('button'); chip.className='chip'; chip.setAttribute('aria-pressed', i===0?'true':'false');
+      chip.setAttribute('aria-label', c.name); chip.innerHTML=`<span class="dot big" style="background:${c.hex}"></span>`;
+      chip.addEventListener('click', ()=>{ activeColour=c; palette.querySelectorAll('.chip').forEach(el=>el.setAttribute('aria-pressed','false')); chip.setAttribute('aria-pressed','true'); sfx('click'); });
+      palette.appendChild(chip);
+    });
+  }
+  drawPalette();
+
+  const SHAPES=[
+    {id:'star', svg:`<path d="M50 5l12 30h31L68 50l12 30-30-18-30 18 12-30-25-15h31z"/>`},
+    {id:'circle', svg:`<circle cx="50" cy="50" r="38"/>`},
+    {id:'square', svg:`<rect x="16" y="16" width="68" height="68" rx="10"/>`},
+    {id:'triangle', svg:`<path d="M50 12L88 84H12z"/>`},
+    {id:'heart', svg:`<path d="M50 83C38 72 18 60 18 40a16 16 0 0 1 30-8 16 16 0 0 1 30 8c0 20-20 32-28 43z"/>`},
+    {id:'cloud', svg:`<path d="M70 76H34a18 18 0 1 1 6-35 16 16 0 0 1 27-9 14 14 0 1 1 3 28z"/>`},
+  ];
+
+  function drawCanvas(){
+    canvas.innerHTML='';
+    SHAPES.forEach(s=>{
+      const wrap=document.createElement('button'); wrap.className='shape'; wrap.setAttribute('aria-label', `Fill ${s.id}`);
+      wrap.innerHTML=`<svg viewBox="0 0 100 100"><g fill="#e5e7eb" stroke="#d1d5db" stroke-width="2">${s.svg}</g></svg>`;
+      wrap.addEventListener('click', ()=>{
+        const g=wrap.querySelector('svg g'); const prev=g.getAttribute('fill');
+        g.setAttribute('fill', activeColour.hex);
+        teacherStats.colouredCount = Array.from(canvas.querySelectorAll('g')).filter(x=>x.getAttribute('fill')!=='#e5e7eb').length;
+        updateStats(); sfx('click'); if(prev!==activeColour.hex) toast('Coloured!');
+      });
+      canvas.appendChild(wrap);
+    });
+    teacherStats.colouredCount=0; teacherStats.totalShapes=SHAPES.length; updateStats();
+  }
+  drawCanvas();
+  byId('resetCanvas').onclick=()=>{ canvas.querySelectorAll('g').forEach(g=>g.setAttribute('fill','#e5e7eb')); teacherStats.colouredCount=0; updateStats(); sfx('click'); };
+
+  // ===== ORDER =====
+  const orderGrid=byId('orderGrid'), orderShow=byId('orderShow'), orderHide=byId('orderHide'), orderShuffle=byId('orderShuffle'), orderReset=byId('orderReset');
+  const targetBox=byId('targetBox'), targetLen=byId('targetLen'), orderPalette=byId('orderPalette');
+  const recToggle=byId('recToggle'), recUndo=byId('recUndo'), recClear=byId('recClear'), recRandom=byId('recRandom'), recFromGrid=byId('recFromGrid'), checkOrderBtn=byId('checkOrder');
+
+  let orderNames = COLOURS.map(c=>c.name);
+  let showNames = true;
+  let recording = false;
+  let targetSeq = [];
+
+  function drawOrderPalette(){
+    orderPalette.innerHTML='';
+    COLOURS.forEach(c=>{
+      const chip=document.createElement('button'); chip.className='chip'; chip.setAttribute('aria-label', c.name);
+      chip.innerHTML=`<span class="dot big" style="background:${c.hex}"></span><span>${c.name}</span>`;
+      chip.addEventListener('click', ()=>{
+        if(recording){
+          if(targetSeq.length<10){ targetSeq.push(c.name); drawTarget(); sfx('click'); }
+          else toast('Target already has 10 colours');
+        }
+      });
+      orderPalette.appendChild(chip);
+    });
+  }
+
+  function drawTarget(){
+    targetBox.innerHTML='';
+    targetSeq.forEach(n=>{
+      const c=COLOURS.find(x=>x.name===n);
+      const mini=document.createElement('span'); mini.className='mini-tile'; mini.style.background=c.hex; mini.title=n;
+      targetBox.appendChild(mini);
+    });
+    targetLen.textContent = `(${targetSeq.length}/10)`;
+    teacherStats.orderTargetLen = targetSeq.length;
+    updateStats();
+  }
+
+  function drawOrderGrid(highlight=false){
+    orderGrid.innerHTML='';
+    orderNames.forEach((name,idx)=>{
+      const c=COLOURS.find(x=>x.name===name);
+      const tile=document.createElement('div'); tile.className='tile'; tile.draggable=true; tile.dataset.index=idx; tile.dataset.name=name;
+      const sw=document.createElement('div'); sw.className='swatch big'; sw.style.background=c.hex; sw.style.color=textOn(c.hex); sw.textContent=" ";
+      const lab=document.createElement('div'); lab.className='label'; lab.textContent=name; if(!showNames) lab.classList.add('hidden');
+      tile.append(sw,lab);
+      tile.addEventListener('dragstart', e=>{ tile.classList.add('dragging'); e.dataTransfer.setData('text/plain', idx.toString()); });
+      tile.addEventListener('dragend', ()=>{ tile.classList.remove('dragging'); });
+      tile.addEventListener('dragover', e=>{ e.preventDefault(); });
+      tile.addEventListener('drop', e=>{
+        e.preventDefault();
+        const from = parseInt(e.dataTransfer.getData('text/plain'),10);
+        const to = parseInt(tile.dataset.index,10);
+        if(isNaN(from) || isNaN(to) || from===to) return;
+        const arr = orderNames.slice();
+        const [moved] = arr.splice(from,1);
+        arr.splice(to,0,moved);
+        orderNames = arr;
+        drawOrderGrid(highlight);
+      });
+      orderGrid.appendChild(tile);
+    });
+
+    if(highlight && targetSeq.length>0){
+      let correct=0;
+      const tiles = orderGrid.querySelectorAll('.tile');
+      tiles.forEach((t,i)=>{
+        t.classList.remove('correct','wrong');
+        if(i<targetSeq.length){
+          if(orderNames[i]===targetSeq[i]){ t.classList.add('correct'); correct++; }
+          else { t.classList.add('wrong'); }
+        }
+      });
+      teacherStats.orderLastCorrect = correct;
+      teacherStats.orderBest = Math.max(teacherStats.orderBest, correct);
+      updateStats();
+      toast(`Correct positions: ${correct}/${targetSeq.length}`);
+      if(correct===targetSeq.length && targetSeq.length>0) sfx('correct'); else sfx('click');
+    }
+  }
+
+  function resetHighlights(){ orderGrid.querySelectorAll('.tile').forEach(t=>t.classList.remove('correct','wrong')); }
+
+  orderShow.onclick=()=>{ showNames=true; orderGrid.querySelectorAll('.label').forEach(l=>l.classList.remove('hidden')); sfx('click'); };
+  orderHide.onclick=()=>{ showNames=false; orderGrid.querySelectorAll('.label').forEach(l=>l.classList.add('hidden')); sfx('click'); };
+  orderShuffle.onclick=()=>{ orderNames = shuffle(orderNames); resetHighlights(); drawOrderGrid(); sfx('click'); };
+  orderReset.onclick=()=>{ orderNames = COLOURS.map(c=>c.name); resetHighlights(); drawOrderGrid(); sfx('click'); };
+
+  recToggle.onclick=()=>{
+    recording = !recording;
+    recToggle.setAttribute('aria-pressed', String(recording));
+    recToggle.textContent = recording ? 'Stop recording' : 'Start recording';
+    sfx('click');
+  };
+  recUndo.onclick=()=>{ if(targetSeq.length>0){ targetSeq.pop(); drawTarget(); sfx('click'); } };
+  recClear.onclick=()=>{ targetSeq=[]; drawTarget(); sfx('click'); };
+  recRandom.onclick=()=>{ targetSeq = shuffle(COLOURS.map(c=>c.name)); drawTarget(); sfx('click'); };
+  recFromGrid.onclick=()=>{ targetSeq = orderNames.slice(); drawTarget(); sfx('click'); };
+  checkOrderBtn.onclick=()=>{ drawOrderGrid(true); };
+
+  // init
+  drawOrderPalette();
+  drawTarget();
+  drawOrderGrid();
+
+  // Keyboard quick-select in Colouring: 1–0
+  window.addEventListener('keydown', (e)=>{
+    const map={'1':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7,'9':8,'0':9};
+    if(map.hasOwnProperty(e.key)){
+      const idx=map[e.key];
+      const chip=byId('palette').querySelectorAll('.chip')[idx];
+      if(chip){ chip.click(); toast('Selected'); }
+    }
+  });
+})();
+</script>
+</body>
+</html>

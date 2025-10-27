@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Speak Cards – EN↔HU (Clusters)</title>
+  <style>
+    :root{
+      --bg: #f7f8fc;
+      --bg-accent: #eef2ff;
+      --ink: #13141a;
+      --muted:#5b5f6d;
+      --primary:#6c5ce7;
+      --primary-600:#5a4ed3;
+      --primary-200:#dcd7ff;
+      --card:#ffffff;
+      --good:#10b981;
+      --warn:#ef4444;
+      --shadow: 0 10px 30px rgba(20, 24, 40, .08);
+      --ring: 0 0 0 3px rgba(108,92,231,.25);
+      --strike: repeating-linear-gradient(135deg, rgba(0,0,0,.18) 0 8px, rgba(0,0,0,0) 8px 16px);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(1200px 800px at -10% -20%, #fff, transparent 60%),
+        radial-gradient(1200px 800px at 110% -10%, #f3f7ff, transparent 60%),
+        radial-gradient(1200px 800px at 50% 120%, #f3f9ff, transparent 60%),
+        var(--bg);
+    }
+    .wrap{ max-width:1100px; margin-inline:auto; padding: clamp(16px, 2vw, 28px); }
+    header{
+      display:flex; gap:16px; align-items:center; justify-content:space-between;
+      padding:18px 22px; background:linear-gradient(180deg, #ffffffcc, #ffffffa8);
+      backdrop-filter: blur(6px);
+      border:1px solid #e9e9f2; border-radius:18px;
+      box-shadow: var(--shadow);
+      flex-wrap:wrap;
+    }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px; font-weight:600; font-size:13px;
+      background: var(--primary-200); color: #3b2fb4; border:1px solid #d5d1ff;
+    }
+    .brand h1{ font-size: clamp(18px, 2.4vw, 24px); line-height:1.15; margin:0; }
+    .controls{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:flex-end; }
+    .seg{ background:#fff; border:1px solid #e6e7ef; border-radius:12px; padding:4px; display:inline-flex; gap:4px; box-shadow: var(--shadow); }
+    .seg button{ border:0; background:transparent; padding:8px 14px; border-radius:10px; cursor:pointer; font-weight:600; color:var(--muted); }
+    .seg button[aria-pressed="true"]{ background:var(--primary); color:white; }
+    .btn{ border:0; background:var(--primary); color:white; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer; box-shadow: var(--shadow); }
+    .btn.secondary{ background:#fff; color:var(--ink); border:1px solid #e6e7ef; }
+    .btn.ghost{ background:transparent; color:var(--ink); border:1px solid #e6e7ef; }
+    .btn:focus-visible{ outline:none; box-shadow: var(--ring); }
+    .panel{ margin-top:18px; display:grid; grid-template-columns: 1fr; gap:16px; }
+    .bar{ display:flex; gap:12px; align-items:center; justify-content:space-between; padding:14px 16px; background:#fff; border:1px solid #e6e7ef; border-radius:16px; box-shadow: var(--shadow); flex-wrap:wrap; }
+    .timer{ font-variant-numeric: tabular-nums; font-weight:800; font-size: clamp(18px, 2.6vw, 24px); }
+    .stats{ color:var(--muted); font-weight:600; display:flex; gap:18px; flex-wrap:wrap; }
+    .stats b{ color:var(--ink); }
+    .cards{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:16px; }
+    .card{ position:relative; height:180px; perspective:1000px; cursor:pointer; outline:none; }
+    .card .inner{ position:absolute; inset:0; border-radius:18px; transform-style:preserve-3d; transition: transform .55s cubic-bezier(.2,.7,.1,1); box-shadow: var(--shadow); }
+    .card[data-flipped="true"] .inner{ transform: rotateY(180deg); }
+    .face{ position:absolute; inset:0; border-radius:18px; padding:16px 16px 44px 16px; display:flex; align-items:center; justify-content:center; text-align:center; backface-visibility:hidden; background:var(--card); border:1px solid #e6e7ef; }
+    .face.back{ transform: rotateY(180deg); }
+    .face .text{ font-size: clamp(15px, 1.6vw, 18px); line-height:1.35; font-weight:700; }
+    .hint{ position:absolute; bottom:10px; left:12px; font-size:12px; color:var(--muted); }
+    .toggle-used{ position:absolute; right:10px; bottom:10px; border:0; background:#fff; border:1px solid #e6e7ef; padding:6px 10px; border-radius:10px; font-weight:700; cursor:pointer; }
+    .toggle-used[aria-pressed="true"]{ background: var(--good); color:#fff; border-color: transparent; }
+    .used-ribbon{ position:absolute; inset:0; border-radius:18px; pointer-events:none; mix-blend-mode:multiply; background: var(--strike); opacity:.7; display:none; }
+    .card[data-used="true"] .used-ribbon{ display:block; }
+    .card[data-used="true"] .face{ opacity:.75; }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; }
+    .footer-note{ color:var(--muted); font-size:13px; }
+    .cluster{
+      display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e6e7ef; border-radius:12px; padding:6px 10px; box-shadow: var(--shadow);
+    }
+    .cluster label{ font-size:13px; font-weight:700; color:var(--muted); }
+    .cluster select{
+      border:0; background:transparent; font-weight:800; padding:6px 4px; outline:none; color:var(--ink);
+    }
+    .empty{ display:grid; place-items:center; padding:40px; border:2px dashed #e5e7ef; border-radius:16px; background:#fff; color:var(--muted); font-weight:700; }
+    @media (max-width:480px){ .card{ height:160px; } .hint{ display:none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="badge">EN ↔ HU</div>
+        <h1 id="title">Speak Cards • <span id="clusterName">Family</span> (<span id="count">0</span>)</h1>
+      </div>
+      <div class="controls">
+        <div class="cluster" title="Choose a topic cluster">
+          <label for="clusterSelect">Cluster:</label>
+          <select id="clusterSelect" aria-label="Choose cluster"></select>
+        </div>
+        <div class="seg" role="group" aria-label="Deal count">
+          <button class="deal-size" data-n="3" aria-pressed="true" title="Deal 3 cards">3</button>
+          <button class="deal-size" data-n="5" aria-pressed="false" title="Deal 5 cards">5</button>
+          <button class="deal-size" data-n="7" aria-pressed="false" title="Deal 7 cards">7</button>
+        </div>
+        <button id="dealBtn" class="btn" title="Deal new cards">Deal</button>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="bar">
+        <div class="toolbar">
+          <button id="startPauseBtn" class="btn secondary" title="Start or pause the timer">Start</button>
+          <button id="resetTimerBtn" class="btn ghost" title="Reset timer to 0">Reset timer</button>
+          <button id="resetMarksBtn" class="btn ghost" title="Clear all crosses">Clear crosses</button>
+          <button id="redealBtn" class="btn ghost" title="Deal again with same amount">Redeal</button>
+        </div>
+        <div class="stats">
+          <span>Dealt: <b id="statDealt">0</b></span>
+          <span>Used: <b id="statUsed">0</b></span>
+          <span>Unused: <b id="statUnused">0</b></span>
+        </div>
+        <div class="timer" aria-live="polite" id="timeLabel">00:00</div>
+      </div>
+
+      <div id="cards" class="cards" aria-live="polite" aria-label="Dealt cards"></div>
+
+      <div class="bar">
+        <div class="footer-note">
+          Tip: Click a card to flip EN↔HU. Use <b>Used</b> to cross it out after you’ve said it. Keyboard: <b>Enter</b>/<b>Space</b> to flip focused card.
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // --- Data: clusters ---
+    // Family cluster – taken from your current deck
+    const FAMILY = [
+      {en:"I’m not sure what/where/why exactly.", hu:"nem tudom, pontosan mit/hol/miért …"},
+      {en:"his main interest is …", hu:"fő érdeklődési köre …"},
+      {en:"a lot of people get divorced and live on their own, and bring up their children on their own", hu:"sokan elválnak, és egyedül élnek, és a gyerekeiket is egyedül nevelik"},
+      {en:"which means", hu:"ami azt jelenti, hogy …"},
+      {en:"he … for a living", hu:"vmit csinál a megélhetésért/él vmiből"},
+      {en:"but I only have very vague memories of her", hu:"de csak nagyon halvány emlékeim vannak róla"},
+      {en:"I come from quite a big family", hu:"Elég nagy családból számazom"},
+      {en:"however", hu:"but"},
+      {en:"I suppose", hu:"I think"},
+      {en:"as I remember", hu:"amennyire emlékszem/ha jól emlékszem"},
+      {en:"it was a lot better than", hu:"sokkal jobb volt, mint …"},
+      {en:"normally", hu:"usually"},
+      {en:"by the way", hu:"mellesleg"},
+      {en:"I have a lot of presents to buy at Xmas", hu:"sok ajándékot kell vennem karácsaonykor"},
+      {en:"they were around my age", hu:"kb. velem egykorúak voltak"},
+      {en:"they lived in the country for a while", hu:"vidéken éltek egy ideig"},
+      {en:"nowadays", hu:"manapság"},
+      {en:"I don’t have a very close contact with…", hu:"nincs szoros kapcsolatom …val/vel"},
+      {en:"he/she is the breadwinner in the family", hu:"ő a kenyérkereső a családban"},
+      {en:"it sounds really nice", hu:"ez igazán jól hangzik"},
+      {en:"I started to get my independence and lived my own life a bit.", hu:"kezdtem önálló lenni, és a saját életemet élni"},
+      {en:"occasionally", hu:"sometimes"},
+      {en:"the family atmosphere is/was mostly very happy", hu:"nagyjából mindig jó volt a hangulat a családban"},
+      {en:"during my early childhood", hu:"zsenge ifjúkoromban"},
+      {en:"things were never really the same after that", hu:"azután semmi sem volt már ugyanolyan"},
+      {en:"I must admit", hu:"be kell vallanom/ismernem"},
+      {en:"in my growing years", hu:"fiatalkoromban"},
+      {en:"we didn’t get on so well a lot of times", hu:"sokszor nem jöttünk ki valami jól"},
+      {en:"every other week", hu:"minden második héten"},
+      {en:"she seems to spend half of her life (… in the kitchen/cooking)", hu:"fél életét (főzéssel) tölti"},
+      {en:"which was a bit disappointing for me", hu:"ami elég kiábrándító volt számomra"},
+      {en:"actually", hu:"öööööööööööö"},
+      {en:"we have a lot of things in common/ we have nothing in common", hu:"sok közös van bennünk/semmi közös nincs bennünk"},
+      {en:"he was not in the least interested in …", hu:"legkevésbé sem érdekelte"},
+      {en:"as far as I know", hu:"már amennyire én tudom"},
+      {en:"he lived a very routine life", hu:"nagyon egyhangú életet élt"},
+      {en:"I organised for him to go to Spain", hu:"megszerveztem neki, hogy S.-ba utazzon"},
+      {en:"which was really fascinating", hu:"ami lenyűgöző volt"},
+      {en:"I suppose he is not just a sociable type", hu:"teszem azt, nem volt barátkozós fajta"},
+      {en:"I would say that", hu:"azt mondanám, hogy …"},
+      {en:"he gets completely lost in his books", hu:"teljesen belemerül a könyveibe"},
+      {en:"they really take care of each other", hu:"nagyon gondoskodnak egymásról"},
+      {en:"one of my dreams is to be happily married to a ripe old age", hu:"az egyik álmom az, hogy boldog házasságban éljek, amíg őszbe nem csavarodnak fáradt fürtjeim"},
+      {en:"so they say", hu:"legalábbis ezt mondják"},
+    ];
+
+    // Routine cluster – placeholder (küldöd a végleges DB-t és beleégetjük)
+    const ROUTINE = [
+      {en:"My daily routine is a bit different now that I'm working/studying…", hu:"Egy kicsit más a napjaim beosztása most, hogy tanulok/dolgozom…"},
+      {en:"I get a cake or something on the way.", hu:"Veszek egy sütit, vagy valami mást útközben."},
+      {en:"All the time.", hu:"Állandóan."},
+      {en:"There are certain tasks I have to do…", hu:"Vannak bizonyos feladatok, amiket el kell végeznem…"},
+      {en:"It is quite nice because it means…", hu:"Ez elég jó, mert ez azt jelenti, hogy…"},
+      {en:"I have some homework to do.", hu:"Van házim, amit meg kell csinálnom."},
+      {en:"Afterwards.", hu:"Azután."},
+      {en:"I have an excuse to do something.", hu:"Van mentségem arra, hogy…"},
+      {en:"I tend to (do something).", hu:"Hajlamos vagyok arra, hogy…"},
+      {en:"I find it quite difficult (to do something).", hu:"Elég nehéznek találom, hogy…"},
+      {en:"It's (not) something I particularly enjoy.", hu:"Ez egy olyan valami, amit (nem) különösen élvezek."},
+      {en:"I stay quite late at work/school.", hu:"Sokáig dolgozom / sokáig vagyok iskolában."},
+      {en:"I do some shopping on the way back home.", hu:"Bevásárolok hazafelé."},
+      {en:"I don't read as many books as I should / used to.", hu:"Nem olvasok annyit, amennyit kellene / amennyit régen szoktam."},
+      {en:"I like to find time in the day for things that are really important to me.", hu:"Szeretek időt találni a nap során azokra a dolgokra, amelyek igazán fontosak a számomra."},
+      {en:"Learning to play the piano, etc. is very demanding.", hu:"Zongorázni megtanulni stb. nagyon megterhelő."},
+      {en:"Some things have to be done at a certain time.", hu:"Bizonyos dolgokat időre meg kell csinálni."},
+      {en:"I give these things priority (over other things).", hu:"Ezek a dolgok prioritást élveznek (más dolgokkal szemben)."},
+      {en:"I don't have special times for these things.", hu:"Nincs külön idő félretéve ezeknek a dolgoknak."},
+      {en:"I have to get up very early to go to lessons.", hu:"Nagyon korán kell kelnem, mert óráim vannak / iskolába járok."},
+      {en:"I have a lot of family commitments.", hu:"Sok családi kötelezettségem van."},
+      {en:"One thing is regular in my life, and that is…", hu:"Egy dolog rendszeres az életemben, ez pedig…"},
+      {en:"For some reason…", hu:"Valamilyen okból kifolyólag…"},
+      {en:"I find this both challenging and satisfying.", hu:"Ez nagy kihívást és nagy elégedettséget jelent számomra."},
+      {en:"I feel I've achieved something.", hu:"Úgy érzem, hogy elértem valamit."},
+      {en:"I spend a lot of time learning…", hu:"Sok időt töltök tanulással…"},
+      {en:"I sometimes have free periods with no lessons.", hu:"Néha lyukasóráim vannak."},
+      {en:"From this time onwards…", hu:"Innentől kezdve…"},
+      {en:"I suppose a bit of balance in everything is really important.", hu:"Úgy gondolom, hogy az egyensúly mindenben rendkívül fontos."},
+      {en:"Sometimes I oversleep and miss the bus in the morning.", hu:"Néha elalszom, és lekésem a buszt reggel."},
+    ];
+
+    const CLUSTERS = {
+      Family: FAMILY,
+      Routine: ROUTINE,
+    };
+
+    // Build an "All" virtual deck from every cluster
+    function allDeck(){
+      const all = [];
+      Object.values(CLUSTERS).forEach(arr=>{ if(Array.isArray(arr)) all.push(...arr); });
+      return all;
+    }
+    function getDeck(name){ return name==='All' ? allDeck() : (CLUSTERS[name]||[]); }
+
+    // --- Utilities
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const choice = (arr, n) => {
+      const a = [...arr];
+      for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+      return a.slice(0, n);
+    };
+    const fmt = (ms) => { const s = Math.floor(ms/1000); const m = Math.floor(s/60); const r = s % 60; return String(m).padStart(2,'0')+':'+String(r).padStart(2,'0'); };
+    const escapeHTML = (str) => String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[s]));
+
+    // --- Timer
+    let running = false, startAt = 0, elapsed = 0, tick = null;
+    const updateClock = () => { $('#timeLabel').textContent = fmt(elapsed + (running ? (Date.now()-startAt) : 0)); };
+    const startTimer = () => { if(running) return; running = true; startAt = Date.now(); $('#startPauseBtn').textContent = 'Pause'; tick = setInterval(updateClock, 200); };
+    const pauseTimer = () => { if(!running) return; running = false; elapsed += Date.now()-startAt; clearInterval(tick); $('#startPauseBtn').textContent = 'Resume'; updateClock(); };
+    const resetTimer = () => { running = false; startAt = 0; elapsed = 0; clearInterval(tick); $('#startPauseBtn').textContent = 'Start'; updateClock(); };
+
+    $('#startPauseBtn').addEventListener('click', () => running ? pauseTimer() : startTimer());
+    $('#resetTimerBtn').addEventListener('click', resetTimer);
+    updateClock();
+
+    // --- Deal size controls
+    let dealN = 3;
+    $$('.deal-size').forEach(btn=>btn.addEventListener('click', ()=>{
+      $$('.deal-size').forEach(b=>b.setAttribute('aria-pressed','false'));
+      btn.setAttribute('aria-pressed','true');
+      dealN = parseInt(btn.dataset.n,10);
+    }));
+
+    // --- Cluster handling
+    const sel = $('#clusterSelect');
+    ['All', ...Object.keys(CLUSTERS)].forEach(name=>{
+      const opt = document.createElement('option');
+      opt.value = name; opt.textContent = name; sel.appendChild(opt);
+    });
+    let activeCluster = localStorage.getItem('speakcards.cluster') || 'Family';
+    sel.value = activeCluster;
+
+    function setCluster(name){
+      activeCluster = name;
+      localStorage.setItem('speakcards.cluster', name);
+      const deck = getDeck(activeCluster);
+      $('#clusterName').textContent = activeCluster;
+      $('#count').textContent = deck.length;
+      // reset UI state when switching cluster
+      cardsEl.innerHTML = '';
+      refreshStats();
+      resetTimer();
+    }
+
+    sel.addEventListener('change', ()=>{ setCluster(sel.value); });
+
+    // --- Card rendering
+    const cardsEl = $('#cards');
+    let current = [];
+
+    function renderEmpty(){
+      cardsEl.innerHTML = `<div class="empty">No cards in this cluster yet. Choose another cluster or click <b>Deal</b> after adding items.</div>`;
+      refreshStats();
+    }
+
+    function renderCards(items){
+      cardsEl.innerHTML = '';
+      items.forEach((it, idx)=>{
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.tabIndex = 0;
+        el.dataset.flipped = 'false';
+        el.dataset.used = 'false';
+        el.setAttribute('role','button');
+        el.setAttribute('aria-label', `Card ${idx+1}: English side`);
+
+        el.innerHTML = `
+          <div class="inner">
+            <div class="face front">
+              <div class="text">${escapeHTML(it.en)}</div>
+              <div class="hint">Flip for HU</div>
+            </div>
+            <div class="face back">
+              <div class="text">${escapeHTML(it.hu)}</div>
+              <div class="hint">Flip for EN</div>
+            </div>
+          </div>
+          <div class="used-ribbon"></div>
+          <button class="toggle-used" aria-pressed="false" title="Mark as used">Used</button>
+        `;
+        el.addEventListener('click', (ev)=>{
+          if(ev.target.closest('.toggle-used')) return;
+          const flipped = el.dataset.flipped === 'true';
+          el.dataset.flipped = String(!flipped);
+          el.setAttribute('aria-label', `Card ${idx+1}: ${!flipped ? 'Hungarian' : 'English'} side`);
+        });
+        el.addEventListener('keydown', (ev)=>{
+          if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); el.click(); }
+        });
+        el.querySelector('.toggle-used').addEventListener('click', (ev)=>{
+          ev.stopPropagation();
+          const used = el.dataset.used === 'true' ? 'false' : 'true';
+          el.dataset.used = used;
+          ev.currentTarget.setAttribute('aria-pressed', used);
+          refreshStats();
+        });
+        cardsEl.appendChild(el);
+      });
+      refreshStats();
+    }
+
+    function refreshStats(){
+      const total = $$('.card').length;
+      const used = $$('.card[data-used="true"]').length;
+      $('#statDealt').textContent = total;
+      $('#statUsed').textContent = used;
+      $('#statUnused').textContent = Math.max(0, total - used);
+    }
+
+    function deal(n){
+      const deck = getDeck(activeCluster);
+      if(deck.length === 0){ renderEmpty(); return; }
+      const k = Math.min(n, deck.length);
+      current = choice(deck, k);
+      renderCards(current);
+      if(!running && elapsed===0){ startTimer(); }
+    }
+
+    function redeal(){ current.length ? deal(current.length) : deal(dealN); }
+
+    $('#dealBtn').addEventListener('click', ()=>deal(dealN));
+    $('#redealBtn').addEventListener('click', redeal);
+    $('#resetMarksBtn').addEventListener('click', ()=>{
+      $$('.card').forEach(c=>{
+        c.dataset.used='false';
+        const btn=c.querySelector('.toggle-used');
+        if(btn) btn.setAttribute('aria-pressed','false');
+      });
+      refreshStats();
+    });
+
+    // --- Init
+    setCluster(activeCluster);
+    // Frissítjük a számlálót induláskor
+    $('#count').textContent = getDeck(activeCluster).length;
+  </script>
+</body>
+</html>

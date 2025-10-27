@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Objects – Drag & Drop (Colored Variants)</title>
+  <style>
+    :root{
+      --bg:#f7f8fb;
+      --panel:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --shadow:0 8px 24px rgba(15,23,42,.12);
+      --radius:16px;
+      --sw:2.5;
+      --tile:88px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--ink);
+      background: radial-gradient(1200px 800px at 10% -10%, #eef2ff 0%, #f7f8fb 40%),
+                  radial-gradient(1000px 700px at 120% 20%, #ecfeff 0%, #f7f8fb 40%),
+                  var(--bg);
+    }
+    .app{ display:grid; grid-template-columns: 300px 1fr; grid-template-rows: 84px 1fr; height:100vh; }
+    header{
+      grid-column:1/-1; display:flex; align-items:center; gap:18px; padding:14px 18px;
+      backdrop-filter:saturate(160%) blur(8px);
+    }
+    .brand{ font-weight:800; letter-spacing:.2px; }
+    .sub{ color:var(--muted); font-weight:600; }
+    aside{
+      background:var(--panel); padding:14px; border-top-right-radius:var(--radius); box-shadow: var(--shadow);
+      display:flex; flex-direction:column; gap:12px; overflow:auto;
+    }
+    .sidebar-head{ display:flex; align-items:center; gap:8px; }
+    .search{ width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:12px; font-size:14px; }
+    .palette{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; padding-bottom:20px; }
+    .p-item{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:8px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:grab; user-select:none; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .p-item:active{ cursor:grabbing }
+    .p-item svg{ width:var(--tile); height:var(--tile); display:block; }
+    .p-item label{ font-size:12px; color:#475569; font-weight:600; text-align:center; min-height:2.2em; display:flex; align-items:center; gap:6px; }
+    .variant-tag{ font-size:10px; color:#334155; background:#f1f5f9; border:1px solid #e2e8f0; padding:2px 6px; border-radius:999px; font-weight:700; }
+
+    .stage-wrap{ position:relative; overflow:hidden; }
+    .stage{ position:relative; height:calc(100vh - 84px); background:
+             repeating-linear-gradient(45deg, rgba(99,102,241,.06) 0 10px, rgba(34,197,94,.06) 10px 20px),
+             radial-gradient(900px 700px at 50% -10%, rgba(99,102,241,.10), transparent 60%), #fafbff;
+            border-top-left-radius: var(--radius); box-shadow: var(--shadow) inset; }
+    .hint{ position:absolute; inset:auto 16px 16px auto; background:rgba(255,255,255,.9); border:1px dashed #cbd5e1; padding:8px 12px; border-radius:12px; color:#475569; font-size:12px; pointer-events:none; }
+
+    .stage-item{ position:absolute; width:160px; height:160px; display:flex; align-items:center; justify-content:center; cursor:move; filter: drop-shadow(0 6px 10px rgba(2,6,23,.18)); touch-action:none; user-select:none; }
+    .stage-item svg{ width:100%; height:100%; }
+    .stage-item.selected{ outline:3px dashed #111827; outline-offset:3px; }
+
+    .toolbar{ position:fixed; left:320px; bottom:16px; display:flex; gap:8px; background:rgba(255,255,255,.9); border:1px solid #e5e7eb; box-shadow: var(--shadow); padding:8px; border-radius:12px; }
+    .btn{ border:1px solid #e5e7eb; background:#fff; padding:8px 10px; border-radius:10px; font-weight:700; cursor:pointer; }
+    .btn:active{ transform: translateY(1px); }
+
+    @media (max-width: 900px){
+      .app{ grid-template-columns: 1fr; grid-template-rows: 120px 240px 1fr; }
+      aside{ grid-row:2; border-top-right-radius:0; border-top-left-radius:var(--radius); }
+      .stage{ grid-row:3; height:calc(100vh - 120px - 240px); border-top-left-radius:0; }
+      .toolbar{ left:16px; }
+    }
+
+    /* Icon base styles */
+    svg.icon *{ vector-effect: non-scaling-stroke; }
+    svg.icon .line{ fill:none; stroke:#0f172a; stroke-width:var(--sw); stroke-linecap:round; stroke-linejoin:round; }
+    /* No fill here; we color via inline fill on .c elements */
+    svg.icon .c{ stroke:#0f172a; stroke-width:var(--sw); stroke-linejoin:round; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">Objects Lab</div>
+      <div class="sub">Drag any pre‑colored object from the left onto the canvas. Move, resize (+/−), or delete.</div>
+    </header>
+
+    <aside>
+      <div class="sidebar-head">
+        <input id="search" class="search" placeholder="Search objects… (e.g. ‘bag’)" />
+      </div>
+
+      <!-- Base palette (templates). JS will generate two colored variants for EACH item. -->
+      <div id="palette" class="palette" aria-label="Palette of objects">
+        <!-- 30 base items; JS generates two variants with colored fills -->
+        <div class="p-item base" draggable="false" data-name="bag">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="bag">
+            <path class="c" d="M20 40 h60 v42 a6 6 0 0 1 -6 6 h-48 a6 6 0 0 1 -6 -6 z"/>
+            <path class="line" d="M35 40 v-6 a15 15 0 0 1 30 0 v6"/>
+            <path class="line" d="M20 40 h60"/>
+          </svg>
+          <label>bag</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="charger">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="charger">
+            <rect class="c" x="18" y="34" width="40" height="32" rx="6"/>
+            <rect class="c" x="58" y="40" width="20" height="20" rx="4"/>
+            <path class="line" d="M78 50 h6 c8 0 8 12 0 12 h-10"/>
+            <path class="line" d="M30 34 v-8"/>
+            <path class="line" d="M46 34 v-8"/>
+            <path class="line" d="M30 26 h16"/>
+          </svg>
+          <label>charger</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="coin">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="coin">
+            <circle class="c" cx="50" cy="50" r="26"/>
+            <circle class="line" cx="50" cy="50" r="32"/>
+            <path class="line" d="M58 44 a8 8 0 1 0 0 12"/>
+            <path class="line" d="M50 36 v28"/>
+          </svg>
+          <label>coin</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="credit card">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="credit card">
+            <rect class="c" x="12" y="30" width="76" height="40" rx="6"/>
+            <rect class="line" x="12" y="38" width="76" height="6" rx="2"/>
+            <rect class="line" x="20" y="56" width="16" height="6" rx="2"/>
+            <rect class="line" x="40" y="56" width="24" height="6" rx="2"/>
+          </svg>
+          <label>credit card</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="diary">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="diary">
+            <rect class="c" x="22" y="18" width="56" height="64" rx="6"/>
+            <path class="line" d="M34 18 v64"/>
+            <path class="line" d="M34 30 h14"/>
+            <path class="line" d="M34 38 h18"/>
+            <path class="line" d="M34 46 h22"/>
+            <path class="line" d="M56 18 v16 l6 -4 6 4 v-16"/>
+          </svg>
+          <label>diary</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="dictionary">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="dictionary">
+            <rect class="c" x="20" y="16" width="60" height="68" rx="8"/>
+            <path class="line" d="M28 24 h24"/>
+            <path class="line" d="M28 32 h36"/>
+            <path class="line" d="M28 40 h36"/>
+            <text x="30" y="60" font-size="16" font-weight="700" fill="#0f172a">A–Z</text>
+          </svg>
+          <label>dictionary</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="file">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="file">
+            <path class="c" d="M26 16 h28 l20 20 v48 a8 8 0 0 1 -8 8 h-40 a8 8 0 0 1 -8 -8 v-60 a8 8 0 0 1 8 -8 z"/>
+            <path class="line" d="M54 16 v20 h20"/>
+            <path class="line" d="M32 50 h36"/>
+            <path class="line" d="M32 60 h24"/>
+          </svg>
+          <label>file</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="glasses">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="glasses">
+            <circle class="c" cx="32" cy="58" r="14"/>
+            <circle class="c" cx="68" cy="58" r="14"/>
+            <path class="line" d="M18 58 h-8"/>
+            <path class="line" d="M82 58 h8"/>
+            <path class="line" d="M46 58 h8"/>
+          </svg>
+          <label>glasses</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="headphones">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="headphones">
+            <path class="line" d="M18 56 a32 32 0 0 1 64 0"/>
+            <rect class="c" x="16" y="56" width="16" height="22" rx="4"/>
+            <rect class="c" x="68" y="56" width="16" height="22" rx="4"/>
+          </svg>
+          <label>headphones</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="identity card">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="identity card">
+            <rect class="c" x="12" y="30" width="76" height="40" rx="6"/>
+            <circle class="c" cx="28" cy="50" r="8"/>
+            <path class="line" d="M20 62 h16"/>
+            <path class="line" d="M46 42 h28"/>
+            <path class="line" d="M46 50 h24"/>
+            <path class="line" d="M46 58 h18"/>
+          </svg>
+          <label>identity card</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="key">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="key">
+            <circle class="c" cx="36" cy="50" r="12"/>
+            <path class="line" d="M48 50 h30 v6 h-6 v6 h-6 v-6 h-12"/>
+          </svg>
+          <label>key</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="lamp">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="lamp">
+            <path class="c" d="M30 46 h40 l-10 -22 h-20 z"/>
+            <path class="line" d="M50 46 v16"/>
+            <rect class="c" x="42" y="62" width="16" height="6" rx="3"/>
+            <rect class="c" x="36" y="70" width="28" height="6" rx="3"/>
+          </svg>
+          <label>lamp</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="laptop">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="laptop">
+            <rect class="c" x="26" y="24" width="48" height="34" rx="3"/>
+            <rect class="c" x="16" y="62" width="68" height="10" rx="3"/>
+            <rect class="line" x="30" y="30" width="40" height="20" rx="2"/>
+          </svg>
+          <label>laptop</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="magazine">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="magazine">
+            <path class="c" d="M20 24 h28 a10 10 0 0 1 8 4 a10 10 0 0 0 8 4 h16 v44 h-60 z"/>
+            <rect class="line" x="26" y="34" width="16" height="12" rx="2"/>
+            <path class="line" d="M26 50 h32"/>
+            <path class="line" d="M26 58 h38"/>
+          </svg>
+          <label>magazine</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="newspaper">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="newspaper">
+            <rect class="c" x="14" y="28" width="72" height="44" rx="6"/>
+            <rect class="line" x="20" y="34" width="22" height="14" rx="2"/>
+            <path class="line" d="M46 36 h28"/>
+            <path class="line" d="M46 44 h24"/>
+            <path class="line" d="M20 54 h56"/>
+            <path class="line" d="M20 60 h44"/>
+          </svg>
+          <label>newspaper</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="notebook">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="notebook">
+            <rect class="c" x="22" y="18" width="56" height="64" rx="6"/>
+            <path class="line" d="M30 18 v64"/>
+            <circle class="line" cx="30" cy="30" r="2"/>
+            <circle class="line" cx="30" cy="40" r="2"/>
+            <circle class="line" cx="30" cy="50" r="2"/>
+            <circle class="line" cx="30" cy="60" r="2"/>
+            <circle class="line" cx="30" cy="70" r="2"/>
+          </svg>
+          <label>notebook</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="pen">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="pen">
+            <path class="c" d="M22 74 l16 -4 32 -32 -12 -12 -32 32 z"/>
+            <path class="line" d="M58 26 l12 12"/>
+            <path class="line" d="M38 66 l-6 -6"/>
+          </svg>
+          <label>pen</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="pencil">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="pencil">
+            <path class="c" d="M18 72 l20 -6 36 -36 -8 -8 -36 36 z"/>
+            <path class="line" d="M66 22 l8 8"/>
+            <path class="line" d="M18 72 l6 -20"/>
+          </svg>
+          <label>pencil</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="mobile phone">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="mobile phone">
+            <rect class="c" x="32" y="14" width="36" height="72" rx="8"/>
+            <rect class="line" x="38" y="22" width="24" height="48" rx="3"/>
+            <circle class="line" cx="50" cy="74" r="3"/>
+          </svg>
+          <label>mobile phone</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="photo">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="photo">
+            <rect class="c" x="16" y="28" width="68" height="48" rx="6"/>
+            <circle class="line" cx="32" cy="42" r="5"/>
+            <path class="line" d="M24 68 l18 -16 10 8 12 -10 12 18 z"/>
+          </svg>
+          <label>photo</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="piece of paper">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="piece of paper">
+            <path class="c" d="M26 16 h34 l14 14 v54 a8 8 0 0 1 -8 8 h-40 a8 8 0 0 1 -8 -8 v-60 a8 8 0 0 1 8 -8 z"/>
+            <path class="line" d="M60 16 v14 h14"/>
+            <path class="line" d="M34 46 h28"/>
+            <path class="line" d="M34 54 h24"/>
+          </svg>
+          <label>piece of paper</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="purse">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="purse">
+            <rect class="c" x="20" y="40" width="60" height="34" rx="10"/>
+            <rect class="c" x="28" y="30" width="44" height="12" rx="6"/>
+            <circle class="line" cx="38" cy="30" r="3"/>
+            <circle class="line" cx="62" cy="30" r="3"/>
+          </svg>
+          <label>purse</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="scissors">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="scissors">
+            <circle class="c" cx="32" cy="64" r="8"/>
+            <circle class="c" cx="48" cy="54" r="8"/>
+            <path class="line" d="M48 54 l30 -24"/>
+            <path class="line" d="M42 48 l36 30"/>
+          </svg>
+          <label>scissors</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="sunglasses">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="sunglasses">
+            <rect class="c" x="18" y="48" width="24" height="14" rx="4"/>
+            <rect class="c" x="58" y="48" width="24" height="14" rx="4"/>
+            <path class="line" d="M42 54 h16"/>
+            <path class="line" d="M18 50 h-6"/>
+            <path class="line" d="M82 50 h6"/>
+          </svg>
+          <label>sunglasses</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="tablet">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="tablet">
+            <rect class="c" x="20" y="16" width="60" height="68" rx="8"/>
+            <circle class="line" cx="50" cy="76" r="2.5"/>
+          </svg>
+          <label>tablet</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="ticket">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="ticket">
+            <path class="c" d="M18 40 h20 a6 6 0 0 0 12 0 h32 v20 h-32 a6 6 0 0 0 -12 0 h-20 z"/>
+            <path class="line" d="M42 40 v20"/>
+            <path class="line" d="M52 44 v12"/>
+            <path class="line" d="M60 44 v12"/>
+          </svg>
+          <label>ticket</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="tissue">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="tissue">
+            <rect class="c" x="24" y="56" width="52" height="16" rx="4"/>
+            <path class="c" d="M34 56 l16 -16 16 16 z"/>
+          </svg>
+          <label>tissue</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="umbrella">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="umbrella">
+            <path class="c" d="M18 52 a32 20 0 0 1 64 0 h-10 a8 8 0 0 0 -8 0 a8 8 0 0 1 -8 0 a8 8 0 0 0 -8 0 a8 8 0 0 1 -8 0 a8 8 0 0 0 -8 0 z"/>
+            <path class="line" d="M50 52 v20 a6 6 0 0 0 12 0"/>
+          </svg>
+          <label>umbrella</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="wallet">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="wallet">
+            <rect class="c" x="20" y="34" width="60" height="36" rx="8"/>
+            <rect class="c" x="56" y="40" width="22" height="16" rx="4"/>
+            <circle class="line" cx="70" cy="48" r="2"/>
+          </svg>
+          <label>wallet</label>
+        </div>
+
+        <div class="p-item base" draggable="false" data-name="watch">
+          <svg class="icon" viewBox="0 0 100 100" aria-label="watch">
+            <rect class="c" x="42" y="12" width="16" height="16" rx="4"/>
+            <circle class="c" cx="50" cy="50" r="16"/>
+            <rect class="c" x="42" y="72" width="16" height="16" rx="4"/>
+            <path class="line" d="M50 50 v-8"/>
+            <path class="line" d="M50 50 h8"/>
+          </svg>
+          <label>watch</label>
+        </div>
+      </div>
+    </aside>
+
+    <div class="stage-wrap">
+      <div id="stage" class="stage" tabindex="0" aria-label="Interactive canvas">
+        <div class="hint">Tip: Drag from the left. Select an item to move with arrow keys, use +/- to resize, Delete to remove.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar" aria-label="Selected object tools">
+    <button class="btn" id="sizeMinus" title="Smaller">−</button>
+    <button class="btn" id="sizePlus" title="Bigger">＋</button>
+    <button class="btn" id="deleteBtn" title="Delete">Delete</button>
+    <button class="btn" id="clearBtn" title="Clear canvas">Clear canvas</button>
+  </div>
+
+  <script>
+    // --- Utility: colorize fillable regions (.c) in an SVG string ---
+    function colorizeSVGString(svgHTML, color){
+      const tmp = document.createElement('div');
+      tmp.innerHTML = svgHTML.trim();
+      const svg = tmp.querySelector('svg');
+      if(svg){
+        svg.querySelectorAll('.c').forEach(el => el.setAttribute('fill', color));
+      }
+      return tmp.innerHTML;
+    }
+
+    // --- Build two variants for each base item using at least 10 colors ---
+    const COLORS = ["#ef4444","#f97316","#f59e0b","#22c55e","#14b8a6","#3b82f6","#8b5cf6","#ec4899","#a16207","#6b7280"];
+    const palette = document.getElementById('palette');
+    const baseItems = Array.from(palette.querySelectorAll('.p-item.base'));
+
+    // Replace base list with generated variants
+    palette.innerHTML = "";
+
+    baseItems.forEach((base, idx) => {
+      const baseName = base.dataset.name || base.querySelector('label')?.textContent || ('item-'+idx);
+      const svgHTML = base.querySelector('svg').outerHTML;
+
+      const c1 = COLORS[idx % COLORS.length];
+      const c2 = COLORS[(idx + Math.floor(COLORS.length/2)) % COLORS.length];
+
+      // Variant A
+      const vA = document.createElement('div');
+      vA.className = 'p-item';
+      vA.draggable = true;
+      vA.dataset.name = baseName + " (A)";
+      vA.innerHTML = colorizeSVGString(svgHTML, c1) + `<label>${baseName} <span class="variant-tag">A</span></label>`;
+      palette.appendChild(vA);
+
+      // Variant B
+      const vB = document.createElement('div');
+      vB.className = 'p-item';
+      vB.draggable = true;
+      vB.dataset.name = baseName + " (B)";
+      vB.innerHTML = colorizeSVGString(svgHTML, c2) + `<label>${baseName} <span class="variant-tag">B</span></label>`;
+      palette.appendChild(vB);
+    });
+
+    // --- Search filter ---
+    const search = document.getElementById('search');
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      for (const el of palette.children){
+        const name = (el.dataset.name || el.querySelector('label')?.textContent || '').toLowerCase();
+        el.style.display = name.includes(q) ? '' : 'none';
+      }
+    });
+
+    // --- Drag from palette to stage (robust data) ---
+    const stage = document.getElementById('stage');
+    palette.addEventListener('dragstart', (e) => {
+      const item = e.target.closest('.p-item');
+      if(!item) return;
+      const svgHTML = item.querySelector('svg').outerHTML;
+      const name = item.dataset.name;
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/html', svgHTML);
+      e.dataTransfer.setData('text/plain', name);
+      try { e.dataTransfer.setData('application/x-inner', svgHTML); } catch(_) {}
+    });
+    stage.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    stage.addEventListener('drop', (e) => {
+      e.preventDefault();
+      let html = e.dataTransfer.getData('text/html') || e.dataTransfer.getData('application/x-inner');
+      if(!html){
+        const name = e.dataTransfer.getData('text/plain');
+        if(name){
+          const src = Array.from(palette.querySelectorAll('.p-item')).find(x => x.dataset.name === name);
+          if(src) html = src.querySelector('svg').outerHTML;
+        }
+      }
+      if(!html) return;
+      const stageItem = createStageItem(html);
+      stage.appendChild(stageItem);
+      const rect = stage.getBoundingClientRect();
+      positionStageItem(stageItem, e.clientX - rect.left, e.clientY - rect.top);
+      select(stageItem);
+    });
+    stage.addEventListener('dragstart', (e) => { if(e.target.closest('.stage-item')) e.preventDefault(); });
+
+    function createStageItem(svgHTML){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'stage-item';
+      wrapper.setAttribute('draggable','false');
+      wrapper.style.zIndex = String(Date.now());
+      wrapper.innerHTML = svgHTML;
+      const svg = wrapper.querySelector('svg');
+      svg.classList.add('icon');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      wrapper.style.left = '40px';
+      wrapper.style.top = '40px';
+      wrapper.style.width = '180px';
+      wrapper.style.height = '180px';
+      enableDrag(wrapper);
+      enableSelect(wrapper);
+      return wrapper;
+    }
+
+    function positionStageItem(el, x, y){
+      const rect = stage.getBoundingClientRect();
+      const w = el.offsetWidth || 180, h = el.offsetHeight || 180;
+      const left = Math.max(0, Math.min(x - w/2, rect.width - w));
+      const top  = Math.max(0, Math.min(y - h/2, rect.height - h));
+      el.style.left = left + 'px';
+      el.style.top  = top + 'px';
+    }
+
+    // --- Selection (no coloring) ---
+    let selected = null;
+    function select(el){
+      if(selected) selected.classList.remove('selected');
+      selected = el;
+      if(selected) selected.classList.add('selected');
+    }
+    function enableSelect(wrapper){
+      wrapper.addEventListener('pointerdown', () => { select(wrapper); });
+    }
+
+    // --- Drag within stage ---
+    function enableDrag(wrapper){
+      let dragging = false; let startX=0, startY=0, origX=0, origY=0;
+      wrapper.addEventListener('pointerdown', (e) => {
+        dragging = true; wrapper.setPointerCapture(e.pointerId);
+        startX = e.clientX; startY = e.clientY;
+        origX = parseFloat(wrapper.style.left)||0; origY = parseFloat(wrapper.style.top)||0;
+        select(wrapper);
+      });
+      wrapper.addEventListener('pointermove', (e) => {
+        if(!dragging) return;
+        const dx = e.clientX - startX; const dy = e.clientY - startY;
+        const rect = stage.getBoundingClientRect();
+        const w = wrapper.offsetWidth, h = wrapper.offsetHeight;
+        let nx = origX + dx; let ny = origY + dy;
+        nx = Math.max(0, Math.min(nx, rect.width - w));
+        ny = Math.max(0, Math.min(ny, rect.height - h));
+        wrapper.style.left = nx + 'px';
+        wrapper.style.top  = ny + 'px';
+      });
+      const stopDrag = () => { dragging = false; };
+      wrapper.addEventListener('pointerup', stopDrag);
+      wrapper.addEventListener('pointercancel', stopDrag);
+      wrapper.addEventListener('pointerleave', (e) => { if(!wrapper.hasPointerCapture?.(e.pointerId)) dragging=false; });
+    }
+
+    // --- Toolbar actions ---
+    const sizeMinus = document.getElementById('sizeMinus');
+    const sizePlus  = document.getElementById('sizePlus');
+    const delBtn    = document.getElementById('deleteBtn');
+    const clearBtn  = document.getElementById('clearBtn');
+
+    sizeMinus.addEventListener('click', () => resizeSelected(0.9));
+    sizePlus.addEventListener('click',  () => resizeSelected(1.1));
+    delBtn.addEventListener('click', () => { if(selected){ selected.remove(); selected=null; } });
+    clearBtn.addEventListener('click', () => { stage.querySelectorAll('.stage-item').forEach(n => n.remove()); selected=null; });
+
+    function resizeSelected(f){ if(!selected) return; const w=selected.offsetWidth, h=selected.offsetHeight; selected.style.width=(w*f)+"px"; selected.style.height=(h*f)+"px"; }
+
+    // Keyboard helpers
+    window.addEventListener('keydown', (e) => {
+      if(!selected) return;
+      if(e.key === 'Delete' || e.key === 'Backspace'){ selected.remove(); selected=null; }
+      if(e.key === '+'){ resizeSelected(1.1); }
+      if(e.key === '-'){ resizeSelected(0.9); }
+      if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 2;
+        const left = parseFloat(selected.style.left)||0; const top = parseFloat(selected.style.top)||0;
+        const rect = stage.getBoundingClientRect();
+        if(e.key==='ArrowLeft')  selected.style.left = Math.max(0, left-step) + 'px';
+        if(e.key==='ArrowRight') selected.style.left = Math.min(left+step, rect.width - selected.offsetWidth) + 'px';
+        if(e.key==='ArrowUp')    selected.style.top  = Math.max(0, top-step) + 'px';
+        if(e.key==='ArrowDown')  selected.style.top  = Math.min(top+step, rect.height - selected.offsetHeight) + 'px';
+      }
+    });
+
+    // Deselect when clicking stage background
+    stage.addEventListener('click', (e) => { if(e.target === stage) { if(selected) selected.classList.remove('selected'); selected=null; } });
+  </script>
+</body>
+</html>

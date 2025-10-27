@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A világ neurodivergens szemmel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.11.0/dist/tf-backend-webgl.min.js"></script>
+    
+    
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.1/dist/face-detection.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold text-center mb-4">A világ neurodivergens szemmel</h1>
+        
+        <div id="loading" class="text-center p-4">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
+            <p>Modell betöltése & Kamera indítása...</p>
+        </div>
+
+        <div class="relative w-full rounded-lg overflow-hidden shadow-lg bg-gray-800" style="padding-top: 75%;">
+            <canvas id="canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+            <video id="video" playsinline style="display: none;"></video>
+        </div>
+        
+        <div id="status" class="mt-2 p-3 bg-gray-700 rounded-lg text-sm text-yellow-300 h-12 text-center">
+            Állapot: Inicializálás...
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-4">
+            <button id="startButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300">
+                Kamera indítása
+            </button>
+            <button id="switchButton" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300" style="display: none;">
+                Kamera váltása
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const loading = document.getElementById('loading');
+        const startButton = document.getElementById('startButton');
+        const switchButton = document.getElementById('switchButton');
+        const status = document.getElementById('status'); 
+
+        let detector; 
+        let currentFacingMode = 'user';
+
+        async function setupCamera() {
+            loading.innerText = "Kamera elérése...";
+            status.innerText = "Állapot: Kamera elérése...";
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: currentFacingMode },
+                    audio: false
+                });
+                video.srcObject = stream;
+                return new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        resolve(video);
+                    };
+                });
+            } catch (err) {
+                console.error("Error accessing camera: ", err);
+                loading.innerText = "Hiba a kamera elérésekor. Kérjük, engedélyezze a hozzáférést és frissítse az oldalt.";
+                status.innerText = "Hiba: Kamera hozzáférés megtagadva.";
+            }
+        }
+
+        async function loadModel() {
+            loading.innerText = "Érzékelő modell betöltése...";
+            status.innerText = "Állapot: Modell betöltése...";
+            try {
+                await tf.setBackend('webgl');
+                const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
+                
+                const detectorConfig = {
+                    runtime: 'medipe', 
+                    solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4'
+                };
+                detector = await faceDetection.createDetector(model, detectorConfig);
+                
+                loading.innerText = "Modell betöltve.";
+                status.innerText = "Állapot: Modell betöltve. Érzékelésre kész.";
+            } catch (err) {
+                console.error("Error loading model: ", err);
+                loading.innerText = "Hiba a modell betöltésekor. Kérjük, frissítse az oldalt.";
+                status.innerText = "Hiba: Nem sikerült betölteni a modellt.";
+            }
+        }
+
+        async function detectFaces() {
+            if (!detector || !video.videoWidth) {
+                requestAnimationFrame(detectFaces);
+                return;
+            }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // --- Draw mirrored video onto canvas ---
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.translate(-canvas.width, 0);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            ctx.restore();
+            // --- End mirrored draw ---
+            
+            // Draw red "heartbeat" square (drawn *after* restore, so it's not mirrored)
+            ctx.fillStyle = 'red';
+            ctx.fillRect(10, 10, 15, 15);
+
+            let predictionText = "Állapot: Érzékelés...";
+            try {
+                const predictions = await detector.estimateFaces(video);
+                predictionText = `Érzékelt arcok: ${predictions.length}`;
+
+                if (predictions.length > 0) {
+                    for (let i = 0; i < predictions.length; i++) {
+                        const box = predictions[i].box;
+                        const x = box.xMin;
+                        const y = box.yMin;
+                        const width = box.width;
+                        const height = box.height;
+                        
+                        // Flip the X coordinate for drawing on the mirrored canvas
+                        const mirroredX = canvas.width - x - width;
+
+                        // --- APPLY PIXELATION BLUR ---
+                        const pixelationFactor = 30; // Increased for more blur!
+
+                        const smallerWidth = width / pixelationFactor;
+                        const smallerHeight = height / pixelationFactor;
+
+                        // Draw the face region to a smaller size, effectively pixelating it
+                        ctx.drawImage(
+                            canvas, // Source image is the canvas itself (after drawing video)
+                            mirroredX, y, width, height, // Source rectangle
+                            mirroredX, y, smallerWidth, smallerHeight // Destination (smaller) rectangle
+                        );
+                        // Then draw that pixelated smaller image back at the original size
+                        ctx.drawImage(
+                            canvas, // Source image is the canvas itself (now with the tiny pixelated face)
+                            mirorX, y, smallerWidth, smallerHeight, // Source (smaller) rectangle
+                            mirroredX, y, width, height // Destination (original) rectangle
+                        );
+                        // --- END PIXELATION BLUR ---
+                    }
+                }
+            } catch (e) {
+                console.error("Error during detection:", e);
+                predictionText = `Hiba: ${e.message}`;
+            }
+
+            status.innerText = predictionText;
+            requestAnimationFrame(detectFaces);
+        }
+
+        // --- Event Listeners ---
+        
+        startButton.addEventListener('click', async () => {
+            startButton.style.display = 'none';
+            switchButton.style.display = 'block';
+            loading.style.display = 'block';
+            
+            await loadModel();
+            await setupCamera();
+            video.play();
+            
+            loading.style.display = 'none';
+            detectFaces();
+        });
+
+        switchButton.addEventListener('click', async () => {
+            currentFacingMode = (currentFacingMode === 'user') ? 'environment' : 'user';
+            
+            loading.style.display = 'block';
+            loading.innerText = "Kamera váltása...";
+            status.innerText = "Állapot: Kamera váltása...";
+            
+            await setupCamera();
+            video.play();
+            
+            loading.style.display = 'none';
+        });
+
+    </script>
+</body>
+</html>
+

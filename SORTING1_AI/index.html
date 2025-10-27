@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Szabályzat Szortírozó - Pedagógus Képzés</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --color-primary: #FDBA74; /* Orange */
+            --color-secondary: #FEF3C7; /* Pale Yellow */
+            --color-text: #44403C; /* Dark Brown/Charcoal */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAF0; 
+            color: var(--color-text);
+        }
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .draggable-card {
+            cursor: grab;
+            transition: all 0.3s ease;
+        }
+        .draggable-card:active {
+            cursor: grabbing;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+        }
+        .dropzone {
+            min-height: 200px;
+            border: 3px dashed #CBD5E1; /* Slate-300 */
+            transition: background-color 0.3s;
+        }
+        .dropzone.drag-over {
+            background-color: #EFF6FF; /* Blue-50 */
+            border-color: #3B82F6; /* Blue-500 */
+        }
+        .title-box {
+            background-color: #FEF3C7; 
+            color: #78350F;
+            border-bottom: 3px solid #FDBA74;
+        }
+        .sorted-item {
+            background-color: white;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-left: 5px solid;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        #diakok-box .sorted-item { border-color: #34D399; } /* Green */
+        #pedagogusok-box .sorted-item { border-color: #F87171; } /* Red */
+        #kozos-box .sorted-item { border-color: #60A5FA; } /* Blue */
+    </style>
+    <script>
+        // Az Alapvetések a korábbi válaszból
+        const allStatements = [
+            { text: "AI Útlevél Kötelezettsége: AI-t az iskolában csak az használhat, aki rendelkezik a szükséges tudást igazoló AI útlevéllel.", correctCategory: "kozos" },
+            { text: "Transzparencia és Jelölés: Jelezni kell, ha az anyagot (szöveg, kép, feladatlap) AI generálta vagy annak segítségével készült.", correctCategory: "kozos" },
+            { text: "Tényellenőrzés: Az AI által adott válaszokat, tényeket és állításokat mindig kritikusan kell kezelni és ellenőrizni.", correctCategory: "kozos" },
+            { text: "Adatminimalizálás: Csak a minimálisan szükséges, anonimizált adatot szabad megosztani az AI-val.", correctCategory: "kozos" },
+            { text: "Személyes Adatok Tilalma: Tilos az AI-val megosztani a saját vagy mások személyes, bizalmas vagy azonosításra alkalmas adatait.", correctCategory: "kozos" },
+            { text: "Káros Tartalom Tilalma: Tilos az AI-tól kérni, vagy az AI segítségével terjeszteni káros, illegális, kirekesztő vagy erőszakos tartalmat.", correctCategory: "kozos" },
+            { text: "Visszajelzés Kötelessége: Problémás, sértő, vagy túlságosan személyes kérdést feltett AI-kimenetet azonnal jelezni kell a pedagógus felé.", correctCategory: "kozos" },
+            { text: "Korlátozott Tanácsadás: Az AI nem alkalmas orvosi, jogi vagy életveszélyes helyzetekre vonatkozó végleges tanács elfogadására.", correctCategory: "kozos" },
+            { text: "Kritikus Álláspont: Tudni kell, hogy az AI nem gondolkodik a hagyományos értelemben (nincs tudata vagy véleménye), és képes elfogult tartalmakat adni.", correctCategory: "kozos" },
+            { text: "Szerzői Jogok Tiszteletben Tartása: Az AI használata során is be kell tartani a szerzői jogi szabályokat.", correctCategory: "kozos" },
+            
+            { text: "AI Nem Kötelező: Tilos a diákoknak kötelezővé tenni egy AI-eszköz használatát. 16 év alatt a regisztrációhoz szülői hozzájárulás szükséges.", correctCategory: "pedagogusok" },
+            { text: "Automatizált Értékelés Tilalma: A diákokat nem érheti kizárólag automatizált döntés az értékelésben, és minden esetben szükséges az emberi felülvizsgálat.", correctCategory: "pedagogusok" },
+            { text: "Pedagógiai Felelősség: Az AI nem helyettesíti a tanár pedagógiai felelősségét és szakmai döntéseit. A végső tartalomért mindig a pedagógus felel.", correctCategory: "pedagogusok" },
+            { text: "Célzott Integráció: Az AI-t úgy kell beépíteni a tanórákba, hogy az fejlessze a diákok gondolkodását, ne pedig helyettesítse azt.", correctCategory: "pedagogusok" },
+            { text: "Szülői Tájékoztatás: Az AI iskolai szabályzatáról és az adatkezelésről a szülőket is tájékoztatni kell.", correctCategory: "pedagogusok" },
+
+            { text: "Támogató Eszköz: Az AI-t a tanulás támogatására kell használni, nem pedig annak helyettesítésére.", correctCategory: "diakok" },
+            { text: "Megoldás Helyett Magyarázat: Mindig magyarázatot, példát vagy gyakorlófeladatot kell kérni az AI-tól a puszta, kész megoldás helyett.", correctCategory: "diakok" },
+            { text: "Csalás Tilalma: Vizsgán, vagy zárt feladatnál csak akkor használható AI, ha azt a tanár kifejezetten engedélyezi. Enélkül a használat csalásnak minősül.", correctCategory: "diakok" },
+            { text: "Folyamat Elmagyarázása: Képesnek kell lenni arra, hogy elmagyarázza, hogyan segített az AI a feladat megoldásában, és mi volt a saját hozzájárulása.", correctCategory: "diakok" },
+            { text: "Iteráció (Finomítás): Képesnek kell lenni a kérés lépésről lépésre történő pontosítására (iteráció), hogy jobb választ kapjon az AI-tól.", correctCategory: "diakok" }
+        ];
+
+        let currentStatements = []; // A jelenleg megjelenítendő kártya
+        let remainingStatements = []; // A még meg nem jelent kártyák
+        let totalCorrect = 0;
+
+        // Fisher-Yates shuffle
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function initializeGame() {
+            // A kártyák random sorrendben jelennek meg
+            remainingStatements = [...allStatements];
+            shuffle(remainingStatements);
+            
+            // Csak az első kártya kerül a 'currentStatements'-be
+            if (remainingStatements.length > 0) {
+                currentStatements = [remainingStatements.shift()];
+            }
+
+            renderCurrentCard();
+            updateScoreboard();
+        }
+
+        function renderCurrentCard() {
+            const container = document.getElementById('current-card-container');
+            container.innerHTML = '';
+
+            if (currentStatements.length > 0) {
+                const statement = currentStatements[0];
+                const card = document.createElement('div');
+                card.id = 'current-card';
+                card.className = 'draggable-card bg-white p-6 rounded-xl text-lg font-bold text-center card-shadow w-full';
+                card.draggable = true;
+                card.textContent = statement.text;
+                card.dataset.correctCategory = statement.correctCategory;
+
+                // Drag események beállítása
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', statement.text);
+                    e.dataTransfer.setData('application/json', JSON.stringify(statement));
+                    card.classList.add('opacity-50');
+                });
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('opacity-50');
+                });
+
+                container.appendChild(card);
+            } else {
+                container.innerHTML = `<div class="p-6 text-center text-xl font-bold text-green-700">🎉 Vége a feladatnak! ${allStatements.length}-ból ${totalCorrect} helyes szortírozás.</div>`;
+                document.getElementById('drag-guide').classList.add('hidden');
+                document.getElementById('reset-button').classList.remove('hidden');
+            }
+        }
+
+        function updateScoreboard() {
+            document.getElementById('total-statements').textContent = allStatements.length;
+            document.getElementById('remaining-statements').textContent = remainingStatements.length;
+            document.getElementById('correct-count').textContent = totalCorrect;
+        }
+
+        // Drag and Drop eseménykezelők
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+
+            const statementData = JSON.parse(e.dataTransfer.getData('application/json'));
+            const droppedCategory = e.currentTarget.id.replace('-box', '');
+            
+            if (!statementData) return;
+
+            // Kártya eltávolítása a megjelenített kártyák közül
+            currentStatements = []; 
+
+            // Helyesség ellenőrzése
+            let isCorrect = (statementData.correctCategory === droppedCategory);
+
+            if (isCorrect) {
+                totalCorrect++;
+            }
+            
+            // Kártya hozzáadása a dobozhoz
+            const newCard = document.createElement('div');
+            newCard.className = `sorted-item card-shadow`;
+            newCard.innerHTML = `
+                <span class="font-bold">${isCorrect ? '✔ Helyes' : '❌ Helytelen'}</span>: ${statementData.text}
+            `;
+            e.currentTarget.appendChild(newCard);
+
+            // Következő kártya betöltése
+            if (remainingStatements.length > 0) {
+                currentStatements = [remainingStatements.shift()];
+            }
+            renderCurrentCard();
+            updateScoreboard();
+        }
+
+        function resetGame() {
+             // Töröljük a dobozokat
+            document.getElementById('diakok-box').innerHTML = '<div class="title-box p-3 font-extrabold rounded-t-lg">Diákokra Vonatkozó Szabályok</div>';
+            document.getElementById('pedagogusok-box').innerHTML = '<div class="title-box p-3 font-extrabold rounded-t-lg">Pedagógusokra Vonatkozó Szabályok</div>';
+            document.getElementById('kozos-box').innerHTML = '<div class="title-box p-3 font-extrabold rounded-t-lg">Közös Alapvetések</div>';
+            
+            totalCorrect = 0;
+            document.getElementById('reset-button').classList.add('hidden');
+            document.getElementById('drag-guide').classList.remove('hidden');
+            initializeGame();
+        }
+
+        // Dropzone események beállítása
+        window.addEventListener('load', () => {
+            const dropzones = document.querySelectorAll('.dropzone');
+            dropzones.forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('dragleave', handleDragLeave);
+                zone.addEventListener('drop', handleDrop);
+            });
+            initializeGame();
+        });
+
+    </script>
+</head>
+<body class="p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-extrabold mb-4 text-gray-800">AI Szabályzat Szortírozó Tréning</h1>
+        <p class="text-lg text-gray-600 mb-6">Helyezd a lent megjelenő állításokat a megfelelő kategóriába: csak diákokra, csak pedagógusokra, vagy mindkét félre vonatkozik.</p>
+        
+        <div id="scoreboard" class="flex justify-between items-center bg-white p-4 rounded-xl mb-6 card-shadow text-base">
+            <span class="font-bold">Összes állítás: <span id="total-statements">20</span></span>
+            <span class="font-bold text-orange-600">Fennmaradó: <span id="remaining-statements">20</span></span>
+            <span class="font-bold text-green-600">Helyes szortírozás: <span id="correct-count">0</span></span>
+            <button id="reset-button" onclick="resetGame()" class="hidden bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold transition">Újrakezdés</button>
+        </div>
+        
+        <div class="mb-8">
+            <h2 class="text-xl font-bold mb-3 text-gray-700">Jelenlegi Állítás (Húzd egy dobozba!)</h2>
+            <div id="drag-guide" class="text-sm text-gray-500 italic mb-2">A szortírozás után a kártya a dobozban marad, látható eredménnyel.</div>
+            <div id="current-card-container" class="min-h-[60px] flex items-center justify-center">
+                </div>
+        </div>
+
+        <div class="grid lg:grid-cols-3 gap-6">
+            
+            <div id="diakok-box" class="dropzone rounded-xl bg-gray-100 card-shadow">
+                <div class="title-box p-3 font-extrabold rounded-t-lg">Diákokra Vonatkozó Szabályok 🧑‍🎓</div>
+            </div>
+
+            <div id="pedagogusok-box" class="dropzone rounded-xl bg-gray-100 card-shadow">
+                <div class="title-box p-3 font-extrabold rounded-t-lg">Pedagógusokra Vonatkozó Szabályok 🍎</div>
+            </div>
+
+            <div id="kozos-box" class="dropzone rounded-xl bg-gray-100 card-shadow">
+                <div class="title-box p-3 font-extrabold rounded-t-lg">Közös Alapvetések 🤝</div>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>

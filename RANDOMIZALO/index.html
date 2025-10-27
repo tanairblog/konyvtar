@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Névkeverő</title>
+  <style>
+    :root{
+      --bg:#f9fafb;           /* light */
+      --card:#ffffff;          /* white */
+      --ink:#0f172a;           /* slate-900 */
+      --muted:#475569;         /* slate-600 */
+      --ring:#94a3b8;          /* slate-400 */
+      --shadow:0 10px 30px rgba(2,6,23,.08);
+      --radius:16px;
+      --blue:#3b82f6;          /* primary */
+      --teal:#14b8a6;          /* accent */
+      --amber:#f59e0b;         /* warm */
+      --rose:#f43f5e;          /* danger */
+      --chip:#f1f5f9;          /* list item */
+    }
+    [data-theme="dark"]{
+      --bg:#0b1220;
+      --card:#0f172a;
+      --ink:#e5e7eb;
+      --muted:#94a3b8;
+      --ring:#64748b;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --blue:#60a5fa;
+      --teal:#2dd4bf;
+      --amber:#fbbf24;
+      --rose:#fb7185;
+      --chip:#111827;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans";
+      color:var(--ink); background:
+        radial-gradient(1200px 600px at -10% -20%, #e0f2fe 0%, transparent 60%),
+        radial-gradient(900px 500px at 110% -10%, #fef3c7 0%, transparent 60%),
+        var(--bg);
+      display:grid; place-items:center; padding:24px;
+      transition: background .3s ease, color .3s ease;
+    }
+    [data-theme="dark"] body{ background: var(--bg); }
+
+    .app{ width:min(1100px,100%); background:var(--card); border:1px solid #e2e8f0; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; transition:background .3s ease }
+    [data-theme="dark"] .app{ border-color: rgba(255,255,255,.1); }
+
+    .head{ padding:22px; border-bottom:1px solid #e2e8f0; display:flex; align-items:center; gap:16px; flex-wrap:wrap }
+    [data-theme="dark"] .head{ border-color: rgba(255,255,255,.1); }
+
+    .title{ font-weight:800; font-size:clamp(20px,2.6vw,26px); letter-spacing:.2px }
+    .sub{ color:var(--muted); font-size:14px }
+    .pill{ font-size:12px; padding:6px 10px; border-radius:999px; background:#e0f2fe; color:#075985; border:1px solid #bae6fd }
+    [data-theme="dark"] .pill{ background:#0b3a3a; color:#99f6e4; border-color:#115e59 }
+
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:18px }
+    @media (max-width:900px){ .grid{ grid-template-columns:1fr } }
+
+    .panel{ background:linear-gradient(180deg,var(--card),#f8fafc); border:1px solid #e2e8f0; border-radius:12px; padding:16px; min-height:280px }
+    [data-theme="dark"] .panel{ background:linear-gradient(180deg,#0f172a,#0b1220); border-color: rgba(255,255,255,.1); }
+
+    label{ display:block; font-size:14px; color:var(--muted); margin-bottom:8px }
+
+    textarea, input[type="text"], select{ width:100%; padding:12px; border-radius:12px; border:1.5px solid #e2e8f0; background:#ffffff; color:var(--ink); outline:none }
+    textarea{ resize:vertical; min-height:140px }
+    textarea:focus, input[type="text"]:focus, select:focus{ border-color:var(--blue); box-shadow:0 0 0 3px rgba(59,130,246,.15) }
+    [data-theme="dark"] textarea, [data-theme="dark"] input[type="text"], [data-theme="dark"] select{ background:#0b1220; border-color: rgba(255,255,255,.08); color:var(--ink) }
+
+    .controls{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px }
+    button{ appearance:none; border:1px solid #e2e8f0; background:#ffffff; color:var(--ink); padding:10px 14px; border-radius:12px; cursor:pointer; font-weight:700; letter-spacing:.2px; transition:transform .05s ease, filter .15s ease, background .2s ease, box-shadow .2s ease }
+    [data-theme="dark"] button{ background:#111827; border-color: rgba(255,255,255,.08); color:var(--ink) }
+    button:hover{ filter:brightness(1.02); box-shadow:0 5px 16px rgba(15,23,42,.08) }
+    button:active{ transform:translateY(1px) }
+
+    .primary{ background:linear-gradient(180deg,#dbeafe,#bfdbfe); border-color:#bfdbfe }
+    .accent{ background:linear-gradient(180deg,#ccfbf1,#99f6e4); border-color:#99f6e4 }
+    .warm{ background:linear-gradient(180deg,#fef3c7,#fde68a); border-color:#fde68a }
+    .danger{ background:linear-gradient(180deg,#ffe4e6,#fecdd3); border-color:#fecdd3 }
+
+    [data-theme="dark"] .primary{ background:linear-gradient(180deg,#0b3a63,#0b2743); border-color:rgba(96,165,250,.35) }
+    [data-theme="dark"] .accent{ background:linear-gradient(180deg,#0b3d2d,#0a2b20); border-color:rgba(45,212,191,.35) }
+    [data-theme="dark"] .warm{ background:linear-gradient(180deg,#3b2f0b,#2a2108); border-color:rgba(251,191,36,.35) }
+    [data-theme="dark"] .danger{ background:linear-gradient(180deg,#3a0f0f,#2a0b0b); border-color:rgba(251,113,133,.35) }
+
+    .list{ display:grid; gap:8px; max-height:420px; overflow:auto; padding-right:4px; scroll-behavior:smooth }
+    .chip{ background:var(--chip); border:1px solid #e2e8f0; padding:12px 14px; border-radius:14px; display:flex; align-items:center; justify-content:space-between; gap:10px; transition:transform .18s ease, box-shadow .2s ease, background .2s ease }
+    [data-theme="dark"] .chip{ border-color: rgba(255,255,255,.08); }
+    .chip span{ font-weight:700 }
+    .chip small{ color:var(--muted) }
+    .chip.enter{ animation:pop .18s ease }
+    .chip.used{ opacity:.55 }
+    .badge{ font-size:11px; padding:2px 8px; border-radius:999px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca; margin-left:8px }
+    [data-theme="dark"] .badge{ background:#1f2937; color:#fca5a5; border-color:#374151 }
+
+    @keyframes pop{ from{ transform:scale(.98); opacity:.3 } to{ transform:scale(1); opacity:1 } }
+
+    .footer{ padding:10px 18px 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap }
+    .hint{ color:var(--muted); font-size:12px }
+    .right{ display:flex; gap:8px; flex-wrap:wrap; align-items:center }
+
+    kbd{ background:#e2e8f0; border-radius:6px; padding:2px 6px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; font-size:12px }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,1px,1px); white-space:nowrap; border:0 }
+
+    /* Teams dialog grid */
+    .teams-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px }
+    .team-card{ background:var(--chip); border:1px solid #e2e8f0; border-radius:12px; padding:12px }
+    [data-theme="dark"] .team-card{ border-color: rgba(255,255,255,.08) }
+    .team-title{ font-weight:800; margin:0 0 8px 0 }
+    .team-list{ margin:0; padding-left:18px }
+  </style>
+</head>
+<body>
+  <main class="app" role="application" aria-label="Névkeverő">
+    <header class="head">
+      <div>
+        <div class="title">Névkeverő</div>
+        <div class="sub">Illeszd be vagy írd be a tanulók neveit, majd keverd össze a sorrendet. A nevek a böngésződben tárolódnak.</div>
+      </div>
+      <div class="pill" aria-hidden="true">Tanároknak készült</div>
+    </header>
+
+    <section class="grid">
+      <div class="panel" aria-labelledby="input-title">
+        <label id="input-title" for="names">Névbevitel</label>
+        <textarea id="names" placeholder="Egy név soronként (vagy vesszővel elválasztva)&#10;Példa:&#10;Alex Smith&#10;Bianka Kovács&#10;Chen Wei"></textarea>
+        <div class="controls">
+          <button class="primary" id="addBtn">Lista hozzáadása / cseréje</button>
+          <button class="warm" id="appendBtn">Hozzáfűzés</button>
+          <button class="accent" id="shuffleBtn">Keverés</button>
+          <button id="sortBtn" title="Rendezés A→Z">Rendezés A–Z</button>
+          <button id="dedupeBtn" title="Duplikált nevek eltávolítása">Duplikátumok törlése</button>
+          <button class="danger" id="clearBtn">Törlés</button>
+        </div>
+      </div>
+
+      <div class="panel" aria-labelledby="list-title">
+        <label id="list-title">Jelenlegi sorrend</label>
+        <ol id="list" class="list" aria-live="polite" aria-relevant="additions text" start="1"></ol>
+        <div class="controls" style="margin-top:14px">
+          <button id="copyBtn" title="Nevek másolása a vágólapra">Másolás</button>
+          <button id="exportBtn" title="Nevek letöltése TXT fájlként">Export .txt</button>
+          <button id="importBtn" title="Nevek betöltése TXT fájlból">Import .txt</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="hint">Tipp: az új sorhoz nyomd meg az <kbd>Enter</kbd> billentyűt. A keverés egy korrekt Fisher–Yates algoritmust használ.</div>
+      <div class="right">
+        <label for="seed" class="sr-only">Mag</label>
+        <input id="seed" type="text" placeholder="Opcionális mag" aria-label="Opcionális mag a megismételhető keveréshez" style="padding:10px;border-radius:12px;border:1.5px solid #e2e8f0;background:#fff;color:var(--ink);width:180px"/>
+        <button id="seedShuffle">Keverés maggal</button>
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="excludeUsed"> Kizárás a következő sorsolásból
+        </label>
+        <button id="resetExclusions" title="Kizárások törlése">Kizárások törlése</button>
+        <select id="teamCount" style="width:auto">
+          <option value="2">2 csapat</option>
+          <option value="3">3 csapat</option>
+          <option value="4">4 csapat</option>
+          <option value="5">5 csapat</option>
+          <option value="6">6 csapat</option>
+        </select>
+        <button id="makeTeams">Csapatok létrehozása</button>
+        <button id="themeToggle" title="Világos / Sötét mód">🌞/🌙</button>
+        <button id="pickBtn" title="Véletlenszerűen kiválaszt egy nevet">Válassz egyet</button>
+      </div>
+    </footer>
+  </main>
+
+  <dialog id="pickDialog" style="border:none;border-radius:16px;padding:0;max-width:460px;width:90%">
+    <div style="background:var(--card);color:var(--ink);padding:22px;border:1px solid #e2e8f0;border-radius:16px;">
+      <h3 style="margin:0 0 10px 0">Kiválasztott tanuló</h3>
+      <p id="picked" style="font-weight:800;font-size:22px;margin:0 0 14px 0"></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="closePick">Bezárás</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="teamsDialog" style="border:none;border-radius:16px;padding:0;max-width:900px;width:96%">
+    <div style="background:var(--card);color:var(--ink);padding:22px;border:1px solid #e2e8f0;border-radius:16px;">
+      <h3 style="margin:0 0 12px 0">Csapatok</h3>
+      <div id="teamsGrid" class="teams-grid"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button id="copyTeams">Csapatok másolása</button>
+        <button id="closeTeams">Bezárás</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    // --------- Állapot és elemek ---------
+    const textarea = document.getElementById('names');
+    const listEl = document.getElementById('list');
+    const pickDialog = document.getElementById('pickDialog');
+    const pickedEl = document.getElementById('picked');
+    const teamsDialog = document.getElementById('teamsDialog');
+    const teamsGrid = document.getElementById('teamsGrid');
+    const excludeUsedChk = document.getElementById('excludeUsed');
+    let names = [];
+    let excluded = new Set(); // kisorsoltak kizárása
+
+    // --------- Segédfüggvények ---------
+    const parseNames = (text) => text.split(/[\n,;]+/g).map(s=>s.trim()).filter(Boolean);
+
+    const escapeHtml = (str) => str.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+
+    const render = (animate=false) => {
+      listEl.innerHTML = '';
+      names.forEach((n,i)=>{
+        const li = document.createElement('li');
+        const used = excluded.has(n.toLowerCase());
+        li.className = 'chip' + (animate ? ' enter' : '') + (used ? ' used' : '');
+        li.innerHTML = `<span>${escapeHtml(n)}${used?'<span class="badge">kizárva</span>':''}</span><small>#${i+1}</small>`;
+        listEl.appendChild(li);
+      });
+      persist();
+    };
+
+    const persist = () => {
+      try{
+        localStorage.setItem('student-randomizer:names', JSON.stringify(names));
+        localStorage.setItem('student-randomizer:excluded', JSON.stringify(Array.from(excluded)));
+        localStorage.setItem('student-randomizer:excludeFlag', excludeUsedChk.checked ? '1':'0');
+      }catch{}
+    };
+
+    const load = () => {
+      try{
+        const raw = localStorage.getItem('student-randomizer:names');
+        if(raw){ names = JSON.parse(raw); }
+        const exc = localStorage.getItem('student-randomizer:excluded');
+        if(exc){ excluded = new Set(JSON.parse(exc).map(s=>String(s).toLowerCase())); }
+        const flag = localStorage.getItem('student-randomizer:excludeFlag');
+        excludeUsedChk.checked = flag === '1';
+        const theme = localStorage.getItem('student-randomizer:theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        render();
+      }catch{}
+    };
+
+    // Fisher–Yates keverés
+    const shuffle = (arr, rng=Math.random) => {
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(rng()*(i+1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    };
+
+    // Maghoz kötött RNG (Mulberry32)
+    function mulberry32(seed){
+      let t = seed >>> 0;
+      return function(){
+        t |= 0; t = (t + 0x6D2B79F5) | 0;
+        let r = Math.imul(t ^ t >>> 15, 1 | t);
+        r ^= r + Math.imul(r ^ r >>> 7, 61 | r);
+        return ((r ^ r >>> 14) >>> 0) / 4294967296;
+      }
+    }
+
+    // --------- Események ---------
+    document.getElementById('addBtn').addEventListener('click', ()=>{ names = parseNames(textarea.value); render(true); });
+    document.getElementById('appendBtn').addEventListener('click', ()=>{ names = names.concat(parseNames(textarea.value)); render(true); });
+    document.getElementById('shuffleBtn').addEventListener('click', ()=>{ names = shuffle(names); render(true); });
+
+    document.getElementById('seedShuffle').addEventListener('click', ()=>{
+      const seedStr = document.getElementById('seed').value.trim();
+      if(!seedStr){ alert('Írj be egy magot (bármilyen szöveg), majd próbáld újra.'); return; }
+      let hash = 0; for(let i=0;i<seedStr.length;i++){ hash = (hash*31 + seedStr.charCodeAt(i)) | 0; }
+      names = shuffle(names, mulberry32(hash));
+      render(true);
+    });
+
+    document.getElementById('sortBtn').addEventListener('click', ()=>{ names = names.slice().sort((a,b)=>a.localeCompare(b)); render(true); });
+
+    document.getElementById('dedupeBtn').addEventListener('click', ()=>{
+      const seen = new Set();
+      names = names.filter(n => (n=n.trim()) && !seen.has(n.toLowerCase()) && seen.add(n.toLowerCase()));
+      // frissítsük a kizárásokat is az új névlistára
+      excluded = new Set(Array.from(excluded).filter(x => names.some(n=>n.toLowerCase()===x)));
+      render(true);
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', ()=>{ if(confirm('Biztosan törlöd a jelenlegi listát?')){ names=[]; excluded.clear(); render(); } });
+
+    document.getElementById('copyBtn').addEventListener('click', async ()=>{
+      const text = names.join('\n');
+      try{ await navigator.clipboard.writeText(text); flash('Másolva a vágólapra'); }
+      catch{ fallbackCopy(text); }
+    });
+
+    function fallbackCopy(text){
+      const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select();
+      try{ document.execCommand('copy'); flash('Másolva a vágólapra'); }catch{}
+      t.remove();
+    }
+
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const blob = new Blob([names.join('\n')], {type:'text/plain'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'nevek.txt'; a.click(); URL.revokeObjectURL(a.href);
+    });
+
+    document.getElementById('importBtn').addEventListener('click', ()=>{
+      const inp = document.createElement('input'); inp.type='file'; inp.accept='.txt,text/plain';
+      inp.onchange = ()=>{
+        const file = inp.files && inp.files[0]; if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ()=>{
+          const imported = parseNames(String(reader.result||''));
+          if(!imported.length){ alert('Nem található név a fájlban.'); return; }
+          names = imported; excluded.clear(); render(true);
+        };
+        reader.readAsText(file);
+      };
+      inp.click();
+    });
+
+    // Sorsolás egy név, kizárás opcióval
+    document.getElementById('pickBtn').addEventListener('click', ()=>{
+      if(!names.length){ alert('A lista üres.'); return; }
+      const pool = names.filter(n => !excluded.has(n.toLowerCase()));
+      if(pool.length === 0){ alert('Minden név ki van zárva. Töröld a kizárásokat a gombbal.'); return; }
+      const idx = Math.floor(Math.random()*pool.length);
+      const name = pool[idx];
+      pickedEl.textContent = name;
+      if(typeof pickDialog.showModal === 'function') pickDialog.showModal(); else alert(name);
+      if(excludeUsedChk.checked){ excluded.add(name.toLowerCase()); render(); }
+    });
+
+    document.getElementById('resetExclusions').addEventListener('click', ()=>{ excluded.clear(); render(); });
+
+    // Csapatképzés
+    document.getElementById('makeTeams').addEventListener('click', ()=>{
+      const count = parseInt(document.getElementById('teamCount').value, 10);
+      if(!names.length){ alert('Először adj meg neveket.'); return; }
+      const pool = names.filter(n => !excluded.has(n.toLowerCase()));
+      if(pool.length < count){ alert('Nincs elég aktív név a kért csapatszámhoz.'); return; }
+      const shuffled = shuffle(pool);
+      const teams = Array.from({length:count}, ()=>[]);
+      shuffled.forEach((n,i)=>{ teams[i % count].push(n); });
+      // Megjelenítés
+      teamsGrid.innerHTML = '';
+      teams.forEach((t,i)=>{
+        const card = document.createElement('div');
+        card.className = 'team-card';
+        card.innerHTML = `<h4 class="team-title">${i+1}. csapat</h4>`;
+        const ul = document.createElement('ol');
+        ul.className = 'team-list';
+        t.forEach(n=>{
+          const li = document.createElement('li'); li.textContent = n; ul.appendChild(li);
+        });
+        card.appendChild(ul); teamsGrid.appendChild(card);
+      });
+      if(typeof teamsDialog.showModal === 'function') teamsDialog.showModal();
+      else alert(teams.map((t,i)=>`${i+1}. csapat: ${t.join(', ')}`).join('\n'));
+      // eltároljuk a legutóbbi csapatokat vágólaphoz
+      lastTeams = teams;
+    });
+
+    let lastTeams = [];
+    document.getElementById('copyTeams').addEventListener('click', async ()=>{
+      if(!lastTeams.length) return;
+      const text = lastTeams.map((t,i)=>`${i+1}. csapat\n` + t.map(n=>` • ${n}`).join('\n')).join('\n\n');
+      try{ await navigator.clipboard.writeText(text); flash('Csapatok kimásolva'); }catch{ fallbackCopy(text); }
+    });
+
+    document.getElementById('closePick').addEventListener('click', ()=> pickDialog.close());
+    document.getElementById('closeTeams').addEventListener('click', ()=> teamsDialog.close());
+
+    // Téma váltás
+    document.getElementById('themeToggle').addEventListener('click', ()=>{
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('student-randomizer:theme', next);
+    });
+
+    // Betöltés induláskor
+    load();
+
+    // Kis vizuális visszajelzés
+    function flash(text){
+      const div = document.createElement('div');
+      div.textContent = text;
+      div.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--card);color:var(--ink);border:1px solid #e2e8f0;padding:10px 14px;border-radius:999px;box-shadow:0 10px 24px rgba(15,23,42,.1);opacity:0;transition:opacity .2s ease;z-index:9999';
+      document.body.appendChild(div); requestAnimationFrame(()=>{div.style.opacity = 1;});
+      setTimeout(()=>{div.style.opacity = 0; setTimeout(()=>div.remove(), 200);}, 1200);
+    }
+  </script>
+</body>
+</html>

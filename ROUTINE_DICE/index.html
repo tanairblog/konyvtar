@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lucky or Unlucky Dice – Story Builder</title>
+<style>
+  :root{
+    --ink:#0f172a;
+    --muted:#475569;
+    --card:#ffffff;
+    --bg1:#f0f9ff;  /* light sky */
+    --bg2:#e0f2fe;  /* baby blue */
+    --bg3:#fef9c3;  /* soft yellow */
+    --primary:#6366f1; /* indigo */
+    --accent:#14b8a6;  /* teal */
+    --warn:#f97316;    /* orange */
+    --lucky:#22c55e;   /* green */
+    --unlucky:#ef4444; /* red */
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family: "Segoe UI", Roboto, Inter, Arial, sans-serif; color:var(--ink);
+    background: linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 100%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:22px;
+  }
+  .wrap{
+    width:min(1100px,100%); display:grid; gap:18px; grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width:1000px){ .wrap{grid-template-columns:1fr} }
+  .panel{
+    background:var(--card); border-radius:18px; padding:18px;
+    box-shadow:0 10px 30px rgba(2,8,23,.08);
+    border:1px solid rgba(2,8,23,.06);
+  }
+  h1{ margin:0 0 4px; font-size:clamp(20px,2.2vw,28px); }
+  .sub{ color:var(--muted); font-size:14px; margin-bottom:10px }
+
+  /* Prompt area */
+  .prompt{
+    margin-top:10px; background:#fff; border:1px solid rgba(2,8,23,.06);
+    border-radius:14px; padding:14px; min-height:64px; display:flex; align-items:center;
+    font-size:clamp(16px,2vw,20px);
+    box-shadow: inset 0 1px 0 rgba(2,8,23,.03);
+  }
+
+  /* Buttons */
+  .btnRow{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px }
+  .btn{
+    border:none; border-radius:12px; padding:10px 14px; font-weight:700; color:#fff;
+    cursor:pointer; transition:.2s transform,.2s filter;
+  }
+  .btn:hover{ transform: translateY(-1px); filter:brightness(1.05) }
+  .btn:active{ transform: translateY(0) scale(.98) }
+  .primary{ background:var(--primary) }
+  .accent{ background:var(--accent) }
+  .warn{ background:var(--warn) }
+  .ghost{ background:#0ea5e9; } /* sky */
+
+  /* Dice */
+  .scene{ width:min(68vw, 220px); height:min(68vw, 220px); perspective:800px; margin:8px auto 10px }
+  .cube{ width:100%; height:100%; position:relative; transform-style:preserve-3d; transition: transform 1s }
+  .face{
+    position:absolute; width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    border-radius:20px; color:#fff; font-weight:900; font-size:clamp(22px,4.5vw,34px);
+    box-shadow: 0 10px 24px rgba(2,8,23,.2); backface-visibility:hidden;
+  }
+  .lucky{ background:linear-gradient(160deg, #16a34a, var(--lucky)) }
+  .unlucky{ background:linear-gradient(160deg, #dc2626, var(--unlucky)) }
+
+  .front { transform: rotateY(0deg) translateZ(110px) }
+  .back  { transform: rotateY(180deg) translateZ(110px) }
+  .right { transform: rotateY(90deg) translateZ(110px) }
+  .left  { transform: rotateY(-90deg) translateZ(110px) }
+  .top   { transform: rotateX(90deg) translateZ(110px) }
+  .bottom{ transform: rotateX(-90deg) translateZ(110px) }
+
+  .legend{ display:flex; gap:8px; align-items:center; color:var(--muted); font-size:13px; margin-top:6px }
+  .dot{ width:10px; height:10px; border-radius:999px; display:inline-block }
+  .g{ background:var(--lucky) } .r{ background:var(--unlucky) }
+
+  /* Story cues */
+  .cues{
+    display:grid; gap:10px; margin-top:12px;
+    grid-template-columns: 1fr;
+  }
+  .cue{
+    background:#fff; border:1px solid rgba(2,8,23,.06); border-radius:14px; padding:10px 12px;
+    box-shadow: inset 0 1px 0 rgba(2,8,23,.03);
+  }
+  .cue b{ display:block; font-size:13px; color:var(--muted); margin-bottom:4px }
+  .cue .text{ font-size:16px }
+  .note{ color:var(--muted); font-size:12px; margin-top:8px }
+
+  /* List right panel */
+  .listBox{ background:#fff; border-radius:14px; border:1px solid rgba(2,8,23,.06); padding:10px; max-height:260px; overflow:auto }
+  .item{ padding:8px 10px; border-radius:10px; border:1px solid rgba(2,8,23,.06); margin:6px 0; background:#f8fafc }
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- LEFT: Dice + Prompt + Actions -->
+    <section class="panel">
+      <h1>Lucky or Unlucky Dice 🎲 + Story Builder</h1>
+      <div class="sub"></div>
+
+      <div class="scene">
+        <div class="cube" id="cube" role="button" aria-label="Roll the die" tabindex="0">
+          <div class="face front lucky">LUCKY</div>
+          <div class="face back unlucky">UNLUCKY</div>
+          <div class="face right lucky">LUCKY</div>
+          <div class="face left unlucky">UNLUCKY</div>
+          <div class="face top lucky">LUCKY</div>
+          <div class="face bottom unlucky">UNLUCKY</div>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="dot g"></span> Lucky
+        <span style="opacity:.5">•</span>
+        <span class="dot r"></span> Unlucky
+      </div>
+
+      <div class="prompt" id="prompt">Click  <b>New Prompt</b>  to start</div>
+
+      <div class="btnRow">
+        <button class="btn primary" id="promptBtn">New Prompt</button>
+        <button class="btn ghost" id="rollBtn">Roll Dice</button>
+        <button class="btn accent" id="cuesBtn">Build Story Cues</button>
+        <button class="btn warn" id="resetBtn" title="Reshuffle prompts & clear cues">Reset</button>
+      </div>
+
+      <div class="cues" id="cuesArea">
+        <!-- dynamically filled with 5 lines (one from each category) -->
+      </div>
+      <div class="note">Tip: tell a mini-story using the prompt, the dice result, and all 5 cues.</div>
+    </section>
+
+    <!-- RIGHT: Prompt Bank (15 ambivalent events) -->
+    <section class="panel">
+      <h2 style="margin:0 0 8px; font-size:20px">Prompt Bank (15)</h2>
+      <div class="listBox" id="promptList"></div>
+      <div class="note">Prompts are dealt without repeats until you press Reset.</div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  // 15 ambivalent daily events
+  const prompts = [
+    "Waking up early",
+    "Missing the bus",
+    "Having a surprise test",
+    "Getting caught in the rain",
+    "Sitting next to someone on the bus",
+    "Being chosen to answer in class",
+    "Lunch in the cafeteria",
+    "Playing in a sports match",
+    "Walking home",
+    "Getting a phone call or message",
+    "Homework assignment",
+    "Finding money on the street",
+    "Meeting a stranger",
+    "Losing something",
+    "Forgetting an appointment"
+  ];
+
+  // Exactly 5 items per category
+  const CATEGORIES = {
+    start: [
+      "One day…",
+      "I’ll never forget the time when…",
+      "Have you ever…? Well, this happened to me…",
+      "It all started when…",
+      "Let me set the scene…"
+    ],
+    sequence: [
+      "First,…",
+      "Then,…",
+      "After that,…",
+      "Suddenly,…",
+      "A few minutes later,…"
+    ],
+    details: [
+      "To my surprise…",
+      "Believe it or not…",
+      "At that exact moment…",
+      "Everyone was staring…",
+      "Things were getting worse when…"
+    ],
+    feelings: [
+      "I was shocked.",
+      "I was excited.",
+      "My heart was racing.",
+      "I felt like laughing.",
+      "Luckily,…"
+    ],
+    ending: [
+      "In the end…",
+      "Finally, everything turned out fine.",
+      "That’s why I’ll always remember that day.",
+      "And that’s how it ended.",
+      "Looking back, it still makes me smile."
+    ]
+  };
+
+  // State
+  let usedPrompts = [];
+  let x=0, y=0, z=0;
+
+  // Elements
+  const cube = document.getElementById('cube');
+  const promptEl = document.getElementById('prompt');
+  const promptListEl = document.getElementById('promptList');
+  const cuesArea = document.getElementById('cuesArea');
+  const promptBtn = document.getElementById('promptBtn');
+  const rollBtn = document.getElementById('rollBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const cuesBtn = document.getElementById('cuesBtn');
+
+  function shuffle(a){
+    const arr = a.slice();
+    for(let i=arr.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [arr[i],arr[j]]=[arr[j],arr[i]];
+    }
+    return arr;
+  }
+
+  function renderPromptList(){
+    promptListEl.innerHTML = "";
+    prompts.forEach((p,i)=>{
+      const div = document.createElement('div');
+      div.className = 'item';
+      const used = usedPrompts.includes(p);
+      div.innerHTML = `<strong>${i+1}.</strong> ${p} ${used ? '<span style="color:#0ea5e9"> (used)</span>': ''}`;
+      promptListEl.appendChild(div);
+    });
+  }
+
+  function newPrompt(){
+    if(usedPrompts.length === prompts.length){
+      promptEl.textContent = "All prompts used. Press Reset to reshuffle.";
+      return;
+    }
+    let candidate;
+    do{
+      candidate = prompts[Math.floor(Math.random()*prompts.length)];
+    }while(usedPrompts.includes(candidate));
+    usedPrompts.push(candidate);
+    promptEl.textContent = candidate;
+    renderPromptList();
+    // optional: auto-generate cues after new prompt?
+    // buildCues(); // uncomment if you want auto-cues
+  }
+
+  function rollDice(){
+    x += (Math.floor(Math.random()*4)+1)*90;
+    y += (Math.floor(Math.random()*4)+1)*90;
+    z += (Math.floor(Math.random()*4))*90;
+    cube.style.transform = `rotateX(${x}deg) rotateY(${y}deg) rotateZ(${z}deg)`;
+  }
+
+  function pickOne(arr){
+    return arr[Math.floor(Math.random()*arr.length)];
+  }
+
+  function buildCues(){
+    const chosen = {
+      start: pickOne(CATEGORIES.start),
+      sequence: pickOne(CATEGORIES.sequence),
+      details: pickOne(CATEGORIES.details),
+      feelings: pickOne(CATEGORIES.feelings),
+      ending: pickOne(CATEGORIES.ending)
+    };
+    cuesArea.innerHTML = `
+      <div class="cue"><b>1) Starting a Story</b><div class="text">${chosen.start}</div></div>
+      <div class="cue"><b>2) Sequencing Events</b><div class="text">${chosen.sequence}</div></div>
+      <div class="cue"><b>3) Adding Details & Tension</b><div class="text">${chosen.details}</div></div>
+      <div class="cue"><b>4) Showing Feelings</b><div class="text">${chosen.feelings}</div></div>
+      <div class="cue"><b>5) Ending the Story</b><div class="text">${chosen.ending}</div></div>
+    `;
+  }
+
+  function resetAll(){
+    usedPrompts = [];
+    promptEl.textContent = 'Click <b>New Prompt</b> to start';
+    cuesArea.innerHTML = '';
+    renderPromptList();
+  }
+
+  // Events
+  promptBtn.addEventListener('click', newPrompt);
+  rollBtn.addEventListener('click', rollDice);
+  cuesBtn.addEventListener('click', buildCues);
+  resetBtn.addEventListener('click', resetAll);
+
+  cube.addEventListener('click', rollDice);
+  cube.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); rollDice(); }
+  });
+
+  // Boot
+  renderPromptList();
+})();
+</script>
+</body>
+</html>

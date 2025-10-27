@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hogyan érkeztél?</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-top: 50px;
+            color: #333;
+        }
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 50px;
+        }
+        .icon {
+            width: 100px;
+            height: 100px;
+            margin: 10px;
+            border: 2px solid #333;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .icon img {
+            width: 60%;
+            height: 60%;
+            /* Keep the filter to make the black icon image white */
+            filter: invert(1);
+        }
+        .icon:hover {
+            transform: scale(1.1);
+        }
+        #chartContainer {
+            max-width: 600px;
+            margin: 50px auto;
+        }
+        
+        /* --- UPDATED WITH YOUR SPECIFIC COLOR PALETTE --- */
+        #car-icon { background-color: #58508d; }
+        #bus-icon { background-color: #bc5090; }
+        #bicycle-icon { background-color: #ff6361; }
+        #foot-icon { background-color: #003f5c; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Hogyan érkeztél az iskolába?</h1>
+
+    <div class="icon-container">
+        <div class="icon" id="car-icon" onclick="updateChart('Car')">
+            <img src="https://img.icons8.com/ios-filled/100/000000/car.png" alt="Autó">
+        </div>
+        <div class="icon" id="bus-icon" onclick="updateChart('Public Transport')">
+            <img src="https://img.icons8.com/ios-filled/100/000000/bus.png" alt="Tömegközlekedés">
+        </div>
+        <div class="icon" id="bicycle-icon" onclick="updateChart('Bicycle')">
+            <img src="https://img.icons8.com/ios-filled/100/000000/bicycle.png" alt="Bicikli">
+        </div>
+        <div class="icon" id="foot-icon" onclick="updateChart('On Foot')">
+            <img src="https://img.icons8.com/ios-filled/100/000000/walking.png" alt="Gyalog">
+        </div>
+    </div>
+
+    <div id="chartContainer">
+        <canvas id="resultChart"></canvas>
+    </div>
+
+    <p style="margin-top: 30px; color: #555; font-style: italic;">
+        Press <strong>Alt + Ctrl + T</strong> to download the data as a CSV file.
+    </p>
+
+
+    <script>
+        // Initialize chart data
+        let tally = {
+            'Car': 0,
+            'Public Transport': 0,
+            'Bicycle': 0,
+            'On Foot': 0
+        };
+
+        // Create initial chart
+        const ctx = document.getElementById('resultChart').getContext('2d');
+        const resultChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Autó', 'Tömegközlekedés', 'Bicikli', 'Gyalog'],
+                datasets: [{
+                    label: '', 
+                    data: [tally['Car'], tally['Public Transport'], tally['Bicycle'], tally['On Foot']],
+                    // --- UPDATED WITH YOUR SPECIFIC COLOR PALETTE ---
+                    backgroundColor: [
+                        '#58508d',
+                        '#bc5090',
+                        '#ff6361',
+                        '#003f5c'
+                    ],
+                    borderColor: [
+                        '#58508d',
+                        '#bc5090',
+                        '#ff6361',
+                        '#003f5c'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Function to update chart when icon is clicked
+        function updateChart(method) {
+            tally[method]++;
+            resultChart.data.datasets[0].data = [tally['Car'], tally['Public Transport'], tally['Bicycle'], tally['On Foot']];
+            resultChart.update();
+        }
+
+        // Function to download the chart data as a CSV file
+        function downloadCSV() {
+            const labels = resultChart.data.labels;
+            const data = resultChart.data.datasets[0].data;
+            let csvRows = ["Utazási mód,Szavazatok száma"];
+            for (let i = 0; i < labels.length; i++) {
+                csvRows.push(`${labels[i]},${data[i]}`);
+            }
+            const csvContent = csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", "erkezesi_adatok.csv");
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Add an event listener to the whole document for key presses
+        document.addEventListener('keydown', function(event) {
+            if (event.altKey && event.ctrlKey && event.key.toLowerCase() === 't') {
+                event.preventDefault();
+                downloadCSV();
+            }
+        });
+
+    </script>
+
+</body>
+</html>

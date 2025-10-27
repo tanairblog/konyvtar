@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vocab Arcade — Picture → Production (Wordlist v2)</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111827; --card:#1f2937; --ink:#e5e7eb; --muted:#94a3b8;
+    --good:#22c55e; --bad:#ef4444; --warn:#f59e0b; --accent:#38bdf8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial}
+  header{display:flex;gap:.75rem;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:#0b1220;position:sticky;top:0;z-index:5;border-bottom:1px solid #0e223a}
+  header h1{font-size:1rem;margin:0;color:#fff;letter-spacing:.3px}
+  header .badges{display:flex;gap:.5rem;flex-wrap:wrap}
+  .badge{background:#0c2a3f;color:#bfe9ff;border:1px solid #1e3a5f;padding:.25rem .5rem;border-radius:999px;font-size:.75rem}
+  .wrap{display:grid;grid-template-columns: 280px 1fr;gap:1rem;padding:1rem}
+  aside{background:var(--panel);border:1px solid #0e223a;border-radius:14px;padding:12px;position:sticky;top:64px;height:max-content}
+  aside h2{font-size:.95rem;margin:.25rem 0 .5rem}
+  .ctl{display:flex;flex-direction:column;gap:.5rem}
+  .ctl label{display:flex;align-items:center;gap:.5rem;font-size:.9rem;color:var(--muted)}
+  .select,button,.chip{background:var(--card);border:1px solid #23324a;color:var(--ink);padding:.5rem .6rem;border-radius:10px}
+  button{cursor:pointer;transition:.15s;user-select:none}
+  button:hover{transform:translateY(-1px)}
+  .tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem}
+  .tab{padding:.45rem .7rem;border-radius:999px;border:1px solid #22314a;background:#121a2b;color:#cde8ff;font-size:.9rem;cursor:pointer}
+  .tab.active{background:#18324f}
+  main{background:var(--panel);border:1px solid #0e223a;border-radius:14px;padding:12px;min-height:60vh}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.75rem}
+  .tile{background:var(--card);border:1px solid #23324a;border-radius:14px;padding:.5rem;display:flex;flex-direction:column;align-items:center;gap:.35rem;min-height:120px;position:relative}
+  .emo{font-size:2rem;line-height:1}
+  .hint{position:absolute;bottom:8px;right:10px;font-size:.7rem;color:var(--muted)}
+  .hunt{display:flex;gap:.5rem;align-items:center;margin:.25rem 0 .75rem}
+  .pill{border:1px dashed #2b4464;padding:.25rem .5rem;border-radius:999px;color:#bfe9ff}
+  .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+  .kpi{display:flex;gap:.5rem}
+  .kpi .chip{font-size:.85rem}
+  .panel{background:var(--card);border:1px solid #23324a;border-radius:14px;padding:10px}
+  .flex{display:flex;gap:1rem;flex-wrap:wrap}
+  .w50{flex:1 1 320px}
+  .dropZone{min-height:120px;border:2px dashed #3b4f6f;border-radius:12px;display:grid;place-items:center;color:#bfe9ff}
+  .pairCol{display:grid;gap:.5rem}
+  .draggable{padding:.4rem .6rem;border:1px solid #2b3f5f;border-radius:10px;background:#172234;cursor:grab}
+  .card{background:var(--card);border:1px solid #23324a;border-radius:16px;padding:14px;display:grid;place-items:center;min-height:260px;position:relative}
+  .flip{transform-style:preserve-3d;transition:.4s;cursor:pointer;position:relative;width:100%;height:100%;display:block}
+  .flipped{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;display:grid;place-items:center;backface-visibility:hidden;width:100%;height:100%}
+  .back{transform:rotateY(180deg)}
+  .ring{--p:0; width:46px;height:46px;border-radius:50%;background:
+      conic-gradient(var(--good) calc(var(--p)*1%),#2a354b 0);
+      display:grid;place-items:center;border:1px solid #2b3f5f}
+  .ring span{font-size:.75rem;color:#cde8ff}
+  .toast{position:fixed;bottom:12px;right:12px;background:#102238;border:1px solid #1f3e66;padding:.6rem .8rem;border-radius:10px;color:#cde8ff;opacity:0;transform:translateY(8px);transition:.2s}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .stars{color:#ffd54a}
+  .sr-only{position:absolute!important;left:-10000px!important;top:auto!important;width:1px!important;height:1px!important;overflow:hidden}
+  .bigTargets button,.bigTargets .draggable,.bigTargets .tile{padding:14px}
+  .dyslexia-helper{letter-spacing:.5px;word-spacing:1px;line-height:1.5}
+  .high-contrast{--bg:#000;--panel:#000;--card:#000;--ink:#fff;--muted:#ddd;--accent:#0ff}
+  .emoji-font{font-family:"Segoe UI Emoji","Noto Color Emoji","Apple Color Emoji","Twitter Color Emoji",system-ui}
+  .emoBadge{
+    width:120px;height:120px;border-radius:50%;
+    background:#fff; display:grid; place-items:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.25), inset 0 0 0 2px #23324a;
+  }
+  .emoBadge .emo{ font-size:3.2rem; line-height:1; filter:contrast(1.25) saturate(1.2); }
+
+/* === Light, student‑friendly palette overrides === */
+:root{
+  --bg:#f7fafc; --panel:#ffffff; --card:#ffffff; --ink:#111827; --muted:#64748b;
+  --good:#16a34a; --bad:#e11d48; --warn:#f59e0b; --accent:#6366f1;
+}
+header{background:#eef2ff!important;border-bottom:1px solid #c7d2fe!important;color:#111827!important}
+header h1{color:#111827!important}
+.badge{background:#eef2ff!important;color:#3730a3!important;border:1px solid #c7d2fe!important}
+aside, main{border-color:#e5e7eb!important}
+.select, button, .chip{background:var(--card)!important;border:1px solid #e5e7eb!important;color:var(--ink)!important}
+.tab{background:#eef2ff!important;color:#111827!important;border:1px solid #dbe3ff!important}
+.tab.active{background:#dbe3ff!important}
+.panel{border:1px solid #e5e7eb!important}
+.tile{border:1px solid #e5e7eb!important;min-height:150px!important}
+.emo{font-size:2.6rem} /* base bump; specific views use 3–4rem */
+.card{border:1px solid #e5e7eb!important;background:#ffffff!important}
+.emoBadge{
+  width:140px;height:140px; background:#fff;
+  box-shadow:0 2px 8px rgba(0,0,0,.08), inset 0 0 0 2px #e5e7eb;
+}
+.emoBadge .emo{font-size:3.6rem}
+/* Quick Choice big centered options */
+.choiceWrap{display:grid;gap:.6rem;justify-items:center}
+.choice{
+  padding:1rem 1.2rem;font-size:1.35rem;border-radius:14px;
+  border:1px solid #e5e7eb;background:#ffffff;
+  width:min(560px, 92%); text-align:center; cursor:pointer
+}
+.choice:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(99,102,241,.12)}
+/* Accessibility helpers remain as-is */
+
+/* Inline icon image fallback */
+.emo-img{width:72px;height:72px;display:block;margin:auto;object-fit:contain}
+.dropZone .emo-img{width:64px;height:64px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Vocab Arcade — Picture → Production</h1>
+  <div class="badges">
+    <span class="badge" id="xpBadge">XP: 0</span>
+    <span class="badge" id="streakBadge">Streak: 0</span>
+    <span class="badge" id="timerBadge">⏱ 0s</span>
+    <span class="badge" id="setBadge">Set: 30 items</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <aside>
+    <h2>Teacher Controls</h2>
+    <div class="ctl">
+      <label><input type="checkbox" id="classMode"> Class Mode (calmer, no timers)</label>
+      <label><input type="checkbox" id="bigTargets"> Larger hit-areas</label>
+      <label><input type="checkbox" id="dyslexia"> Dyslexia helper</label>
+      <label><input type="checkbox" id="highContrast"> High contrast</label>
+      <label>Set size
+        <select id="setSize" class="select">
+          <option>8</option><option>12</option><option>16</option><option selected>30</option>
+        </select>
+      </label>
+      <label>Category
+        <select id="catFilter" class="select">
+          <option value="all">All</option>
+          <option value="wear">Wearables</option>
+          <option value="study">Study</option>
+          <option value="travel">Travel</option>
+          <option value="home">Home</option>
+        </select>
+      </label>
+      <div class="row">
+        <button id="exportCsv">Export CSV</button>
+        <button id="resetProgress">Reset Progress</button>
+      </div>
+    </div>
+    <hr style="border-color:#1e2d46;opacity:.4;margin:12px 0">
+    <div class="ctl">
+      <h2>Modules</h2>
+      <div class="tabs" id="tabs"></div>
+      <small style="color:var(--muted)">Tip: Use <b>Space</b> to flip cards, <b>Enter</b> to submit answers.</small>
+    </div>
+  </aside>
+
+  <main>
+    <section id="view"></section>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------------------- Data (your full wordlist) ----------------------- */
+const ALL_ITEMS = [
+  {id:'bag', word:'bag', article:'a', ipa:'/bæɡ/', ex:'Put the books in a bag.', cat:'travel', emo:'🎒', hint:'b…'},
+  {id:'charger', word:'charger', article:'a', ipa:'/ˈtʃɑːrdʒər/', ex:'I need a phone charger.', cat:'study', emo:'🔌', hint:'c…'},
+  {id:'coin', word:'coin', article:'a', ipa:'/kɔɪn/', ex:'There is a coin on the table.', cat:'travel', emo:'🪙', hint:'c…', img:'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20128%20128%22%3E%0A%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20x2%3D%220%22%20y1%3D%220%22%20y2%3D%221%22%3E%0A%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23ffe38f%22/%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f6b844%22/%3E%3C/linearGradient%3E%3C/defs%3E%0A%3Ccircle%20cx%3D%2264%22%20cy%3D%2264%22%20r%3D%2246%22%20fill%3D%22url%28%23g%29%22%20stroke%3D%22%23c48a26%22%20stroke-width%3D%228%22/%3E%0A%3Ccircle%20cx%3D%2264%22%20cy%3D%2264%22%20r%3D%2230%22%20fill%3D%22none%22%20stroke%3D%22%23d99d2b%22%20stroke-width%3D%226%22/%3E%0A%3C/svg%3E'},
+  {id:'creditcard', word:'credit card', article:'a', ipa:'/ˈkrɛdɪt kɑːrd/', ex:'I pay with a credit card.', cat:'travel', emo:'💳', hint:'c…'},
+  {id:'diary', word:'diary', article:'a', ipa:'/ˈdaɪəri/', ex:'I write in a diary every night.', cat:'study', emo:'📔', hint:'d…'},
+  {id:'dictionary', word:'dictionary', article:'a', ipa:'/ˈdɪkʃən(ə)ri/', ex:'Use a dictionary for new words.', cat:'study', emo:'📕', hint:'d…'},
+  {id:'file', word:'file', article:'a', ipa:'/faɪl/', ex:'Put the papers in a file.', cat:'study', emo:'📁', hint:'f…'},
+  {id:'glasses', word:'glasses', article:'—', ipa:'/ˈɡlæsɪz/', ex:'She wears glasses to read.', cat:'wear', emo:'👓', hint:'g…'},
+  {id:'headphones', word:'headphones', article:'—', ipa:'/ˈhɛdˌfoʊnz/', ex:'Please use headphones in class.', cat:'study', emo:'🎧', hint:'h…'},
+  {id:'idcard', word:'identity card', article:'an', ipa:'/aɪˈdɛntɪti kɑːrd/', ex:'Show an identity card at the desk.', cat:'travel', emo:'🪪', hint:'i…', img:'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20160%20110%22%3E%0A%3Crect%20x%3D%226%22%20y%3D%226%22%20rx%3D%2210%22%20ry%3D%2210%22%20width%3D%22148%22%20height%3D%2298%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%224%22/%3E%0A%3Ccircle%20cx%3D%2248%22%20cy%3D%2255%22%20r%3D%2218%22%20fill%3D%22%23f1f5f9%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%223%22/%3E%0A%3Crect%20x%3D%2280%22%20y%3D%2238%22%20width%3D%2260%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22%23cbd5e1%22/%3E%0A%3Crect%20x%3D%2280%22%20y%3D%2254%22%20width%3D%2252%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22%23e2e8f0%22/%3E%0A%3Crect%20x%3D%2280%22%20y%3D%2270%22%20width%3D%2240%22%20height%3D%228%22%20rx%3D%224%22%20fill%3D%22%23e2e8f0%22/%3E%0A%3Ctext%20x%3D%2220%22%20y%3D%2295%22%20font-size%3D%2216%22%20font-family%3D%22Arial%22%20fill%3D%22%2364748b%22%3EID%3C/text%3E%0A%3C/svg%3E'},
+  {id:'key', word:'key', article:'a', ipa:'/kiː/', ex:'This is a key to the door.', cat:'home', emo:'🔑', hint:'k…'},
+  {id:'lamp', word:'lamp', article:'a', ipa:'/læmp/', ex:'Turn on a lamp.', cat:'home', emo:'💡', hint:'l…'},
+  {id:'laptop', word:'laptop', article:'a', ipa:'/ˈlæptɒp/', ex:'My laptop is new.', cat:'study', emo:'💻', hint:'l…'},
+  {id:'magazine', word:'magazine', article:'a', ipa:'/ˌmæɡəˈziːn/', ex:'I read a magazine.', cat:'home', emo:'📙', hint:'m…'},
+  {id:'newspaper', word:'newspaper', article:'a', ipa:'/ˈnjuːzˌpeɪpə/', ex:'He buys a newspaper every day.', cat:'home', emo:'📰', hint:'n…'},
+  {id:'notebook', word:'notebook', article:'a', ipa:'/ˈnəʊtbʊk/', ex:'Write it in a notebook.', cat:'study', emo:'📓', hint:'n…'},
+  {id:'pen', word:'pen', article:'a', ipa:'/pɛn/', ex:'I have a blue pen.', cat:'study', emo:'🖊️', hint:'p…'},
+  {id:'pencil', word:'pencil', article:'a', ipa:'/ˈpɛnsəl/', ex:'Sharpen a pencil.', cat:'study', emo:'✏️', hint:'p…'},
+  {id:'phone', word:'(mobile) phone', article:'a', ipa:'/foʊn/', ex:'She calls on a phone.', cat:'travel', emo:'📱', hint:'p…', img:'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2096%20160%22%3E%0A%3Crect%20x%3D%2218%22%20y%3D%226%22%20rx%3D%2210%22%20ry%3D%2210%22%20width%3D%2260%22%20height%3D%22148%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23111827%22%20stroke-width%3D%224%22/%3E%0A%3Crect%20x%3D%2224%22%20y%3D%2218%22%20width%3D%2248%22%20height%3D%22112%22%20rx%3D%226%22%20fill%3D%22%23e5e7eb%22/%3E%0A%3Ccircle%20cx%3D%2248%22%20cy%3D%22140%22%20r%3D%225%22%20fill%3D%22%239ca3af%22/%3E%0A%3C/svg%3E'},
+  {id:'photo', word:'photo', article:'a', ipa:'/ˈfəʊtəʊ/', ex:'This is a photo of my family.', cat:'home', emo:'🖼️', hint:'p…'},
+  {id:'paper', word:'piece of paper', article:'a', ipa:'/ˈpiːs əv ˈpeɪpər/', ex:'Write it on a piece of paper.', cat:'study', emo:'📄', hint:'p…'},
+  {id:'purse', word:'purse', article:'a', ipa:'/pɜːrs/', ex:'She keeps coins in a purse.', cat:'travel', emo:'👝', hint:'p…'},
+  {id:'scissors', word:'scissors', article:'—', ipa:'/ˈsɪzərz/', ex:'Be careful with scissors.', cat:'study', emo:'✂️', hint:'s…'},
+  {id:'sunglasses', word:'sunglasses', article:'—', ipa:'/ˈsʌnˌɡlɑːsɪz/', ex:'I wear sunglasses at the beach.', cat:'wear', emo:'🕶️', hint:'s…'},
+  {id:'tablet', word:'tablet', article:'a', ipa:'/ˈtæblɪt/', ex:'He reads on a tablet.', cat:'study', emo:'📱', hint:'t…', img:'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20180%20128%22%3E%0A%3Crect%20x%3D%228%22%20y%3D%2210%22%20rx%3D%2212%22%20ry%3D%2212%22%20width%3D%22164%22%20height%3D%22108%22%20fill%3D%22%23ffffff%22%20stroke%3D%22%23111827%22%20stroke-width%3D%224%22/%3E%0A%3Crect%20x%3D%2220%22%20y%3D%2224%22%20width%3D%22140%22%20height%3D%2280%22%20rx%3D%226%22%20fill%3D%22%23e5e7eb%22/%3E%0A%3Ccircle%20cx%3D%2290%22%20cy%3D%22104%22%20r%3D%224%22%20fill%3D%22%239ca3af%22/%3E%0A%3C/svg%3E'},
+  {id:'ticket', word:'ticket', article:'a', ipa:'/ˈtɪkɪt/', ex:'Buy a bus ticket.', cat:'travel', emo:'🎟️', hint:'t…'},
+  {id:'tissue', word:'tissue', article:'a', ipa:'/ˈtɪʃuː/', ex:'Take a tissue.', cat:'home', emo:'🧻', hint:'t…'},
+  {id:'umbrella', word:'umbrella', article:'an', ipa:'/ʌmˈbrɛlə/', ex:'Take an umbrella, it may rain.', cat:'travel', emo:'☂️', hint:'u…'},
+  {id:'wallet', word:'wallet', article:'a', ipa:'/ˈwɒlɪt/', ex:'Money is in a wallet.', cat:'travel', emo:'👛', hint:'w…'},
+  {id:'watch', word:'watch', article:'a', ipa:'/wɒtʃ/', ex:'Check the time on a watch.', cat:'wear', emo:'⌚', hint:'w…'},
+];
+
+/* Pack scenarios */
+const PACK_PRESETS = {
+  school:  {prompt:"Going to school", needed:['bag','notebook','pencil','laptop','dictionary','pen','paper']},
+  beach:   {prompt:"Going to the beach", needed:['sunglasses','umbrella','tissue','wallet']},
+  rainy:   {prompt:"Rainy day in the city", needed:['umbrella','ticket','tissue','wallet','phone']},
+  study:   {prompt:"Study time at home", needed:['dictionary','notebook','pencil','laptop','charger','headphones','paper']},
+};
+
+const MODULES = [
+  {id:'pictureWall', name:'Picture Wall'},
+  {id:'learn', name:'Flip Cards'},
+  
+  {id:'quiz', name:'Quick Choice'},
+  {id:'spell', name:'Spelling Builder'},
+  {id:'pack', name:'Pack the Bag'},
+  {id:'bingo', name:'Bingo'},
+  {id:'sayit', name:'Production Boost'},
+  {id:'recap', name:'Recap & Mastery'},
+];
+
+/* --------------------------- State & helpers ---------------------------- */
+const state = {
+  classMode:false, bigTargets:false, dyslexia:false, highContrast:false,
+  setSize:30, cat:'all', xp:0, streak:0, timer:0, timerOn:true,
+  progress: {}, bucket: {practice:new Set(), known:new Set()}, currentModule:'pictureWall',
+};
+const el = s=>document.querySelector(s);
+const showToast = (msg)=>{ const t=el('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1400); };
+const addXP = (n)=>{ state.xp+=n; el('#xpBadge').textContent=`XP: ${state.xp}`; };
+const streakBump=(ok)=>{ state.streak = ok? state.streak+1 : 0; el('#streakBadge').textContent=`Streak: ${state.streak}`; };
+
+/* Timer (disabled in Class Mode) */
+setInterval(()=>{ if(state.classMode) return; state.timer += 1; el('#timerBadge').textContent = `⏱ ${state.timer}s`; },1000);
+
+/* Speech helpers */
+function speak(txt, rate=1){
+  if(!('speechSynthesis' in window)) return;
+  if(state.classMode) return;
+  const u = new SpeechSynthesisUtterance(txt); u.rate = rate; speechSynthesis.speak(u);
+}
+function tryMic(onResult){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ showToast('Mic not available'); return null; }
+  const r = new SR(); r.lang='en-US'; r.onresult=e=>onResult(e.results[0][0].transcript||''); r.onerror=()=>showToast('Mic error'); r.start(); return r;
+}
+
+/* Persistence */
+const KEY='vocab_arcade_v2';
+function load(){
+  try{ const saved = JSON.parse(localStorage.getItem(KEY)||'{}');
+    Object.assign(state.progress, saved.progress||{});
+    (saved.bucket?.known||[]).forEach(id=>state.bucket.known.add(id));
+    (saved.bucket?.practice||[]).forEach(id=>state.bucket.practice.add(id));
+  }catch{}
+}
+function save(){
+  localStorage.setItem(KEY, JSON.stringify({ progress: state.progress, bucket: { known:[...state.bucket.known], practice:[...state.bucket.practice] } }));
+}
+
+/* Filtering items */
+function getSet(){ let arr = ALL_ITEMS.filter(it=> state.cat==='all' ? true : it.cat===state.cat); return arr.slice(0, state.setSize); }
+function ensureProgress(ids){ ids.forEach(id=>{ if(!state.progress[id]) state.progress[id]={m:0, seen:0, correct:0, wrong:0}; }); }
+
+/* Mastery update */
+function mark(id, ok){
+  const p = state.progress[id]; if(!p) return;
+  p.seen++; ok? p.correct++ : p.wrong++;
+  if(ok){ p.m = Math.min(3, p.m+1); addXP(5); streakBump(true); } else { p.m = Math.max(0, p.m-1); streakBump(false); }
+  save();
+}
+
+/* CSV export */
+function exportCSV(){
+  const heads = ['id','word','cat','mastery','seen','correct','wrong'];
+  const rows = getSet().map(it=>{ const p = state.progress[it.id]||{m:0,seen:0,correct:0,wrong:0}; return [it.id,it.word,it.cat,p.m,p.seen,p.correct,p.wrong]; });
+  const csv = [heads.join(','), ...rows.map(r=>r.join(','))].join('\\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='vocab_results.csv'; a.click();
+}
+
+/* UI: tabs */
+function renderTabs(){
+  const t = el('#tabs'); t.innerHTML='';
+  MODULES.forEach(m=>{ const b=document.createElement('button'); b.className='tab'+(state.currentModule===m.id?' active':''); b.textContent=m.name; b.onclick=()=>{ state.currentModule=m.id; render(); }; t.appendChild(b); });
+}
+
+/* Picture Wall */
+function viewPictureWall(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  let target = items[Math.floor(Math.random()*items.length)];
+  let time = state.classMode ? 0 : 30; let score=0;
+  const v = el('#view'); v.innerHTML = `
+    <div class="hunt">
+      <span class="pill">Quick hunt:</span>
+      <b id="huntTarget">${target.word}</b>
+      <span class="pill">Time: <span id="huntTime">${time}</span>s</span>
+      <span class="pill">Found: <span id="huntScore">${score}</span></span>
+      <button id="reshuffle">Reshuffle</button>
+    </div>
+    <div class="grid" id="wall"></div>`;
+  const wall = el('#wall');
+  function pickNew(){ target = items[Math.floor(Math.random()*items.length)]; el('#huntTarget').textContent=target.word; }
+  function draw(){
+    wall.innerHTML='';
+    items.forEach(it=>{
+      const d=document.createElement('button'); d.className='tile'; d.setAttribute('aria-label', it.word);
+      d.innerHTML = `<div class="emo emoji-font" style="font-size:3rem">${it.img ? '<img class="emo-img" src="' + it.img + '" alt="' + it.word + '">': it.emo}</div>`;
+      d.onclick=()=>{ if(it.id===target.id){ mark(it.id,true); score++; el('#huntScore').textContent=score; addXP(2); speak(it.word,1.1); pickNew(); } else { mark(it.id,false); showToast('Try again'); } };
+      wall.appendChild(d);
+    });
+  }
+  draw();
+  el('#reshuffle').onclick=()=>{ items.sort(()=>Math.random()-.5); draw(); };
+  if(!state.classMode){ const tick=setInterval(()=>{ time--; el('#huntTime').textContent=time; if(time<=0){ clearInterval(tick); showToast('Time! Move to Flip Cards →'); } },1000); }
+}
+
+/* Flip Cards (bright badge for emoji) */
+function viewLearn(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  const queue = [...items].sort((a,b)=>{ const pa=state.progress[a.id].m, pb=state.progress[b.id].m; const ap=state.bucket.practice.has(a.id)?-1:0, bp=state.bucket.practice.has(b.id)?-1:0; return (ap-bp) || (pa-pb); });
+  let i=0; const v=el('#view');
+  v.innerHTML = `
+    <div class="row kpi">
+      <div class="chip">Card ${i+1}/${queue.length}</div>
+      <div class="chip">Practice: ${[...state.bucket.practice].length}</div>
+      <div class="chip">Known: ${[...state.bucket.known].length}</div>
+      <div class="chip ring" id="ring"><span>0</span></div>
+      <div class="row">
+        <button id="saySlow">🔈 Slow</button>
+        <button id="say">🔊 Normal</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="flip" id="flip" tabindex="0" role="button" aria-label="Flip card (Space)">
+        <div class="face front" id="front"></div>
+        <div class="face back" id="back"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <button id="markPractice">Keep Practicing</button>
+      <button id="markKnown">I Know This</button>
+      <button id="prev">◀ Prev</button>
+      <button id="next">Next ▶</button>
+    </div>`;
+  function setRing(id){ const m = state.progress[id]?.m||0; const r = el('#ring'); r.style.setProperty('--p', (m/3)*100); r.querySelector('span').textContent = m; }
+  function drawCard(){ const it = queue[i]; if(!it) return; setRing(it.id);
+    el('#front').innerHTML = `<div style="display:grid;place-items:center;gap:.6rem"><div class="emoBadge"><div class="emo emoji-font" aria-hidden="true">${it.img ? '<img class=\"emo-img\" src=\"' + it.img + '\" alt=\"' + it.word + '\"/>' : it.emo}</div></div></div>`;
+    el('#back').innerHTML = `<div style="display:grid;place-items:center;gap:.25rem;padding:4px">
+      <div style="font-size:1.1rem"><b>${it.article} ${it.word}</b> <span style="color:var(--muted)">${it.ipa}</span></div>
+      <div style="color:#cde8ff">${it.ex}</div></div>`;
+  }
+  drawCard();
+  const flip = el('#flip'); const toggle = ()=>flip.classList.toggle('flipped'); flip.onclick=toggle; flip.onkeydown=(e)=>{ if(e.code==='Space'){ e.preventDefault(); toggle(); }};
+  el('#say').onclick = ()=>{ const it=queue[i]; speak(`${it.word}. ${it.ex}`,1); };
+  el('#saySlow').onclick = ()=>{ const it=queue[i]; speak(`${it.word}. ${it.ex}`,0.8); };
+  el('#next').onclick=()=>{ i=Math.min(queue.length-1,i+1); drawCard(); };
+  el('#prev').onclick=()=>{ i=Math.max(0,i-1); drawCard(); };
+  el('#markPractice').onclick=()=>{ const id=queue[i].id; state.bucket.practice.add(id); state.bucket.known.delete(id); save(); showToast('Added to Practice'); };
+  el('#markKnown').onclick=()=>{ const id=queue[i].id; state.bucket.known.add(id); state.bucket.practice.delete(id); state.progress[id].m=Math.min(3,(state.progress[id].m||0)+1); save(); showToast('Marked as Known'); drawCard(); };
+}
+
+/* Drag & Match removed per user request */
+
+/* Quick Choice */
+function viewQuiz(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  let time = state.classMode ? 0 : 12; let score=0;
+  const v=el('#view'); v.innerHTML = `<div class="row kpi"><div class="chip">Time: <span id="t">${time}</span>s</div><div class="chip">Score: <span id="s">${score}</span></div></div><div class="panel" id="q"></div>`;
+  function ask(){
+    const correct = items[Math.floor(Math.random()*items.length)]; const opts = [correct];
+    while(opts.length<3){ const r = items[Math.floor(Math.random()*items.length)]; if(!opts.some(o=>o.id===r.id)) opts.push(r); }
+    opts.sort(()=>Math.random()-.5);
+    const box=el('#q'); box.innerHTML = `<div class="card" style="margin-bottom:.6rem"><div class="emo emoji-font" style="font-size:4rem">${correct.img ? '<img class="emo-img" src="' + correct.img + '" alt="' + correct.word + '">': correct.emo}</div></div><div class="choiceWrap" id="opts"></div>`;
+    const row = el('#opts'); opts.forEach(o=>{ const b=document.createElement('button'); b.className='choice'; b.textContent=o.word;
+      b.onclick=()=>{ if(o.id===correct.id){ mark(correct.id,true); addXP(2); score++; el('#s').textContent=score; showToast('✔ Correct'); ask(); } else { mark(correct.id,false); showToast('✖ Oops'); } };
+      row.appendChild(b);
+    });
+  }
+  ask();
+  if(!state.classMode){ const timer = setInterval(()=>{ time--; el('#t').textContent=time; if(time<=0){ clearInterval(timer); showToast(`Time! Score: ${score}`); } },1000); }
+}
+
+/* Spelling Builder */
+function viewSpell(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  let pool = [...items].sort(()=>Math.random()-.5);
+  const v=el('#view'); v.innerHTML = `
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div class="row kpi"><div class="chip">Remaining: <span id="rem">${pool.length}</span></div></div>
+        <div class="row"><button id="hintBtn">Hint</button><button id="say">🔊</button></div>
+      </div>
+      <div class="card" style="margin:.6rem 0"><div class="emo emoji-font" id="emo" style="font-size:3rem"></div></div>
+      <form class="row" id="form"><input id="ans" class="select" placeholder="Type the word…" autocomplete="off" /><button>Submit</button></form>
+      <div id="msg" style="min-height:1.2em;color:#bfe9ff"></div>
+    </div>`;
+  let cur = pool[0];
+  const set = ()=>{ cur = pool[0]; el('#emo').textContent = cur.emo; el('#ans').value=''; el('#msg').textContent=''; el('#rem').textContent = pool.length; };
+  set();
+  el('#hintBtn').onclick=()=> el('#msg').textContent = `Article: ${cur.article}`;
+  el('#say').onclick=()=> speak(`${cur.word}. ${cur.ex}`, 0.95);
+  el('#form').onsubmit=(e)=>{ e.preventDefault(); const val = el('#ans').value.trim().toLowerCase();
+    if(val===cur.word.toLowerCase() || val===cur.word.replace(/[^a-z]/gi,'').toLowerCase()){
+      mark(cur.id,true); addXP(3); showToast('✔'); pool.shift(); if(!pool.length){ showToast('List done!'); viewSpell(); return; } set();
+    }else{ mark(cur.id,false); el('#msg').textContent = `Not quite. It is: ${cur.article} ${cur.word}`; pool.push(pool.shift()); }
+  };
+}
+
+/* Pack the Bag */
+function viewPack(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  const v=el('#view'); v.innerHTML = `
+    <div class="row" style="justify-content:space-between">
+      <div class="row"><span class="pill">Scenario:</span>
+        <select id="scenario" class="select">${Object.keys(PACK_PRESETS).map(k=>`<option value="${k}">${PACK_PRESETS[k].prompt}</option>`).join('')}</select>
+      </div>
+      <div class="row kpi"><div class="chip">Packed: <span id="packed">0</span> / <span id="need">0</span></div></div>
+    </div>
+    <div class="flex" style="margin-top:.5rem">
+      <div class="w50 panel"><h3 style="margin:.2rem 0">Items</h3><div class="grid" id="items"></div></div>
+      <div class="w50 panel"><h3 style="margin:.2rem 0">Bag</h3><div class="dropZone" id="bag" aria-label="Drop items here">Drop here</div><div id="bagList" class="row" style="margin-top:.6rem;flex-wrap:wrap"></div></div>
+    </div>`;
+  let need=new Set(), have=new Set();
+  const itemsBox=el('#items'), bag=el('#bag'), bagList=el('#bagList');
+  function refreshNeed(kind){ have.clear(); need = new Set(PACK_PRESETS[kind].needed); el('#need').textContent = need.size; el('#packed').textContent = 0; bagList.innerHTML = ''; bag.textContent='Drop here'; }
+  function drawItems(){ itemsBox.innerHTML=''; items.forEach(it=>{ const d=document.createElement('div'); d.className='tile'; d.draggable=true; d.id='pack_'+it.id; d.innerHTML=`<div class="emo emoji-font" style="font-size:3rem">${it.emo}</div><div>${it.word}</div>`; d.ondragstart=e=>e.dataTransfer.setData('text/plain', it.id); itemsBox.appendChild(d); }); }
+  bag.ondragover=e=>e.preventDefault();
+  bag.ondrop=e=>{ e.preventDefault(); const id=e.dataTransfer.getData('text/plain'); if(!id) return; if(have.has(id)) return; have.add(id);
+    const it = items.find(x=>x.id===id); const tag=document.createElement('span'); tag.className='chip'; tag.textContent=it.word; bagList.appendChild(tag);
+    const ok = need.has(id); mark(id, ok); if(ok){ addXP(2); } else showToast('Not needed, but packed.'); el('#packed').textContent = have.size;
+    if(need.size=== [...have].filter(x=>need.has(x)).length){ showToast('Packed everything! ⭐'); } };
+  drawItems(); refreshNeed('school'); el('#scenario').onchange=(e)=>refreshNeed(e.target.value);
+}
+
+/* Bingo */
+function viewBingo(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  const board = [...items].sort(()=>Math.random()-.5).slice(0,9);
+  let idx = -1, called = []; const v=el('#view');
+  v.innerHTML = `<div class="row" style="justify-content:space-between">
+      <div class="row kpi"><div class="chip">Calls: <span id="calls">0</span></div></div>
+      <div class="row"><button id="call">Call Next</button><button id="tts">TTS On/Off</button></div></div>
+    <div class="grid" id="board" style="grid-template-columns:repeat(3,1fr);max-width:520px;margin-top:.6rem"></div>
+    <div id="last" style="margin-top:.6rem;color:#bfe9ff"></div>`;
+  const B=el('#board');
+  board.forEach(it=>{ const b=document.createElement('button'); b.className='tile'; b.innerHTML=`<div class="emo emoji-font">${it.emo}</div><div>${it.word}</div>`;
+    b.onclick=()=>{ b.style.outline=`3px solid ${getComputedStyle(document.documentElement).getPropertyValue('--good')}`; b.dataset.hit=1; checkWin(); }; B.appendChild(b); });
+  function checkWin(){ const cells=[...B.children].map(c=>c.dataset.hit==='1'); const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]]; if(lines.some(line=>line.every(i=>cells[i]))){ showToast('BINGO! ⭐⭐'); addXP(10); } }
+  let ttsOn = !state.classMode; el('#tts').onclick=()=>{ ttsOn=!ttsOn; showToast('TTS: '+(ttsOn?'On':'Off')); };
+  el('#call').onclick=()=>{ idx++; if(idx>=items.length){ showToast('No more calls'); return; } const it = items[idx]; called.push(it.id); el('#calls').textContent=called.length;
+    el('#last').innerHTML = `<div class="tile" style="display:inline-grid;grid-auto-flow:column;gap:.6rem;align-items:center"><div class="emo emoji-font" style="font-size:3rem">${it.emo}</div><div style="font-size:1.2rem">${it.word}</div></div>`; if(ttsOn) speak(it.word,1); };
+}
+
+/* Production Boost */
+function viewSayIt(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  const prompts = ['Name 5 things in your bag.','Say 3 things you wear on a sunny day.','You are going to school. Name 4 things you take.','It is raining. What 3 things do you need?'];
+  const target = [...items].sort(()=>Math.random()-.5).slice(0,5);
+  const v=el('#view'); v.innerHTML = `<div class="panel"><p><b>Prompt:</b> <span id="pr">${prompts[Math.floor(Math.random()*prompts.length)]}</span></p>
+      <p style="color:#cde8ff"><b>Targets:</b> ${target.map(t=>t.word).join(', ')}</p>
+      <div class="row"><button id="mic">🎙 Try with mic</button><input id="typed" class="select" placeholder="Or type your answer here…" style="min-width:320px"><button id="check">Check</button></div>
+      <div id="res" style="margin-top:.5rem;color:#bfe9ff"></div></div>`;
+  function score(text){ const low = (text||'').toLowerCase(); let hits=0; target.forEach(t=>{ if(low.includes(t.word)) { hits++; mark(t.id,true); } else mark(t.id,false); }); addXP(hits); el('#res').textContent = `You used ${hits}/${target.length} target words.`; }
+  el('#check').onclick=()=>score(el('#typed').value); el('#mic').onclick=()=>tryMic(tr=>{ el('#typed').value=tr; score(tr); });
+}
+
+/* Recap & Mastery */
+function viewRecap(){
+  const items = getSet(); ensureProgress(items.map(i=>i.id));
+  const v=el('#view'); v.innerHTML = `<div class="grid">${
+    items.map(it=>{ const p=state.progress[it.id]||{m:0,seen:0,correct:0,wrong:0}; const pct=(p.m/3)*100;
+      return `<div class="tile"><div class="row" style="justify-content:space-between;width:100%">
+        <div class="emo emoji-font">${it.emo}</div><div class="ring" style="--p:${pct}"><span>${p.m||0}</span></div></div>
+        <div><b>${it.word}</b> <span style="color:var(--muted)">${it.cat}</span></div>
+        <div style="color:#bfe9ff;font-size:.85rem">seen ${p.seen} • ✔ ${p.correct} • ✖ ${p.wrong}</div></div>`; }).join('')
+  }</div>`;
+}
+
+/* Router */
+function render(){
+  document.body.classList.toggle('bigTargets', state.bigTargets);
+  document.body.classList.toggle('dyslexia-helper', state.dyslexia);
+  document.body.classList.toggle('high-contrast', state.highContrast);
+  el('#setBadge').textContent=`Set: ${state.setSize} items`; renderTabs();
+  if(state.currentModule==='match'){ state.currentModule='learn'; }
+  switch(state.currentModule){
+    case 'pictureWall': viewPictureWall(); break;
+    case 'learn': viewLearn(); break;
+    case 'match': viewMatch(); break;
+    case 'quiz': viewQuiz(); break;
+    case 'spell': viewSpell(); break;
+    case 'pack': viewPack(); break;
+    case 'bingo': viewBingo(); break;
+    case 'sayit': viewSayIt(); break;
+    case 'recap': viewRecap(); break;
+  }
+}
+
+/* Controls */
+function wireControls(){
+  el('#classMode').onchange=e=>{ state.classMode=e.target.checked; showToast(state.classMode?'Class Mode on':'Class Mode off'); render(); };
+  el('#bigTargets').onchange=e=>{ state.bigTargets=e.target.checked; render(); };
+  el('#dyslexia').onchange=e=>{ state.dyslexia=e.target.checked; };
+  el('#highContrast').onchange=e=>{ state.highContrast=e.target.checked; render(); };
+  el('#setSize').onchange=e=>{ state.setSize=parseInt(e.target.value,10); render(); };
+  el('#catFilter').onchange=e=>{ state.cat=e.target.value; render(); };
+  el('#exportCsv').onclick=exportCSV;
+  el('#resetProgress').onclick=()=>{ localStorage.removeItem(KEY); state.progress={}; state.bucket.known.clear(); state.bucket.practice.clear(); showToast('Progress reset'); render(); };
+}
+
+/* Boot */
+load(); renderTabs(); render(); wireControls();
+</script>
+</body>
+</html>

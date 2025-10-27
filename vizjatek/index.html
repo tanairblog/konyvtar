@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Vízmolekula Kaland</title>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #b4e2fa 0%, #eafafc 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #145481;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            background: rgba(255,255,255,0.95);
+            border-radius: 24px;
+            box-shadow: 0 8px 24px #78b7d9aa;
+            padding: 32px 24px 16px 24px;
+            text-align: center;
+        }
+        img {
+            width: 250px;
+            height: 180px;
+            object-fit: contain;
+            border-radius: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 16px #78b7d944;
+            background: #e8f5fc;
+        }
+        h2 {
+            margin-top: 0;
+            font-size: 2.2em;
+        }
+        .desc {
+            font-size: 1.2em;
+            margin: 18px 0 22px 0;
+        }
+        .step-btn {
+            background: linear-gradient(90deg, #5bc2e7 0%, #68d5e3 100%);
+            border: none;
+            color: #fff;
+            font-size: 1.1em;
+            padding: 14px 36px;
+            border-radius: 24px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            margin-top: 14px;
+            box-shadow: 0 4px 12px #8fd0ee55;
+            transition: background 0.2s;
+        }
+        .step-btn:hover {
+            background: linear-gradient(90deg, #36aee3 0%, #52ced7 100%);
+        }
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img id="place-img" src="tenger.png" alt="Hely képe">
+        <h2 id="place-title">Tenger</h2>
+        <div class="desc" id="place-desc">A hatalmas világóceánban ringatózol, csak egy vagy a számtalan vízmolekula közül. Cápák és polipok húznak el melletted, a tengeráramlásokkal bejárod a világot.</div>
+        <button class="step-btn" onclick="nextStep()">Tovább →</button>
+    </div>
+    <div class="footer">
+        &copy; 2024 Vízmolekula játék | Készítette: Tanárbácsi a Vita kupacnak, ChatGPT-vel
+    </div>
+<script>
+const locations = {
+    "Tenger": {
+        img: "tenger.png",
+        desc: "A hatalmas világóceánban ringatózol, csak egy vagy a számtalan vízmolekula közül. Cápák és polipok húznak el melletted, a tengeráramlásokkal bejárod a világot.",
+        options: [
+            { prob: 1.0, text: "A Nap szerető sugarainak hála elszakadsz a felszíntől, párolgással a légkörbe jutsz, ahol hamarosan társaiddal egy felhőt alkotsz a magasban.", to: "Felhő" }
+        ]
+    },
+    "Felhő": {
+        img: "felho.png",
+        desc: "Ezer méter magasan egy jégkristályban vagy, várod a pillanatot, amikor majd eső, vagy talán hó lesz belőled.",
+        options: [
+            { prob: 0.2, text: "Eső formájában hullsz le tengerbe.", to: "Tenger" },
+            { prob: 0.6, text: "Az eső a talajon ér földet, a talaj részecskéi gyorsan beszívnak és elindulsz ebben a sötét világban.", to: "Talaj" },
+            { prob: 0.1, text: "A sarkvidéken hullsz le hópiheként és az örök jég vidékén fagysz meg.", to: "Jég" },
+            { prob: 0.1, text: "Micsoda szerencse, pont egy tóba estél bele.", to: "Tó" }
+        ]
+    },
+    "Talaj": {
+        img: "talaj.png",
+        desc: "A talajban sem állsz csak egy helyben, ionokhoz kötődsz, az újonnan jött víz néha mélyebbre lök, néha a felszínhez közelebb mész.",
+        options: [
+            { prob: 0.5, text: "Hupsz, egy növény gyökerébe érkeztél, micsoda izgalmas világ!", to: "Növény" },
+            { prob: 0.5, text: "Elég volt a sötétségből, társaiddal együtt a felszínre törtök!", to: "Folyó" }
+        ]
+    },
+    "Folyó": {
+        img: "folyo.png",
+        desc: "Lassan hömpölyögsz végig a vidéken a folyóban társaiddal.",
+        options: [
+            { prob: 0.2, text: "A Nap szerető sugarainak hála elszakadsz a felszíntől, párolgással a légkörbe jutsz, ahol hamarosan társaiddal egy felhőt alkotsz a magasban.", to: "Felhő" },
+            { prob: 0.6, text: "Minden utazás véget ér egyszer, a folyóé a tengerben.", to: "Tenger" },
+            { prob: 0.2, text: "Mi történik? Egy állat lefetyel fel a folyóból!", to: "Állat" }
+        ]
+    },
+    "Tó": {
+        img: "to.png",
+        desc: "Végre egy kis nyugalom, a nagy mászkálás, rohanás után végre egy kis állóvíz, a tóban hullámzol lágyan a többiekkel együtt.",
+        options: [
+            { prob: 0.8, text: "A Nap szerető sugarainak hála elszakadsz a felszíntől, párolgással a légkörbe jutsz, ahol hamarosan társaiddal egy felhőt alkotsz a magasban.", to: "Felhő" },
+            { prob: 0.2, text: "Először csak az árnyékot látod, egy állat hajol a tó fölé, majd inni kezd.", to: "Állat" }
+        ]
+    },
+    "Növény": {
+        img: "noveny.png",
+        desc: "A gyökérszörökön át kerülsz be a növénybe, innen a szállítónyalábokon át fel a levelekig. Micsoda utazás!",
+        options: [
+            { prob: 0.8, text: "A levelek gázcserenyílásán át távozol a légkörbe, ahol hamarosan egy felhőben találod magad.", to: "Felhő" },
+            { prob: 0.2, text: "Mi ez az inzultus? A levelet lelegelte egy állat!", to: "Állat" }
+        ]
+    },
+    "Állat": {
+        img: "allat.png",
+        desc: "Az állat gyomrából szívódsz fel a keringésébe. Sokféle sejtben jársz, amíg végre elhagyod ezt a lényt.",
+        options: [
+            { prob: 0.8, text: "Az állat légzésével együtt kerülsz ki a légkörbe. Hamarosan már egy felhőben találod magad.", to: "Felhő" },
+            { prob: 0.2, text: "Hoppá, kipisiltek! Szégyenedben gyorsan beszivárogsz a talajba.", to: "Talaj" }
+        ]
+    },
+    "Jég": {
+        img: "jeg.png",
+        desc: "Évszázadokig állsz a kristályban, amíg történik valami.",
+        options: [
+            { prob: 0.5, text: "Mindennek vége lesz egyszer, a kristályrácsnak is, elszakadsz a többiektől és a légkörbe jutsz. Itt hamarosan egy felhőben találod magad.", to: "Felhő" },
+            { prob: 0.5, text: "Ahogy melegszik a környék egyre nehezebb egyhelyben maradni. Megolvad a jég és egy kis folyó csordogál a gleccser aljában.", to: "Folyó" }
+        ]
+    }
+};
+
+let current = "Tenger";
+
+function nextStep() {
+    const place = locations[current];
+    if (place.options.length === 1) {
+        // Csak egy út van tovább
+        const opt = place.options[0];
+        setPlace(opt.to, opt.text);
+        return;
+    }
+    // Véletlenszerű útválasztás a valószínűségek alapján
+    let r = Math.random();
+    let sum = 0;
+    for (const opt of place.options) {
+        sum += opt.prob;
+        if (r < sum) {
+            setPlace(opt.to, opt.text);
+            return;
+        }
+    }
+    // Biztonsági okból, ha elcsúszik a valószínűség
+    setPlace(place.options[place.options.length-1].to, place.options[place.options.length-1].text);
+}
+
+function setPlace(placeName, optionText) {
+    const place = locations[placeName];
+    document.getElementById("place-img").src = place.img;
+    document.getElementById("place-img").alt = placeName + " képe";
+    document.getElementById("place-title").innerText = placeName;
+    document.getElementById("place-desc").innerHTML = "<b>" + optionText + "</b><br><br>" + place.desc;
+    current = placeName;
+}
+</script>
+</body>
+</html>

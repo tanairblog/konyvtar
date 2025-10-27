@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Present Simple Trainer – Beginner</title>
+<style>
+  :root{
+    --primary-300:#F9C97A; --primary-700:#B45309;
+    --secondary-300:#7EDAD6; --secondary-500:#2BB6B4;
+    --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+    --text:#1F2937; --text-2:#4B5563; --muted:#6B7280; --inverse:#fff;
+    --ok:#2F9E44; --err:#D92D20;
+    --radius-card:16px; --radius-pill:9999px; --shadow:0 4px 14px rgba(17,24,39,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text)}
+  header{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--border);padding:16px 20px}
+  header h1{margin:0;font-size:22px;font-weight:600}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .pill{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface-alt);color:var(--text-2);font-size:12px}
+  .select{appearance:none;padding:8px 10px;border-radius:var(--radius-pill);background:var(--surface);border:1px solid var(--border)}
+  .right{margin-left:auto}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .tab{padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-pill);background:var(--surface);color:var(--text-2);cursor:pointer}
+  .tab.active{background:var(--primary-700);color:var(--inverse);border-color:transparent}
+  .panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:18px;box-shadow:var(--shadow)}
+  .panel.active{display:block}
+  .sentence{font-size:24px;margin:12px 0 6px}
+  input[type=text]{width:100%;padding:12px;border:1px solid var(--border);border-radius:var(--radius-card);font-size:18px}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{padding:10px 14px;border-radius:var(--radius-pill);border:1px solid var(--border);cursor:pointer;background:transparent;color:var(--primary-700)}
+  button.primary{background:var(--primary-700);border:none;color:var(--inverse)}
+  .feedback{min-height:24px;margin-top:8px;font-weight:600}
+  .feedback.ok{color:var(--ok)}
+  .feedback.err{color:var(--err)}
+  .hint{font-size:13px;color:var(--text-2);background:#FEF3C7;border:1px dashed #FDE68A;border-radius:var(--radius-card);padding:8px 10px;margin-top:10px}
+</style>
+<style id="flash-css">
+  /* Enter feedback flash (1s, hard switch) */
+  .flash-ok{ background-color:#D1FADF !important; border-color:#2F9E44 !important; }
+  .flash-err{ background-color:#FFE4E6 !important; border-color:#D92D20 !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Present Simple Trainer • kezdőknek</h1>
+</header>
+<div class="wrap">
+  <div class="row">
+    <span class="pill">Cél: E/3, tagadás, kérdés, kevert</span>
+    <label class="pill">Fókusz: <select id="focus" class="select"><option>Normál</option></select></label>
+    <span class="pill">Pontozás: <strong id="score">0</strong></span>
+    <div class="right">
+      <button id="resetScore">Pont nullázása</button>
+      <button id="newSeed">Új mondatkészlet</button>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <div class="tab active" data-tab="to3rd">E/3 átalakítás</div>
+    <div class="tab" data-tab="neg">Tagadás</div>
+    <div class="tab" data-tab="q">Kérdés</div>
+    <div class="tab" data-tab="mix">Mix</div>
+  </div>
+
+  <!-- E/3 átalakítás -->
+  <section class="panel active" id="to3rd">
+    <div class="hint">Alakítsd át a mondatot egyes szám harmadik személyre. <strong>He/She/It</strong> mind elfogadott. E/3-ban -s/-es, <em>have→has, go→goes, study→studies</em>.</div>
+    <div class="sentence" id="s_to3rd">…</div>
+    <input type="text" id="i_to3rd" placeholder="Írd be a megoldást… pl. He goes home.">
+    <div class="btns">
+      <button class="primary" id="c_to3rd">Ellenőrzés</button>
+      <button id="s_to3rd_show">Mutasd a megoldást</button>
+      <button id="n_to3rd">Következő</button>
+    </div>
+    <div class="feedback" id="f_to3rd"></div>
+  </section>
+
+  <!-- Tagadás -->
+  <section class="panel" id="neg">
+    <div class="hint">Tagadd jelen időben. E/3: <strong>doesn't + base</strong>; másutt: <strong>don't + base</strong>. Ha az alany <em>he/she</em>, mindkettő elfogadott.</div>
+    <div class="sentence" id="s_neg">…</div>
+    <input type="text" id="i_neg" placeholder="Írd be a tagadást… pl. He doesn't like pizza.">
+    <div class="btns">
+      <button class="primary" id="c_neg">Ellenőrzés</button>
+      <button id="s_neg_show">Mutasd a megoldást</button>
+      <button id="n_neg">Következő</button>
+    </div>
+    <div class="feedback" id="f_neg"></div>
+  </section>
+
+  <!-- Kérdés -->
+  <section class="panel" id="q">
+    <div class="hint">Alakítsd kérdéssé. E/3: <strong>Does</strong>, másutt: <strong>Do</strong>. A főige alapalakban marad. <em>He/She</em> csere elfogadott.</div>
+    <div class="sentence" id="s_q">…</div>
+    <input type="text" id="i_q" placeholder="Írd be a kérdést… pl. Does he like pizza?">
+    <div class="btns">
+      <button class="primary" id="c_q">Ellenőrzés</button>
+      <button id="s_q_show">Mutasd a megoldást</button>
+      <button id="n_q">Következő</button>
+    </div>
+    <div class="feedback" id="f_q"></div>
+  </section>
+
+  <!-- Mix -->
+  <section class="panel" id="mix">
+    <div class="hint">Kevert mód: tagadás vagy kérdés bármelyik jöhet. (Az adatbázis a megadott mondatokból jön — nincs véletlen összelegózás.)</div>
+    <div class="sentence" id="s_mix">…</div>
+    <input type="text" id="i_mix" placeholder="Írd be a megoldást…">
+    <div class="btns">
+      <button class="primary" id="c_mix">Ellenőrzés</button>
+      <button id="s_mix_show">Mutasd a megoldást</button>
+      <button id="n_mix">Következő</button>
+    </div>
+    <div class="feedback" id="f_mix"></div>
+  </section>
+</div>
+
+<script>
+// ---------- SCORE ----------
+let score=0; const scoreEl=document.getElementById('score');
+function addScore(n){ score+=n; scoreEl.textContent=score; }
+
+// ---------- STRICT DATABASES (no random verb+object) ----------
+// (A) E/3 átalakításhoz: 100 db I/You mondat
+const db_to3rd = [
+  "I go home.","I go to school.","I go to work.","I go to the park.","I go to the gym.","I like pizza.","I like music.","I like cats.","I like football.","I like this book.","I play football.","I play the guitar.","I play computer games.","I play tennis.","I play with my dog.","I read books.","I read the news.","I read a story.","I read a comic.","I read in bed.","I watch TV.","I watch movies.","I watch cartoons.","I watch the game.","I watch online videos.","I eat breakfast.","I eat lunch.","I eat dinner.","I eat an apple.","I eat a sandwich.","I drink water.","I drink tea.","I drink coffee.","I drink milk.","I drink juice.","I study English.","I study math.","I study every day.","I study after school.","I study with a friend.","I open the window.","I open the door.","I open my bag.","I open the book.","I open a bottle.","I close the window.","I close the door.","I close my eyes.","I close the book.","I close the box.","I have a dog.","I have a cat.","I have a bike.","I have a car.","I have a new phone.","I make breakfast.","I make a sandwich.","I make a cake.","I make a plan.","I make a list.","I take a bus.","I take a shower.","I take photos.","I take a break.","I take notes.","I clean the room.","I clean the kitchen.","I clean my shoes.","I clean the table.","I clean my bike.","I wash my hands.","I wash the dishes.","I wash my clothes.","I wash the car.","I wash my face.","I fix the bike.","I fix the chair.","I fix the door.","I fix my computer.","I fix a problem.","I carry a bag.","I carry a box.","I carry books.","I carry my laptop.","I carry your jacket.","I help my friend.","I help my parents.","I help the teacher.","I help at home.","I help a classmate.","You go home.","You like chocolate.","You play basketball.","You read a book.","You watch TV.","You eat breakfast.","You drink tea.","You study English.","You open the door.","You have a bike."
+];
+
+// (B) Tagadás/Kérdés/Mix: a felhasználó által megadott adatbázis
+const db_base = [
+"I go home.","I like pizza.","I play football.","I read books.","I watch TV.","I eat breakfast.",
+"I drink tea.","I study English.","I open the window.","I close the door.",
+"You play tennis.","You go to school.","You like music.","You read the news.","You clean the room.","You drink water.","You eat an apple.","You watch movies.","You learn fast.","You walk to work.",
+"He plays football.","He goes to work.","He likes dogs.","He reads the newspaper.","He drinks coffee.","He eats lunch.","He watches TV.","He studies math.","He opens the door.","He closes the window.",
+"She plays the piano.","She likes chocolate.","She goes to school.","She reads stories.","She drinks milk.","She eats breakfast.","She watches films.","She studies English.","She opens her bag.","She closes her book.",
+"We play basketball.","We go to the park.","We like music.","We read together.","We drink coffee.","We eat dinner.","We watch TV.","We study every day.","We open the window.","We clean the house.",
+"They play football.","They go to work.","They like dogs.","They read books.","They drink tea.","They eat sandwiches.","They watch TV.","They study English.","They open the door.","They close the window.",
+"The dog runs fast.","The cat sleeps a lot.","The teacher works hard.","The student studies English.","The sun shines.","The baby cries.","The bird sings.","The car stops.","The bus arrives.","The boy plays football.",
+"My brother reads comics.","My sister likes cats.","My friend goes to school.","My father drives a car.","My mother cooks dinner.","My parents watch TV.","My dog eats bones.","My cat drinks milk.","My teacher helps me.","My friend plays the guitar.",
+"We live in Budapest.","They work in a hospital.","He lives in a big house.","She works in a shop.","I work in an office.","You live in a small town.",
+"He has a bike.","She has a cat.","It rains a lot here.","It snows in winter.","We have a car.","They have two children.","I have a dog.","You have a good job.",
+"The shop opens at nine.","The shop closes at five.","The train leaves at seven.","The lesson starts at eight.","The lesson ends at nine.","The movie finishes at ten."
+];
+
+// ---------- Helpers ----------
+const $ = s => document.querySelector(s);
+const normalize = s => s.toLowerCase().replace(/\s+/g,' ').replace(/[.!?]$/,'').trim();
+const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+
+function thirdPersonS(v){
+  if(v==='have') return 'has';
+  if(/(s|sh|ch|x|z|o)$/i.test(v)) return v+'es';
+  if(/[^aeiou]y$/i.test(v)) return v.slice(0,-1)+'ies';
+  return v+'s';
+}
+function toBaseVerb(word){
+  const w = word.toLowerCase();
+  if(w==='has') return 'have';
+  if(w==='does') return 'do';
+  if(/goes$/.test(w)) return 'go';
+  if(/[^aeiou]ies$/.test(w)) return word.slice(0,-3)+'y';
+  if(/(s|sh|ch|x|z|o)es$/.test(w)) return word.slice(0,-2);
+  if(/s$/.test(w)) return word.slice(0,-1);
+  return word;
+}
+function splitAff(s){
+  const t = s.replace(/[.?!]$/,'').split(' ');
+  let subject=t[0];
+  if((t[0]==='My'||t[0]==='The')&&t.length>1){subject=t[0]+" "+t[1];}
+  const vIndex = subject.includes(' ')?2:1;
+  const verb=t[vIndex];
+  const rest=t.slice(vIndex+1).join(' ');
+  return {subject,verb,rest};
+}
+function isPluralSubject(subj){
+  const s=subj.toLowerCase();
+  if(['i','you','we','they'].includes(s)) return true;
+  if(s.startsWith('my parents')) return true;
+  return false;
+}
+function needsDoes(subj){
+  const s=subj.toLowerCase();
+  if(['i','you','we','they'].includes(s)) return false;
+  if(s.startsWith('my parents')) return false;
+  return true; // minden más: E/3
+}
+function isHeShe(subj){ return /^(he|she)$/i.test(subj); }
+
+// ---------- E/3 TAB ----------
+function toThirdAll(s){
+  const {verb,rest}=splitAff(s);
+  const v=thirdPersonS(toBaseVerb(verb));
+  return [cap(`he ${v} ${rest}`)+'.', cap(`she ${v} ${rest}`)+'.', cap(`it ${v} ${rest}`)+'.'];
+}
+let curTo3rd, solvedTo3rd=false, showedTo3rd=false;
+function nextTo3rd(){ showedTo3rd=false; curTo3rd = db_to3rd[Math.floor(Math.random()*db_to3rd.length)]; $('#s_to3rd').textContent=curTo3rd; $('#i_to3rd').value=''; $('#f_to3rd').textContent=''; solvedTo3rd=false; }
+function checkTo3rd(){ if(solvedTo3rd) return; const val=normalize($('#i_to3rd').value); const goods=toThirdAll(curTo3rd).map(normalize); const ok=goods.includes(val); setFB('#f_to3rd', ok); if(ok && !showedTo3rd){addScore(1); solvedTo3rd=true;} }
+function showTo3rd(){ showedTo3rd=true; $('#f_to3rd').textContent=toThirdAll(curTo3rd).join(' / '); $('#f_to3rd').className='feedback'; }
+
+// ---------- NEGATION/Q TABS (from db_base) ----------
+function negAnswers(s){
+  const {subject,verb,rest}=splitAff(s);
+  const base=toBaseVerb(verb);
+  const aux = needsDoes(subject)?"doesn't":"don't";
+  const core = `${cap(subject)} ${aux} ${base} ${rest}`.replace(/\s+/g,' ').trim()+'.';
+  if(isHeShe(subject)){
+    const swapped = core.replace(/^He\b/,'She').replace(/^She\b/,'He');
+    return [core, swapped];
+  }
+  return [core];
+}
+function qAnswers(s){
+  const {subject,verb,rest}=splitAff(s);
+  const base=toBaseVerb(verb);
+  const aux = needsDoes(subject)?'Does':'Do';
+  const core = `${aux} ${subject} ${base} ${rest}?`.replace(/\s+/g,' ').trim();
+  if(isHeShe(subject)){
+    const swapped = core.replace(/^Does He\b/,'Does She').replace(/^Does She\b/,'Does He');
+    return [core, swapped];
+  }
+  return [core];
+}
+function setFB(sel, ok){ const el=$(sel); el.textContent = ok? 'Helyes!' : 'Nem egészen. Próbáld újra!'; el.className = 'feedback ' + (ok?'ok':'err'); }
+
+let curNeg, curQ, curMix, curMixKind, solvedNeg=false, solvedQ=false, solvedMix=false, showedNeg=false, showedQ=false, showedMix=false;
+function nextNeg(){ showedNeg=false; curNeg = db_base[Math.floor(Math.random()*db_base.length)]; $('#s_neg').textContent=curNeg; $('#i_neg').value=''; $('#f_neg').textContent=''; solvedNeg=false; }
+function checkNeg(){ if(solvedNeg) return; const val=normalize($('#i_neg').value); const goods=negAnswers(curNeg).map(normalize); const ok=goods.includes(val); setFB('#f_neg', ok); if(ok && !showedNeg){addScore(1); solvedNeg=true;} }
+function showNeg(){ showedNeg=true; $('#f_neg').textContent=negAnswers(curNeg).join(' / '); $('#f_neg').className='feedback'; }
+
+function nextQ(){ showedQ=false; curQ = db_base[Math.floor(Math.random()*db_base.length)]; $('#s_q').textContent=curQ; $('#i_q').value=''; $('#f_q').textContent=''; solvedQ=false; }
+function checkQ(){ if(solvedQ) return; const val=normalize($('#i_q').value); const goods=qAnswers(curQ).map(normalize); const ok=goods.includes(val); setFB('#f_q', ok); if(ok && !showedQ){addScore(1); solvedQ=true;} }
+function showQ(){ showedQ=true; $('#f_q').textContent=qAnswers(curQ).join(' / '); $('#f_q').className='feedback'; }
+
+function nextMix(){ showedMix=false; curMix = db_base[Math.floor(Math.random()*db_base.length)]; curMixKind = Math.random()<0.5?'neg':'q'; $('#s_mix').innerHTML = curMix + ' <span class="pill" style="margin-left:6px">' + (curMixKind==='neg'?'Tagadás':'Kérdés') + '</span>'; $('#i_mix').value=''; $('#f_mix').textContent=''; solvedMix=false; }
+function checkMix(){ if(solvedMix) return; const val=normalize($('#i_mix').value); const goods=(curMixKind==='neg'?negAnswers(curMix):qAnswers(curMix)).map(normalize); const ok=goods.includes(val); setFB('#f_mix', ok); if(ok && !showedMix){addScore(1); solvedMix=true;} }
+function showMix(){ showedMix=true; $('#f_mix').textContent=(curMixKind==='neg'?negAnswers(curMix):qAnswers(curMix)).join(' / '); $('#f_mix').className='feedback'; }
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab=>tab.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+}));
+
+// Top controls
+$('#resetScore').onclick=()=>{score=0;scoreEl.textContent='0'};
+$('#newSeed').onclick=()=>{nextTo3rd();nextNeg();nextQ();nextMix()};
+
+// Init
+nextTo3rd(); nextNeg(); nextQ(); nextMix();
+</script>
+<script id="hotfix-present-simple-no-regex">
+(function(){
+  var scoreEl = document.getElementById('score');
+  function setScore(n){ if(scoreEl) scoreEl.textContent = String(n); }
+  var score = Number(scoreEl ? scoreEl.textContent : 0) || 0;
+  function addScore(n){ score += n; setScore(score); }
+
+  function normalize(s){
+    if(!s) return '';
+    var t = s.toLowerCase().trim();
+    while(t.endsWith('.') || t.endsWith('!') || t.endsWith('?')) t = t.slice(0,-1);
+    var parts = t.split(' '); var clean=[]; for(var i=0;i<parts.length;i++){ if(parts[i]) clean.push(parts[i]); }
+    return clean.join(' ');
+  }
+  function isVowel(c){ return c==='a'||c==='e'||c==='i'||c==='o'||c==='u'; }
+  function thirdPersonS(v){
+    if(v==='have') return 'has';
+    var l=v.toLowerCase();
+    if(l.endsWith('y') && !isVowel(l.charAt(l.length-2))) return v.slice(0,-1)+'ies';
+    var ends=['s','sh','ch','x','z','o']; for(var i=0;i<ends.length;i++){ if(l.endsWith(ends[i])) return v+'es'; }
+    return v+'s';
+  }
+  function toBaseVerb(w){
+    var l=w.toLowerCase();
+    if(l==='has') return 'have';
+    if(l==='does') return 'do';
+    if(l.endsWith('goes')) return 'go';
+    if(l.endsWith('ies') && w.length>3) return w.slice(0,-3)+'y';
+    var es=['ses','shes','ches','xes','zes','oes']; for(var i=0;i<es.length;i++){ if(l.endsWith(es[i])) return w.slice(0,-2); }
+    if(l.endsWith('s') && !l.endsWith('ss')) return w.slice(0,-1);
+    return w;
+  }
+  function collapseSpaces(t){ var a=t.split(' '); var b=[]; for(var i=0;i<a.length;i++){ if(a[i]) b.push(a[i]); } return b.join(' '); }
+  function splitAff(s){
+    var t = collapseSpaces(s.trim());
+    if(t.endsWith('.')||t.endsWith('!')||t.endsWith('?')) t=t.slice(0,-1);
+    var a = t.split(' ');
+    var subject=a[0];
+    if((a[0]==='My'||a[0]==='The')&&a.length>1){ subject=a[0]+' '+a[1]; }
+    var vIndex = subject.indexOf(' ')>-1?2:1;
+    var verb = a[vIndex]||'';
+    var rest = a.slice(vIndex+1).join(' ');
+    return {subject:subject, verb:verb, rest:rest};
+  }
+  function needsDoes(subj){ var s=subj.toLowerCase(); if(s==='i'||s==='you'||s==='we'||s==='they') return false; if(s.indexOf('my parents')===0) return false; return true; }
+  function isHeShe(subj){ var s=subj.toLowerCase(); return s==='he'||s==='she'; }
+  function swapStart(str, from, to){ return str.slice(0,from.length)===from ? to + str.slice(from.length) : str; }
+
+  var db_to3rd = window.db_to3rd || [
+    "I go home.","I go to school.","I go to work.","I go to the park.","I go to the gym.","I like pizza.","I like music.","I like cats.","I like football.","I like this book.","I play football.","I play the guitar.","I play computer games.","I play tennis.","I play with my dog.","I read books.","I read the news.","I read a story.","I read a comic.","I read in bed.","I watch TV.","I watch movies.","I watch cartoons.","I watch the game.","I watch online videos.","I eat breakfast.","I eat lunch.","I eat dinner.","I eat an apple.","I eat a sandwich.","I drink water.","I drink tea.","I drink coffee.","I drink milk.","I drink juice.","I study English.","I study math.","I study every day.","I study after school.","I study with a friend.","I open the window.","I open the door.","I open my bag.","I open the book.","I open a bottle.","I close the window.","I close the door.","I close my eyes.","I close the book.","I close the box.","I have a dog.","I have a cat.","I have a bike.","I have a car.","I have a new phone.","I make breakfast.","I make a sandwich.","I make a cake.","I make a plan.","I make a list.","I take a bus.","I take a shower.","I take photos.","I take a break.","I take notes.","I clean the room.","I clean the kitchen.","I clean my shoes.","I clean the table.","I clean my bike.","I wash my hands.","I wash the dishes.","I wash my clothes.","I wash the car.","I wash my face.","I fix the bike.","I fix the chair.","I fix the door.","I fix my computer.","I fix a problem.","I carry a bag.","I carry a box.","I carry books.","I carry my laptop.","I carry your jacket.","I help my friend.","I help my parents.","I help the teacher.","I help at home.","I help a classmate.","You go home.","You like chocolate.","You play basketball.","You read a book.","You watch TV.","You eat breakfast.","You drink tea.","You study English.","You open the door.","You have a bike."
+  ];
+  var db_base = window.db_base || [
+    "I go home.","I like pizza.","I play football.","I read books.","I watch TV.","I eat breakfast.",
+    "I drink tea.","I study English.","I open the window.","I close the door.",
+    "You play tennis.","You go to school.","You like music.","You read the news.","You clean the room.","You drink water.","You eat an apple.","You watch movies.","You learn fast.","You walk to work.",
+    "He plays football.","He goes to work.","He likes dogs.","He reads the newspaper.","He drinks coffee.","He eats lunch.","He watches TV.","He studies math.","He opens the door.","He closes the window.",
+    "She plays the piano.","She likes chocolate.","She goes to school.","She reads stories.","She drinks milk.","She eats breakfast.","She watches films.","She studies English.","She opens her bag.","She closes her book.",
+    "We play basketball.","We go to the park.","We like music.","We read together.","We drink coffee.","We eat dinner.","We watch TV.","We study every day.","We open the window.","We clean the house.",
+    "They play football.","They go to work.","They like dogs.","They read books.","They drink tea.","They eat sandwiches.","They watch TV.","They study English.","They open the door.","They close the window.",
+    "The dog runs fast.","The cat sleeps a lot.","The teacher works hard.","The student studies English.","The sun shines.","The baby cries.","The bird sings.","The car stops.","The bus arrives.","The boy plays football.",
+    "My brother reads comics.","My sister likes cats.","My friend goes to school.","My father drives a car.","My mother cooks dinner.","My parents watch TV.","My dog eats bones.","My cat drinks milk.","My teacher helps me.","My friend plays the guitar.",
+    "We live in Budapest.","They work in a hospital.","He lives in a big house.","She works in a shop.","I work in an office.","You live in a small town.",
+    "He has a bike.","She has a cat.","It rains a lot here.","It snows in winter.","We have a car.","They have two children.","I have a dog.","You have a good job.",
+    "The shop opens at nine.","The shop closes at five.","The train leaves at seven.","The lesson starts at eight.","The lesson ends at nine.","The movie finishes at ten."
+  ];
+
+  function toThirdAll(s){ var p=splitAff(s); var v=thirdPersonS(toBaseVerb(p.verb)); return [ ("He "+v+" "+p.rest+".").trim(), ("She "+v+" "+p.rest+".").trim(), ("It "+v+" "+p.rest+".").trim() ]; }
+  var curTo3rd=''; var solvedTo3rd=false; var showedTo3rd=false;
+  function nextTo3rd(){ showedTo3rd=false; curTo3rd = db_to3rd[Math.floor(Math.random()*db_to3rd.length)]; document.getElementById('s_to3rd').textContent = curTo3rd; document.getElementById('i_to3rd').value=''; document.getElementById('f_to3rd').textContent=''; solvedTo3rd=false; }
+  function checkTo3rd(){ if(solvedTo3rd) return; var val=normalize(document.getElementById('i_to3rd').value); var goods=toThirdAll(curTo3rd).map(normalize); var ok = goods.indexOf(val) !== -1; setFB('f_to3rd', ok); if(ok && !showedTo3rd){ addScore(1); solvedTo3rd=true; } }
+  function showTo3rd(){ showedTo3rd=true; document.getElementById('f_to3rd').textContent = toThirdAll(curTo3rd).join(' / '); document.getElementById('f_to3rd').className='feedback'; }
+
+  function negAnswers(s){ var p=splitAff(s); var base=toBaseVerb(p.verb); var aux=needsDoes(p.subject)? "doesn't" : "don't"; var core = (p.subject.charAt(0).toUpperCase()+p.subject.slice(1) + ' ' + aux + ' ' + base + ' ' + p.rest).trim() + '.'; if(isHeShe(p.subject)){ var swapped = core; swapped = swapStart(swapped,'He ','She '); swapped = swapStart(swapped,'She ','He '); return [core, swapped]; } return [core]; }
+  function qAnswers(s){ var p=splitAff(s); var base=toBaseVerb(p.verb); var aux=needsDoes(p.subject)? 'Does' : 'Do'; var core = (aux + ' ' + p.subject + ' ' + base + ' ' + p.rest).trim() + '?'; if(isHeShe(p.subject)){ var swapped = core; swapped = swapStart(swapped,'Does He ','Does She '); swapped = swapStart(swapped,'Does She ','Does He '); return [core, swapped]; } return [core]; }
+  function setFB(id, ok){ var el=document.getElementById(id); if(!el) return; el.textContent = ok ? 'Helyes!' : 'Nem egészen. Próbáld újra!'; el.className = 'feedback ' + (ok?'ok':'err'); }
+
+  var curNeg='', curQ='', curMix='', curMixKind='neg'; var solvedNeg=false, solvedQ=false, solvedMix=false; var showedNeg=false, showedQ=false, showedMix=false;
+  function nextNeg(){ showedNeg=false; curNeg = db_base[Math.floor(Math.random()*db_base.length)]; document.getElementById('s_neg').textContent=curNeg; document.getElementById('i_neg').value=''; document.getElementById('f_neg').textContent=''; solvedNeg=false; }
+  function checkNeg(){ if(solvedNeg) return; var val=normalize(document.getElementById('i_neg').value); var goods=negAnswers(curNeg).map(normalize); var ok = goods.indexOf(val) !== -1; setFB('f_neg', ok); if(ok && !showedNeg){ addScore(1); solvedNeg=true; } }
+  function showNeg(){ showedNeg=true; document.getElementById('f_neg').textContent = negAnswers(curNeg).join(' / '); document.getElementById('f_neg').className='feedback'; }
+
+  function nextQ(){ showedQ=false; curQ = db_base[Math.floor(Math.random()*db_base.length)]; document.getElementById('s_q').textContent=curQ; document.getElementById('i_q').value=''; document.getElementById('f_q').textContent=''; solvedQ=false; }
+  function checkQ(){ if(solvedQ) return; var val=normalize(document.getElementById('i_q').value); var goods=qAnswers(curQ).map(normalize); var ok = goods.indexOf(val) !== -1; setFB('f_q', ok); if(ok && !showedQ){ addScore(1); solvedQ=true; } }
+  function showQ(){ showedQ=true; document.getElementById('f_q').textContent = qAnswers(curQ).join(' / '); document.getElementById('f_q').className='feedback'; }
+
+  function nextMix(){ showedMix=false; curMix = db_base[Math.floor(Math.random()*db_base.length)]; curMixKind = Math.random()<0.5 ? 'neg' : 'q'; document.getElementById('s_mix').innerHTML = curMix + ' <span class="pill" style="margin-left:6px">' + (curMixKind==='neg'?'Tagadás':'Kérdés') + '</span>'; document.getElementById('i_mix').value=''; document.getElementById('f_mix').textContent=''; solvedMix=false; }
+  function checkMix(){ if(solvedMix) return; var val=normalize(document.getElementById('i_mix').value); var goods=(curMixKind==='neg'?negAnswers(curMix):qAnswers(curMix)).map(normalize); var ok = goods.indexOf(val) !== -1; setFB('f_mix', ok); if(ok && !showedMix){ addScore(1); solvedMix=true; } }
+  function showMix(){ showedMix=true; document.getElementById('f_mix').textContent = (curMixKind==='neg'?negAnswers(curMix):qAnswers(curMix)).join(' / '); document.getElementById('f_mix').className='feedback'; }
+
+  function on(id, ev, fn){ var el=document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+  on('c_to3rd','click',checkTo3rd); on('s_to3rd_show','click',showTo3rd); on('n_to3rd','click',nextTo3rd);
+  on('c_neg','click',checkNeg); on('s_neg_show','click',showNeg); on('n_neg','click',nextNeg);
+  on('c_q','click',checkQ); on('s_q_show','click',showQ); on('n_q','click',nextQ);
+  on('c_mix','click',checkMix); on('s_mix_show','click',showMix); on('n_mix','click',nextMix);
+  // Enter = Ellenőrzés (csak ellenőrzés, nincs automatikus továbblépés)
+  on('i_to3rd','keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); checkTo3rd(); }});
+  on('i_neg','keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); checkNeg(); }});
+  on('i_q','keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); checkQ(); }});
+  on('i_mix','keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); checkMix(); }});
+  on('resetScore','click',function(){ score=0; setScore(0); });
+  on('newSeed','click',function(){ nextTo3rd(); nextNeg(); nextQ(); nextMix(); });
+
+  // --- Enter visual flash (only on Enter) ---
+  function flashInput(el, ok){ if(!el) return; el.classList.remove('flash-ok','flash-err'); el.classList.add(ok?'flash-ok':'flash-err'); setTimeout(function(){ el.classList.remove('flash-ok','flash-err'); }, 1000); }
+  function attachEnterFlash(inputId, fbId){
+    var el = document.getElementById(inputId);
+    if(!el) return;
+    el.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){
+        // wait for the earlier Enter handler to run check() and set feedback
+        setTimeout(function(){
+          var fb = document.getElementById(fbId);
+          var ok = fb && fb.className.indexOf('ok')>-1; // 'feedback ok' vs 'feedback err'
+          flashInput(el, ok);
+        }, 0);
+      }
+    });
+    el.addEventListener('input', function(){ el.classList.remove('flash-ok','flash-err'); });
+  }
+  attachEnterFlash('i_to3rd','f_to3rd');
+  attachEnterFlash('i_neg','f_neg');
+  attachEnterFlash('i_q','f_q');
+  attachEnterFlash('i_mix','f_mix');
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  tabs.forEach(function(el){ el.addEventListener('click', function(){
+    tabs.forEach(function(t){ t.classList.remove('active'); });
+    Array.prototype.slice.call(document.querySelectorAll('.panel')).forEach(function(p){ p.classList.remove('active'); });
+    el.classList.add('active');
+    var id = el.getAttribute('data-tab');
+    var panel = document.getElementById(id); if(panel) panel.classList.add('active');
+  }); });
+
+  nextTo3rd(); nextNeg(); nextQ(); nextMix();
+})();
+</script>
+</body>
+</html>

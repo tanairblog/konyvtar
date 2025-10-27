@@ -1,0 +1,154 @@
+{
+  "title": "Midnight Exam Leak",
+  "summary": "A major exam is scheduled for tomorrow morning. Overnight, the cabinet with printed exam papers was accessed and several booklets are missing. Students interview classmates and staff to discover who used a borrowed key, when, and why.",
+  "characters": [
+    {"id":"maya","name":"Maya Ellis","role":"High-achieving student","initials":"ME","color":"#f59e0b","scope":["study group","library use","exam pressure"],"persona":"Calm and prepared; avoids drama; speaks in a polished way."},
+    {"id":"ethan","name":"Ethan Brooks","role":"Robotics/tech student","initials":"EB","color":"#60a5fa","scope":["late lab work","building shortcuts","tools"],"persona":"Practical and guarded; knows the building; gets defensive when pressed."},
+    {"id":"sophie","name":"Sophie Miller","role":"Study group member (pressured helper)","initials":"SM","color":"#f472b6","scope":["study times","library corridor","friends"],"persona":"Nervous and hesitant; clearly hiding something small."},
+    {"id":"olivia","name":"Olivia Price","role":"Rival high-performer (red herring)","initials":"OP","color":"#34d399","scope":["library study","competition","fair play"],"persona":"Confident but fair; dislikes cheating."},
+    {"id":"jake","name":"Jake Turner","role":"Struggling student (red herring)","initials":"JT","color":"#a78bfa","scope":["common room","canteen area","discipline risk"],"persona":"Touchy about grades; honest about risk of getting caught."},
+    {"id":"helen","name":"Helen Ward","role":"Librarian (witness)","initials":"HW","color":"#f97316","scope":["study room sign-outs","who left when"],"persona":"Helpful and observant; gives times and names calmly."},
+    {"id":"sam","name":"Sam Patel","role":"Student prefect / hall monitor (witness)","initials":"SP","color":"#22d3ee","scope":["corridor observations","north stairwell"],"persona":"Clear and confident; gives simple sighting details."},
+    {"id":"mr_clarke","name":"Mr Clarke","role":"Exam coordinator (keyholder)","initials":"MC","color":"#fb7185","scope":["cabinet procedure","morning checks","no forced entry"],"persona":"Formal and precise; confirms method and rules."},
+    {"id":"ms_harris","name":"Ms Harris","role":"Admin assistant (handled key)","initials":"MH","color":"#84cc16","scope":["key handover","busy office","possible lapse"],"persona":"Uneasy but cooperative; realises she may have trusted the wrong person."},
+    {"id":"mr_doyle","name":"Mr Doyle","role":"Caretaker (facilities rounds)","initials":"MD","color":"#facc15","scope":["night rounds","north stairs","early morning sighting"],"persona":"Calm and factual; noticed a tote and nervous behaviour."}
+  ],
+  "clues": [
+    {"id":"cctv_2348","title":"CCTV still 23:48","text":"Blurred figure in a dark jacket passes the north stairwell around 23:48 with a small tote. Face unclear.","tags":["camera","time","north_stairs"]},
+    {"id":"cabinet_open_check","title":"Cabinet open by morning","text":"Exam cabinet was found slightly ajar at 06:30. Inventory shows several booklets missing. No damage to lock.","tags":["storage","inventory","morning"]},
+    {"id":"badge_gap","title":"Badge log gap 23:40–00:10","text":"Electronic entry logs show no valid badge entries for the exam wing between 23:40 and 00:10.","tags":["access","logs","time"]},
+    {"id":"tote_found","title":"Tote near north stairs","text":"Canvas tote found near the north stairwell with sealed envelopes consistent with exam booklets (one missing) and a cafe receipt time-stamped 23:30.","tags":["physical","evidence","north_stairs"]},
+    {"id":"chat_snippet","title":"Paraphrased chat about 'early copy'","text":"A short paraphrase of messages mentions an 'early copy' and a price, with no details of the method.","tags":["digital","motive","market"]},
+    {"id":"library_log","title":"Library study room sign-out","text":"Study room used by Maya, Sophie, Olivia until about 23:15–23:20, then they left in the same general time window.","tags":["library","alibi","time"]},
+    {"id":"cafe_receipt","title":"Cafe receipt 23:30","text":"Receipt found in tote shows a snack purchase at 23:30. Staff recall evening shifts overlapping with students leaving the library.","tags":["cafe","time","physical"]},
+    {"id":"tool_checkout","title":"Robotics tool checkout","text":"A small toolkit was signed out by Ethan around 22:40 and returned near 00:10.","tags":["lab","time","ethan"]},
+    {"id":"no_forced_entry","title":"No forced entry","text":"Lock and hinges intact. Facilities note: 'Looks like a key was used; latch fine.'","tags":["security","method","keys"]},
+    {"id":"key_handover_hint","title":"Admin key handover (hint)","text":"Admin assistant recalls handing the key to a calm, polite sixth-form girl earlier in the day for a 'school task'. She assumed it was returned.","tags":["keys","access","daytime"]}
+  ],
+  "timeline": [
+    {"t":"2025-11-12T14:30:00","event":"Ms Harris briefly hands cabinet key to a calm sixth-form girl (pretext)."},
+    {"t":"2025-11-12T17:45:00","event":"Mr Clarke locks exam papers in the cabinet for morning."},
+    {"t":"2025-11-12T22:40:00","event":"Ethan signs out a small toolkit in the robotics lab."},
+    {"t":"2025-11-12T23:15:00","event":"Library study room closes; Maya, Sophie, Olivia seen leaving ~23:15–23:20."},
+    {"t":"2025-11-12T23:42:00","event":"Executor uses key to open cabinet quickly; removes several booklets to a tote."},
+    {"t":"2025-11-12T23:48:00","event":"CCTV captures blurred figure with tote near north stairwell."},
+    {"t":"2025-11-13T00:10:00","event":"Toolkit is returned; trio have separated."},
+    {"t":"2025-11-13T06:30:00","event":"Morning check: cabinet slightly open; missing exam booklets discovered."}
+  ],
+  "locations": [
+    {"id":"exam_cabinet","name":"Exam cabinet (admin storage)","access_rules":"Locked; key via exam coordinator or admin assistant","map_hint":"Back corridor by exam wing"},
+    {"id":"north_stairs","name":"North stairwell","access_rules":"Public after hours; camera has partial blind spot","map_hint":"Near canteen and corridor to library"},
+    {"id":"robotics_lab","name":"Robotics lab","access_rules":"Club access; tool checkout log","map_hint":"Opposite side of exam wing"}
+  ],
+  "knowledge": {
+    "sophie": [
+      {"text":"I was around the library and study rooms. I stayed a bit late, but nothing unusual."},
+      {"text":"I didn’t notice anything strange. I was tired and just wanted to go home."},
+      {"text":"I don’t remember the exact time. It was late, sometime after eleven, I think."},
+      {"text":"I wasn’t really watching the corridor. I was just waiting around before heading out."},
+      {"text":"I might have been near them, but people walk around all the time at night."},
+      {"text":"I didn’t do anything. I was just there, okay?"},
+      {"text":"It wasn’t my idea. I didn’t plan anything. I just… didn’t know how to say no."},
+      {"text":"I didn’t touch the cabinet. I only waited. I wish I’d just gone home."}
+    ],
+    "ethan": [
+  { "text": "I was in the library with the others revising. It wasn’t anything unusual—just a late study session because everyone’s nervous about the exam. We packed up when it got quiet.", "intent":"timeline" },
+  { "text": "I left around nine, maybe a bit after. I didn’t check the clock exactly, but it wasn’t late. I wanted to clear my head before tomorrow.", "intent":"timeline" },
+  { "text": "Maya left before us—she said she’d studied enough and needed rest. The rest of us were still gathering our things.", "intent":"timeline" },
+  { "text": "Sophie stayed a little longer. She said she needed to finish copying something down. She always double-checks things when she’s stressed.", "intent":"timeline" },
+  { "text": "Olivia walked out just after Maya. She didn’t say much—looked like she just wanted to get home. Nothing felt unusual then.", "intent":"timeline" },
+  { "text": "People are coping… not great. This exam can change rankings, uni choices, scholarships. It’s a lot to carry if you don’t have a safety net.", "intent":"pressure" },
+  { "text": "Is the system fair? Not really. Some students can afford extra help; others can’t. We don’t all start from the same place.", "intent":"motive" },
+  { "text": "Some students look calm outside but inside they’re terrified of messing up. When you’re already behind, one exam can decide if you ever catch up.", "intent":"motive" },
+  { "text": "Only staff handle the papers—admin and senior leadership. Students aren’t supposed to be anywhere near them before exam day.", "intent":"access_general" },
+  { "text": "They’re kept locked in a cabinet until morning. The whole point is that no one sees them early.", "intent":"access_general", "citedClues":["no_forced_entry"] },
+  { "text": "Could someone break in? Not without getting caught. You’d have to know exactly what you were doing—and even then, if the door opens cleanly, no one asks questions.", "intent":"access_theory", "citedClues":["no_forced_entry"] },
+  { "text": "If someone really wanted to, they wouldn’t force anything—they’d use a key or access that looks legitimate. Systems don’t argue with a door that opens the right way.", "intent":"access_theory", "citedClues":["no_forced_entry"] },
+  { "text": "Where would they get a key? You don’t need the object if you know who handles it and when it’s left unattended. Timing matters more than the metal itself.", "intent":"access_slip", "escalation":"single", "citedClues":["key_handover_hint"] },
+  { "text": "Late evening is when routines get sloppy. People assume everything’s locked and no one’s watching. No one expects a student to still be around then.", "intent":"timing_hint", "citedClues":["badge_gap","cctv_2348"] },
+  { "text": "You’re asking if Sophie could’ve done it because she stayed late. Staying late doesn’t mean anything by itself—she didn’t even go near Clarke’s office. She just needed a breather.", "intent":"protect_sophie" },
+  { "text": "I don’t ‘know’ when keys are unattended—I mean that gaps exist. Security isn’t perfect; it just looks perfect until the wrong moment. Anyone watching closely could figure routines out.", "intent":"walkback" },
+  { "text": "You think I’ve planned something. It isn’t like that. When you feel like you’re hanging by a thread, your brain looks for exits before you even realise it. That’s not planning; that’s survival thinking.", "intent":"justification" },
+  { "text": "So could someone slip in unnoticed? If they didn’t make a scene, yes. Most systems stop force, not someone who looks like they belong there.", "intent":"access_theory", "citedClues":["no_forced_entry"] },
+  { "text": "Did I take the papers? You really think I’d throw everything away for that? It’s easy to point fingers when you’re not the one under constant pressure.", "intent":"accusation_soft_crack" },
+  { "text": "I might see how fragile the system is, but knowing and doing are different. I just wish people noticed the pressure before they started blaming others.", "intent":"accusation_soft_crack" },
+  { "text": "Am I covering for someone? No. I’m saying sometimes good people make bad choices when they’re desperate. That doesn’t make them bad—it means they ran out of air.", "intent":"accusation_soft_crack" }
+]
+
+    "maya": [
+      {"text":"I was in the library with the study group. We finished late; everyone is nervous about the exam."},
+      {"text":"It’s important, yes, but I revise carefully. I don’t take shortcuts."},
+      {"text":"I noticed people walking around, but it seemed like a normal busy night."},
+      {"text":"We left after eleven, I think. We packed up slowly."},
+      {"text":"I might have passed near that corridor; everyone uses it sometimes."},
+      {"text":"If someone had a key already, there would be no barrier at all — the cabinet isn’t checked again until morning."},
+      {"text":"Some people have advantages others never see. I didn’t want to fall behind."},
+      {"text":"Whoever did it must have planned ahead. You can’t get that close unless you know the routine."}
+    ],
+    "olivia": [
+      {"text":"Library mostly. I left late because I was revising with two friends."},
+      {"text":"We’re in the same classes. We compare notes sometimes."},
+      {"text":"I want to do well, but I study. I don’t need shortcuts."},
+      {"text":"People call it a rivalry. We try to be our best; that’s school."},
+      {"text":"I left sometime after eleven. I was exhausted."},
+      {"text":"Those corridors connect everything. Everyone passes there sometimes."},
+      {"text":"Winning isn’t winning if you cheat."},
+      {"text":"Students shouldn’t handle keys. If someone did, a staff member trusted the wrong person."}
+    ],
+    "jake": [
+      {"text":"Common room, then I went home. I wasn’t hanging around the exam wing."},
+      {"text":"People always assume I’m the one messing up."},
+      {"text":"Everyone needs this exam. Doesn’t mean I’m a thief."},
+      {"text":"Late — around eleven-something. I didn’t check."},
+      {"text":"Loads of bags. It’s exam week."},
+      {"text":"I’m on thin ice already. If I got caught, I’d be out. I’m not stupid."},
+      {"text":"No busted locks, right? So someone had a way in. Not me."},
+      {"text":"Check the canteen camera around 23:30. Ask the caretaker; he walked past me."}
+    ],
+    "helen": [
+      {"text":"A group including Maya, Sophie, and Olivia signed out a study room until about 11:15."},
+      {"text":"They left close together, but people drifted as they packed up."},
+      {"text":"Maya and Sophie lingered a little longer than the others."},
+      {"text":"They left the study room around 11:20. The exam corridor is a short walk from there."}
+    ],
+    "sam": [
+      {"text":"I saw someone moving fast past the north stairwell."},
+      {"text":"Dark jacket, tote bag. Could have been a student heading out late."},
+      {"text":"Time? Around 11:45-ish."},
+      {"text":"Sealed envelopes at that hour? That sounds planned, not random."}
+    ],
+    "mr_doyle": [
+      {"text":"I saw someone with a tote near the north stairs just before midnight."},
+      {"text":"Couldn’t identify them — hoodie up, quick walk."},
+      {"text":"They looked nervous, not like someone just heading home."}
+    ],
+    "ms_harris": [
+      {"text":"Officially the cabinet key belongs to the exam coordinator. I only handle it briefly when needed."},
+      {"text":"Yes, I handled it earlier in the day. That’s normal before exam preparation."},
+      {"text":"I may have handed it to a student helper. It was a busy afternoon."},
+      {"text":"I thought it was placed back on my desk, but I was called away."},
+      {"text":"It’s possible the key stayed with a student longer than it should have."},
+      {"text":"A calm, polite sixth-form girl asked for it for a school task. I didn’t think anything of it at the time."}
+    ],
+    "mr_clarke": [
+      {"text":"Locked cabinet inside admin storage. I locked it at 5:45pm."},
+      {"text":"No damage to the lock or hinges. A forced entry would leave clear marks."},
+      {"text":"Only I and admin staff handle keys, and only briefly."},
+      {"text":"If the cabinet wasn’t forced, someone used a key. The breach was trust, not a broken door."}
+    ]
+  },
+  "solution": {
+    "answer_key": {
+      "perp": ["Maya Ellis","Ethan Brooks"],
+      "motive": "academic pressure and fear of falling behind",
+      "method": "key borrowed under a pretext from admin during the day, then used late at night to open the cabinet without force",
+      "time": "23:40–00:05"
+    },
+    "explanation": "Ms Harris handed the key to a calm sixth-form girl earlier; it was not returned immediately. That night, Ethan used the key to open the cabinet quickly (no damage). CCTV and witnesses place a figure with a tote near the north stairs around 23:48. Library logs show Maya and Sophie leaving close to that time. Badge logs show a gap, but cameras and witnesses fill the timeline. Sophie acted as a lookout under social pressure.",
+    "rubric": {
+      "must": ["perp","motive","method","time"],
+      "bonus": ["identify_sophie_as_helper","explain_no_forced_entry","use_key_handover_hint"]
+    }
+  }
+}
+

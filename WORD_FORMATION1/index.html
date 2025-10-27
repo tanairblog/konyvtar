@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>B1 Word Formation – Teen Edition (v3)</title>
+<style>
+  :root{
+    --bg:#fafafc;
+    --panel:#ffffff;
+    --text:#0f172a;
+    --muted:#475569;
+    --border:#e5e7eb;
+    --accent:#7c3aed;
+    --accent-2:#06b6d4;
+    --ok:#16a34a;
+    --warn:#ef4444;
+    --chip:#f1f5f9;
+    --shadow: 0 10px 28px rgba(2,6,23,.1);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(800px 400px at 10% -10%, #fde68a55, transparent 60%),
+      radial-gradient(700px 420px at 100% 0%, #a7f3d055, transparent 50%),
+      radial-gradient(600px 380px at -10% 100%, #d8b4fe55, transparent 60%),
+      var(--bg);
+    min-height:100%;
+    display:flex; flex-direction:column;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    background:var(--panel);
+    border-bottom:1px solid var(--border);
+    padding:14px 18px; display:flex; gap:14px; align-items:center; justify-content:space-between;
+  }
+  .brand{display:flex; gap:12px; align-items:center;}
+  .logo{width:38px; height:38px; border-radius:12px; background:conic-gradient(from 30deg, var(--accent), var(--accent-2), #f43f5e); box-shadow:inset 0 0 0 2px #ffffffcc}
+  h1{font-size:18px; margin:0; letter-spacing:.2px}
+  .muted{color:var(--muted); font-size:13px}
+  .stats{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .stat{background:var(--chip); padding:8px 10px; border:1px solid var(--border); border-radius:999px; font-size:13px}
+  .bar{height:10px; width:220px; background:#eef2ff; border-radius:999px; overflow:hidden; border:1px solid var(--border)}
+  .bar>span{display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--accent), var(--accent-2)); transition:width .35s ease}
+  main{flex:1; display:grid; grid-template-columns: 330px 1fr; gap:18px; padding:18px; max-width:1180px; margin:0 auto; width:100%}
+  @media (max-width: 900px){
+    main{grid-template-columns:1fr; padding:12px}
+    .bar{width:160px}
+  }
+  aside, .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:18px; padding:16px; box-shadow:var(--shadow);
+  }
+  .panel-title{font-weight:700; margin:4px 0 12px 0; font-size:14px; color:#334155; text-transform:uppercase; letter-spacing:.12em}
+  .controls{display:flex; gap:10px; flex-wrap:wrap}
+  button{
+    appearance:none; border:none; cursor:pointer;
+    padding:10px 14px; border-radius:14px; font-weight:700;
+    background:linear-gradient(180deg, #ffffff, #f8fafc);
+    color:var(--text); border:1px solid var(--border);
+    transition:transform .06s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+    box-shadow:0 2px 0 #e2e8f0;
+  }
+  button:hover{transform:translateY(-1px); border-color:#c7d2fe; box-shadow:0 6px 18px rgba(99,102,241,.18)}
+  button:active{transform:translateY(0); box-shadow:0 2px 0 #e2e8f0}
+  .btn-primary{background:linear-gradient(180deg, #ede9fe, #cffafe); border-color:#c7d2fe}
+  .btn-warn{background:linear-gradient(180deg, #fee2e2, #fff1f2); border-color:#fecaca}
+  .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .pair{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+  input[type="text"]{
+    width:100%; padding:14px 16px; border-radius:14px; background:#f8fafc; color:var(--text);
+    border:2px solid var(--border); font-size:16px; outline:none;
+  }
+  input[type="text"]:focus{border-color:#c7d2fe; box-shadow:0 0 0 3px #e0e7ff}
+  input[type="range"]{width:180px}
+  .badges{display:flex; gap:8px; flex-wrap:wrap; margin-top:6px}
+  .badge{font-size:12px; padding:6px 10px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; color:#3730a3; font-weight:700}
+  .card{display:flex; flex-direction:column; gap:14px; padding:22px; border-radius:20px; min-height:280px; position:relative; overflow:hidden}
+  .sentence{font-size:22px; line-height:1.45; color:#111827}
+  .base{color:#64748b; font-size:14px; letter-spacing:.3px}
+  .mask{letter-spacing:.08em; white-space:nowrap; padding:3px 8px; border-radius:10px; background:#eef2ff; border:1px dashed #c7d2fe; color:#334155}
+  .feedback{min-height:26px; font-weight:800}
+  .feedback.ok{color:var(--ok)}
+  .feedback.no{color:var(--warn)}
+  .kpi{display:flex; gap:10px; flex-wrap:wrap}
+  .pill{padding:6px 10px; border-radius:999px; background:#f1f5f9; border:1px solid var(--border); font-size:12px; font-weight:700; color:#334155}
+  .lives{display:flex; gap:6px; align-items:center}
+  .heart{width:18px; height:18px; fill:#fb7185; opacity:.9}
+  .heart.off{opacity:.25}
+  .modal-backdrop{position:fixed; inset:0; background:rgba(15,23,42,.35); display:none; align-items:center; justify-content:center; z-index:50}
+  .modal{width:min(960px, 96vw); max-height:85vh; overflow:auto; background:var(--panel); border:1px solid var(--border); border-radius:18px; padding:18px; box-shadow:var(--shadow)}
+  .modal h3{margin:6px 0 10px 0}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th, td{border-bottom:1px solid var(--border); padding:10px 8px; text-align:left; vertical-align:top}
+  th{background:#f8fafc}
+  .right{margin-left:auto}
+  #confetti{position:absolute; inset:0; pointer-events:none}
+  @keyframes flashOK{0%{box-shadow:0 0 0 0 rgba(34,197,94,.0)} 100%{box-shadow:0 0 0 12px rgba(34,197,94,0)}}
+  @keyframes flashNO{0%{box-shadow:0 0 0 0 rgba(239,68,68,.0)} 100%{box-shadow:0 0 0 12px rgba(239,68,68,0)}}
+  .flash-ok{animation:flashOK .8s ease-out}
+  .flash-no{animation:flashNO .8s ease-out}
+  :focus-visible{outline:3px solid #a78bfa; outline-offset:2px; border-radius:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>B1 Word Formation – Teen Edition</h1>
+      <div class="muted">Friendly design · gamified practice · saves progress in this browser</div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat">Score: <strong id="score">0</strong></div>
+    <div class="stat">Streak: <strong id="streak">0</strong> (best <span id="bestStreak">0</span>)</div>
+    <div class="stat">Accuracy: <strong id="accuracy">0%</strong></div>
+    <div class="stat">
+      Mastery <div class="bar"><span id="masteryBar"></span></div>
+      <div class="muted"><span id="masteredCount">0</span>/<span id="totalCount">0</span> mastered</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="panel-title">Modes</div>
+    <div class="controls">
+      <button id="modePractice" class="btn-primary">Practice</button>
+      <button id="modeChallenge">Challenge</button>
+      <button id="reviewBtn">Review mistakes</button>
+    </div>
+    <hr style="border:none; border-top:1px solid var(--border); margin:14px 0">
+    <div class="panel-title">Settings</div>
+    <div class="row">
+      <label>Mastery streak:</label>
+      <input id="masteryStreak" type="range" min="1" max="4" step="1" value="2" aria-label="Mastery streak setting">
+      <span id="masteryStreakVal" class="badge">2</span>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="fastBonus" checked> Enable speed bonus</label>
+    </div>
+    <div class="row">
+      <button id="exportBtn">Export session JSON</button>
+      <button id="resetBtn" class="btn-warn">Reset session</button>
+    </div>
+    <div class="panel-title" style="margin-top:12px">Badges</div>
+    <div id="badges" class="badges"></div>
+    <div class="panel-title" style="margin-top:12px">Shortcuts</div>
+    <div class="muted">Enter: Check · H: Hint</div>
+  </aside>
+
+  <section class="panel card" id="card">
+    <canvas id="confetti"></canvas>
+    <div class="kpi">
+      <span class="pill">Question <span id="qIndex">1</span></span>
+      <span class="pill">Timer: <span id="timer">–</span></span>
+      <span class="pill lives" id="livesBox" style="display:none">
+        <svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.716-4.432-9.6-7.315C-0.618 10.668 1.17 6 5.2 6c2.07 0 3.4 1.32 4 2 0.6-0.68 1.93-2 4-2 4.03 0 5.82 4.668 2.8 7.685C18.716 16.568 12 21 12 21z"/></svg>
+        <svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.716-4.432-9.6-7.315C-0.618 10.668 1.17 6 5.2 6c2.07 0 3.4 1.32 4 2 0.6-0.68 1.93-2 4-2 4.03 0 5.82 4.668 2.8 7.685C18.716 16.568 12 21 12 21z"/></svg>
+        <svg class="heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.716-4.432-9.6-7.315C-0.618 10.668 1.17 6 5.2 6c2.07 0 3.4 1.32 4 2 0.6-0.68 1.93-2 4-2 4.03 0 5.82 4.668 2.8 7.685C18.716 16.568 12 21 12 21z"/></svg>
+      </span>
+    </div>
+    <div class="sentence" id="sentence"></div>
+    <div class="base" id="base"></div>
+    <div class="row" style="gap:12px; align-items:flex-start">
+      <div class="pair" style="flex:1">
+        <input id="answer" type="text" placeholder="Type your word…" autocomplete="off" />
+        <button id="hintBtn">Hint</button>
+      </div>
+    </div>
+    <div class="row">
+      <button id="checkBtn" class="btn-primary">Check</button>
+      <button id="skipBtn">Skip</button>
+      <button id="knowBtn">I know this</button>
+      <span class="feedback" id="feedback" role="status" aria-live="polite"></span>
+    </div>
+  </section>
+</main>
+
+<div id="modalBack" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Review">
+  <div class="modal">
+    <h3>Review mistakes / activity log</h3>
+    <div class="muted" style="margin-bottom:8px">Click a row to retry that item.</div>
+    <table id="reviewTable">
+      <thead><tr><th>#</th><th>Sentence</th><th>Base</th><th>Correct</th><th>Your answer</th><th>Time (s)</th><th>Result</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="row" style="margin-top:10px">
+      <span class="badge">Total attempts: <span id="sumAttempts">0</span></span>
+      <span class="badge">Correct: <span id="sumCorrect">0</span></span>
+      <span class="badge">Accuracy: <span id="sumAcc">0%</span></span>
+      <button id="closeModal" class="right">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Data */
+const ITEMS = [
+  {id:1, s:"He gave us a detailed ____________________ of how the accident happened.", base:"DESCRIBE", ans:"description"},
+  {id:2, s:"He moved to the United ____________________ a few years ago.", base:"KING", ans:"Kingdom", variants:["kingdom"]},
+  {id:3, s:"She has been doing research work as a ____________________.", base:"SCIENCE", ans:"scientist"},
+  {id:4, s:"I wanted to ____________________ but Dad cut me off at once.", base:"APOLOGY", ans:"apologise", variants:["apologize"]},
+  {id:5, s:"Most bird species are under ____________________ by law.", base:"PROTECT", ans:"protection"},
+  {id:6, s:"We enjoyed the ____________________ of the ski hut at night.", base:"WARM", ans:"warmth"},
+  {id:7, s:"He is the most famous ____________________ who has ever had an exhibition in this gallery.", base:"ART", ans:"artist"},
+  {id:8, s:"After his mother's ____________________ he moved to South America.", base:"DIE", ans:"death"},
+  {id:9, s:"I didn't tell him the whole ____________________.", base:"TRUE", ans:"truth"},
+  {id:10, s:"Who was the last Roman ____________________?", base:"EMPIRE", ans:"emperor"},
+  {id:11, s:"Can you tell me the ____________________ of the new restaurant?", base:"LOCATE", ans:"location"},
+  {id:12, s:"The hotel offers a great ____________________ of activities tourists can do.", base:"SELECT", ans:"selection"},
+  {id:13, s:"The view from the top of the mountain is absolutely ____________________.", base:"FASCINATE", ans:"fascinating"},
+  {id:14, s:"____________________, we didn't get caught cheating.", base:"LUCK", ans:"Luckily", variants:["luckily"]},
+  {id:15, s:"He likes reading ____________________.", base:"POEM", ans:"poetry"},
+  {id:16, s:"Even the FBI could not solve the ____________________ crime.", base:"MYSTERY", ans:"mysterious"},
+  {id:17, s:"She runs a ____________________ business in Los Angeles.", base:"SUCCEED", ans:"successful"},
+  {id:18, s:"They are doing some research on the ____________________ of nuclear weapons.", base:"DESTROY", ans:"destruction"},
+  {id:19, s:"____________________ is a characteristic that many politicians lack.", base:"HONEST", ans:"Honesty", variants:["honesty"]},
+  {id:20, s:"Mum didn't go up to the top because she is afraid of ____________________.", base:"HIGH", ans:"heights", variants:["height"]},
+  {id:21, s:"It has snowed ____________________ in the last 24 hours.", base:"CONSIDER", ans:"considerably"},
+  {id:22, s:"We were ____________________ that our mother would survive surgery and get better soon.", base:"HOPE", ans:"hopeful"},
+  {id:23, s:"There were a lot of ____________________ parts that she did not understand.", base:"MEANING", ans:"meaningless"},
+  {id:24, s:"After a few days, the family reported the ____________________ to the police.", base:"APPEAR", ans:"disappearance"},
+  {id:25, s:"We still didn't know the ____________________ of the refugees.", base:"NATION", ans:"nationality"},
+  {id:26, s:"The weather showed a big ____________________ compared to yesterday.", base:"DIFFER", ans:"difference"},
+  {id:27, s:"Her piano ____________________ was impressive for her age.", base:"PERFORM", ans:"performance"},
+  {id:28, s:"There was a slight ____________________ in his test results this month.", base:"IMPROVE", ans:"improvement"},
+  {id:29, s:"The company finally gave its ____________________ to our plan.", base:"APPROVE", ans:"approval"},
+  {id:30, s:"He showed great ____________________ during the rescue.", base:"BRAVE", ans:"bravery"},
+  {id:31, s:"We need more ____________________ about the trip before we can book.", base:"INFORM", ans:"information"},
+  {id:32, s:"The children acted very ____________________ when the teacher left.", base:"NOISE", ans:"noisy"},
+  {id:33, s:"Regular exercise can increase your ____________________.", base:"STRONG", ans:"strength"},
+  {id:34, s:"The plan was simple and ____________________ to follow.", base:"EASE", ans:"easy"},
+  {id:35, s:"I don't doubt his ____________________ to finish the project.", base:"ABLE", ans:"ability"},
+  {id:36, s:"The story was so ____________________ that I couldn't stop reading.", base:"INTEREST", ans:"interesting"},
+  {id:37, s:"My parents always give me good ____________________.", base:"ADVISE", ans:"advice"},
+  {id:38, s:"The teacher showed great ____________________ with the noisy class.", base:"PATIENT", ans:"patience"},
+  {id:39, s:"There is a strong ____________________ between the two events.", base:"CONNECT", ans:"connection"},
+  {id:40, s:"You must wear a seat belt for your own ____________________.", base:"SAFE", ans:"safety"},
+  {id:41, s:"She answered the question ____________________.", base:"CORRECT", ans:"correctly"},
+  {id:42, s:"Working at night can be very ____________________.", base:"TIRE", ans:"tiring"},
+  {id:43, s:"He was punished for his ____________________ in class.", base:"BEHAVE", ans:"behaviour", variants:["behavior"]},
+  {id:44, s:"We were surprised by the ____________________ of the hotel staff.", base:"FRIEND", ans:"friendliness"},
+  {id:45, s:"The town has seen rapid ____________________ in the last decade.", base:"GROW", ans:"growth"},
+  {id:46, s:"The product is not ____________________ available in our country yet.", base:"WIDE", ans:"widely"},
+  {id:47, s:"He bought the car ____________________, without thinking.", base:"CARE", ans:"carelessly"},
+  {id:48, s:"Our school encourages the ____________________ of new ideas.", base:"CREATE", ans:"creation"},
+  {id:49, s:"There was a short ____________________ when the lights went out.", base:"SILENT", ans:"silence"},
+  {id:50, s:"You need to show your passport at the ____________________.", base:"ENTER", ans:"entrance"},
+  {id:51, s:"The team celebrated their ____________________ after the final match.", base:"SUCCEED", ans:"success"},
+  {id:52, s:"The city's air ____________________ has improved recently.", base:"POLLUTE", ans:"pollution"},
+  {id:53, s:"We appreciated his ____________________.", base:"KIND", ans:"kindness"},
+  {id:54, s:"Their ____________________ to the team was very important.", base:"CONTRIBUTE", ans:"contribution"},
+  {id:55, s:"The film was a huge ____________________ at the box office.", base:"FAIL", ans:"failure"},
+  {id:56, s:"He made a useful ____________________ to the discussion.", base:"SUGGEST", ans:"suggestion"},
+  {id:57, s:"My sister is very ____________________; she never gives up.", base:"PERSIST", ans:"persistent"},
+  {id:58, s:"The doctor gave me a ____________________ for stronger pills.", base:"PRESCRIBE", ans:"prescription"},
+  {id:59, s:"This exercise is quite ____________________ for B1 students.", base:"SUIT", ans:"suitable"},
+  {id:60, s:"The trip was ____________________ organised and everyone had fun.", base:"CARE", ans:"carefully"},
+  {id:61, s:"He answered the questions with great ____________________.", base:"ACCURATE", ans:"accuracy"},
+  {id:62, s:"There was a sudden ____________________ in temperature.", base:"REDUCE", ans:"reduction"},
+  {id:63, s:"My uncle is a very ____________________ person; he can fix anything.", base:"SKILL", ans:"skilled"},
+  {id:64, s:"The ____________________ of the village live mainly from farming.", base:"INHABIT", ans:"inhabitants"},
+  {id:65, s:"The new smartphone is more ____________________ than the old one.", base:"POWER", ans:"powerful"},
+  {id:66, s:"The school will hold a ____________________ on Friday evening.", base:"MEET", ans:"meeting"},
+  {id:67, s:"He lost his job because of ____________________.", base:"LAZY", ans:"laziness"},
+  {id:68, s:"The bus was ____________________ late today.", base:"USUAL", ans:"unusually"},
+  {id:69, s:"The band played ____________________ at the festival.", base:"ENERGY", ans:"energetically"},
+  {id:70, s:"She wants to become a ____________________ when she finishes school.", base:"JOURNAL", ans:"journalist"},
+  {id:71, s:"The police found no ____________________ of a crime.", base:"EVIDENT", ans:"evidence"},
+  {id:72, s:"Please accept our ____________________ for the delay.", base:"APOLOGISE", ans:"apologies"},
+  {id:73, s:"The festival was a great ____________________ for the small town.", base:"ATTRACT", ans:"attraction"},
+  {id:74, s:"There was a lot of ____________________ about the new rules.", base:"CONFUSE", ans:"confusion"},
+  {id:75, s:"The manager showed ____________________ by admitting her mistake.", base:"LEAD", ans:"leadership"},
+  {id:76, s:"He's very ____________________ about trying new foods.", base:"ADVENTURE", ans:"adventurous"},
+  {id:77, s:"We need your ____________________ before we can publish the photo.", base:"PERMIT", ans:"permission"},
+  {id:78, s:"He got a ____________________ for driving too fast.", base:"PUNISH", ans:"punishment"},
+  {id:79, s:"The ____________________ of the machine takes about two hours.", base:"INSTALL", ans:"installation"},
+  {id:80, s:"She has a strong ____________________ to chocolate.", base:"ADDICT", ans:"addiction"},
+  {id:81, s:"The river is very ____________________ in winter.", base:"DEPTH", ans:"deep"},
+  {id:82, s:"It's ____________________ to read the instructions before using the device.", base:"ADVISE", ans:"advisable"},
+  {id:83, s:"He made a good ____________________ on his first day.", base:"IMPRESS", ans:"impression"},
+  {id:84, s:"The film was very ____________________; I almost fell asleep.", base:"BORE", ans:"boring"},
+  {id:85, s:"My parents always taught me the ____________________ of hard work.", base:"IMPORTANT", ans:"importance"},
+  {id:86, s:"The school's main ____________________ is to keep students safe.", base:"PRIOR", ans:"priority"},
+  {id:87, s:"Travelling alone can be very ____________________.", base:"EDUCATE", ans:"educational"},
+  {id:88, s:"They are building a new sports ____________________ near our house.", base:"FACILITATE", ans:"facility"},
+  {id:89, s:"He was the only ____________________ of the accident.", base:"SURVIVE", ans:"survivor"},
+  {id:90, s:"The ____________________ of the letter was hard to read.", base:"SIGN", ans:"signature"},
+  {id:91, s:"The teacher's ____________________ helped me a lot.", base:"ENCOURAGE", ans:"encouragement"},
+  {id:92, s:"There has been a ____________________ of rain this week.", base:"SHORT", ans:"shortage"},
+  {id:93, s:"You should dress more ____________________ for the interview.", base:"FORMAL", ans:"formally"},
+  {id:94, s:"The singer gave a very ____________________ performance.", base:"IMPRESS", ans:"impressive"},
+  {id:95, s:"Please check the text for ____________________ before printing it.", base:"SPELL", ans:"spelling"},
+  {id:96, s:"The company has a bad ____________________ for poor service.", base:"REPUTE", ans:"reputation"},
+  {id:97, s:"The museum will hold an ____________________ of modern art next month.", base:"EXHIBIT", ans:"exhibition"},
+  {id:98, s:"The doctor was praised for her ____________________ with the patients.", base:"GENTLE", ans:"gentleness"},
+  {id:99, s:"The country has seen economic ____________________ this year.", base:"STABLE", ans:"stability"},
+  {id:100, s:"Please speak ____________________ in the library.", base:"QUIET", ans:"quietly"}
+];
+
+/* Helpers */
+const $ = sel => document.querySelector(sel);
+const $all = sel => [...document.querySelectorAll(sel)];
+const clamp = (n, a, b)=>Math.max(a, Math.min(b, n));
+const now = ()=> Date.now();
+const norm = s => (s||"").toString().trim().toLowerCase();
+const prettyPct = (num)=> (isNaN(num)?0:Math.round(num*100)) + "%";
+function mask(answer){ const letters = (answer||"").replace(/[^a-zA-Z]/g,"").length; return "_".repeat(Math.max(4, Math.min(12, letters))); }
+function shuffled(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* Session */
+const STORAGE_KEY = "b1_wf_session_v3_playful";
+const DEFAULT = {
+  mode:"practice",
+  score:0, streak:0, bestStreak:0, xp:0, level:1,
+  totalAttempts:0, totalCorrect:0,
+  pool: ITEMS.map(x=>x.id),
+  activeId: null,
+  startedAt: now(),
+  lives:3, timer:null,
+  masteryTarget:2,
+  speedBonus:true,
+  byId: Object.fromEntries(ITEMS.map(x=>[x.id, {attempts:0, correct:0, streak:0, mastered:false, last:0}])),
+  history: [],
+  badges: {}
+};
+let S = load();
+const IDX = Object.fromEntries(ITEMS.map(x=>[x.id,x]));
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return JSON.parse(JSON.stringify(DEFAULT));
+    const obj = JSON.parse(raw);
+    for(const it of ITEMS){
+      if(!obj.byId[it.id]) obj.byId[it.id] = {attempts:0, correct:0, streak:0, mastered:false, last:0};
+      if(!obj.pool.includes(it.id) && !obj.byId[it.id].mastered) obj.pool.push(it.id);
+    }
+    return obj;
+  }catch(e){ return JSON.parse(JSON.stringify(DEFAULT)); }
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); }
+
+/* Elements */
+const els = {
+  score: $("#score"),
+  streak: $("#streak"),
+  bestStreak: $("#bestStreak"),
+  accuracy: $("#accuracy"),
+  masteredCount: $("#masteredCount"),
+  totalCount: $("#totalCount"),
+  masteryBar: $("#masteryBar"),
+  sentence: $("#sentence"),
+  base: $("#base"),
+  answer: $("#answer"),
+  feedback: $("#feedback"),
+  timer: $("#timer"),
+  qIndex: $("#qIndex"),
+  badges: $("#badges"),
+  livesBox: $("#livesBox"),
+  hearts: () => $all(".heart"),
+  card: $("#card"),
+};
+
+els.totalCount.textContent = ITEMS.length;
+
+/* Flow */
+let tTick = null;
+let currentStart = now();
+let order = shuffled(S.pool);
+
+function pickNext(preferId=null){
+  if(S.pool.length===0){
+    S.pool = ITEMS.filter(x=>!S.byId[x.id].mastered).map(x=>x.id);
+    order = shuffled(S.pool);
+  }
+  const id = preferId ?? (order.length? order.pop() : S.pool[Math.floor(Math.random()*S.pool.length)]);
+  S.activeId = id;
+  currentStart = now();
+  renderCard();
+  save();
+}
+
+function renderHearts(){
+  if(S.mode !== "challenge"){ els.livesBox.style.display = "none"; return; }
+  els.livesBox.style.display = "inline-flex";
+  const lives = clamp(S.lives,0,3);
+  els.hearts().forEach((h,i)=> h.classList.toggle("off", i>lives-1));
+}
+function renderStats(){
+  els.score.textContent = S.score;
+  els.streak.textContent = S.streak;
+  els.bestStreak.textContent = S.bestStreak;
+  const acc = S.totalAttempts? (S.totalCorrect/S.totalAttempts): 0;
+  els.accuracy.textContent = prettyPct(acc);
+  const mastered = ITEMS.filter(x=>S.byId[x.id].mastered).length;
+  els.masteredCount.textContent = mastered;
+  els.masteryBar.style.width = prettyPct(mastered/ITEMS.length);
+  renderHearts();
+  renderBadges();
+}
+function renderCard(){
+  renderStats();
+  els.feedback.textContent = "";
+  els.answer.value = "";
+  els.answer.focus();
+  const it = IDX[S.activeId];
+  const masked = it.s.replace("____________________", `<span class="mask" title="Type the missing word">${mask(it.ans)}</span>`);
+  els.sentence.innerHTML = masked;
+  els.base.textContent = `(Base: ${it.base})`;
+  els.qIndex.textContent = S.totalAttempts + 1;
+}
+function renderBadges(){
+  const b = S.badges;
+  const out = [];
+  if(b.firstCorrect) out.push(`<span class="badge">First correct</span>`);
+  if(b.streak5) out.push(`<span class="badge">Streak 5</span>`);
+  if(b.streak10) out.push(`<span class="badge">Streak 10</span>`);
+  if(b.master10) out.push(`<span class="badge">10 mastered</span>`);
+  if(b.masterAll) out.push(`<span class="badge">All mastered</span>`);
+  if(b.acc90) out.push(`<span class="badge">90% accuracy</span>`);
+  els.badges.innerHTML = out.join("");
+}
+
+/* Modes / timer */
+function setMode(m){
+  S.mode = m;
+  if(m==="challenge"){ S.lives = 3; startTimer(90); }
+  else { stopTimer(); }
+  renderStats();
+  pickNext();
+}
+function startTimer(seconds){
+  stopTimer();
+  S.timer = seconds;
+  els.timer.textContent = S.timer + "s";
+  tTick = setInterval(()=>{
+    S.timer--; els.timer.textContent = S.timer + "s";
+    if(S.timer<=0){ stopTimer(); openReview(); }
+  }, 1000);
+}
+function stopTimer(){ if(tTick){ clearInterval(tTick); tTick=null; } els.timer.textContent = S.mode==="challenge" ? "—" : "—"; }
+
+/* Interactions */
+function check(){
+  const it = IDX[S.activeId];
+  const givenRaw = els.answer.value;
+  const given = norm(givenRaw);
+  const correct = norm(it.ans);
+  const alts = (it.variants||[]).map(norm);
+  const tTaken = (Date.now()-currentStart)/1000;
+  const ok = given === correct || alts.includes(given);
+  const entry = {id: it.id, correct: ok, answerGiven: givenRaw, time: Math.round(tTaken), mode: S.mode};
+
+  S.totalAttempts++; S.byId[it.id].attempts++; S.byId[it.id].last = Date.now();
+
+  if(ok){
+    S.totalCorrect++; S.streak++; S.bestStreak = Math.max(S.bestStreak, S.streak);
+    S.byId[it.id].correct++; S.byId[it.id].streak++;
+    let add = 10;
+    if(S.speedBonus && S.mode!=="challenge"){
+      if(tTaken<=4) add += 10; else if(tTaken<=8) add += 5;
+    }
+    if(S.streak>0 && S.streak%5===0) add += 5;
+    S.score += add; S.xp += add;
+    els.feedback.textContent = "Correct: " + it.ans;
+    els.feedback.className = "feedback ok";
+    flashCard(true);
+    confetti();
+    if(!S.badges.firstCorrect){ S.badges.firstCorrect = true; }
+    if(S.streak>=5) S.badges.streak5 = true;
+    if(S.streak>=10) S.badges.streak10 = true;
+    if(!S.byId[it.id].mastered && S.byId[it.id].streak >= S.masteryTarget){
+      S.byId[it.id].mastered = true;
+      S.pool = S.pool.filter(x=>x!==it.id);
+      const mastered = ITEMS.filter(x=>S.byId[x.id].mastered).length;
+      if(mastered>=10) S.badges.master10 = true;
+      if(mastered===ITEMS.length) S.badges.masterAll = true;
+    }
+  }else{
+    S.streak = 0; S.byId[it.id].streak = 0;
+    if(S.mode==="challenge"){ S.lives--; if(S.lives<=0){ openReview(); } }
+    els.feedback.textContent = "Not quite. Correct answer: " + it.ans;
+    els.feedback.className = "feedback no";
+    flashCard(false);
+  }
+
+  S.history.push(entry);
+  const acc = S.totalCorrect / S.totalAttempts;
+  if(acc>=0.9 && S.totalAttempts>=10) S.badges.acc90 = true;
+
+  save();
+  setTimeout(()=> pickNext(), 520);
+}
+
+function hint(){
+  const it = IDX[S.activeId];
+  const a = it.ans || "";
+  const first = a.slice(0,1), last = a.slice(-1);
+  els.feedback.textContent = `Hint: ${first}${a.length>2?" _".repeat(Math.max(0,a.length-2)):""} ${a.length>1?last:""}`;
+  els.feedback.className = "feedback";
+  els.answer.focus();
+}
+function skip(){ S.score = Math.max(0, S.score - 1); S.streak = 0; save(); pickNext(); }
+function know(){ const it = IDX[S.activeId]; S.byId[it.id].mastered = true; S.pool = S.pool.filter(x=>x!==it.id); save(); pickNext(); }
+
+/* Review modal */
+const modalBack = $("#modalBack");
+const reviewTable = $("#reviewTable tbody");
+function openReview(){
+  reviewTable.innerHTML = "";
+  let attempts = 0, correct = 0;
+  for(let i=S.history.length-1, row=1; i>=0; i--, row++){
+    const h = S.history[i]; const it = IDX[h.id];
+    attempts++; if(h.correct) correct++;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${row}</td>
+      <td>${it.s.replace("____________________", `<strong>${it.ans}</strong>`)}</td>
+      <td>${it.base}</td>
+      <td>${it.ans}</td>
+      <td>${h.answerGiven||""}</td>
+      <td>${h.time||0}</td>
+      <td>${h.correct? "✓":"✗"}</td>`;
+    tr.style.cursor = "pointer";
+    tr.addEventListener("click", ()=>{ modalBack.style.display="none"; pickNext(it.id); });
+    reviewTable.appendChild(tr);
+  }
+  $("#sumAttempts").textContent = attempts;
+  $("#sumCorrect").textContent = correct;
+  $("#sumAcc").textContent = prettyPct(attempts? correct/attempts : 0);
+  modalBack.style.display = "flex";
+}
+function closeReview(){ modalBack.style.display = "none"; }
+
+/* Visuals: robust confetti */
+function confetti(){
+  const canvas = $("#confetti");
+  // cancel any previous animation
+  if(canvas._raf) cancelAnimationFrame(canvas._raf);
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+  canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale to CSS pixels
+
+  const pieces = Array.from({length:70}).map(()=> ({
+    x: Math.random()*rect.width,
+    y: -10,
+    vy: 2+Math.random()*3,
+    vx: -1+Math.random()*2,
+    size: 4+Math.random()*6,
+    rot: Math.random()*Math.PI,
+    vr: -0.2 + Math.random()*0.4,
+    color: Math.random()<.5? "#7c3aed" : "#06b6d4"
+  }));
+
+  const duration = 900; // ms
+  const start = performance.now();
+
+  const step = (ts)=>{
+    const elapsed = ts - start;
+    ctx.clearRect(0,0,rect.width,rect.height);
+    const progress = Math.min(1, elapsed / duration);
+    for(const p of pieces){
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = 1 - progress; // fade out
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size);
+      ctx.restore();
+    }
+    if(progress < 1){
+      canvas._raf = requestAnimationFrame(step);
+    }else{
+      ctx.clearRect(0,0,rect.width,rect.height); // final clear so nothing remains
+      canvas._raf = null;
+    }
+  };
+  canvas._raf = requestAnimationFrame(step);
+}
+
+/* card flash */
+function flashCard(ok){
+  els.card.classList.remove("flash-ok","flash-no");
+  void els.card.offsetWidth;
+  els.card.classList.add(ok? "flash-ok":"flash-no");
+}
+
+/* Keyboard shortcuts — only Enter/H and ignore when typing */
+window.addEventListener("keydown", (e)=>{
+  const t = e.target;
+  const typing = t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable);
+  if(typing) return;
+  if(e.key === "Enter"){ check(); }
+  else if(e.key.toLowerCase() === "h"){ hint(); }
+});
+
+/* Buttons */
+$("#modePractice").addEventListener("click", ()=> setMode("practice"));
+$("#modeChallenge").addEventListener("click", ()=> setMode("challenge"));
+$("#reviewBtn").addEventListener("click", openReview);
+$("#closeModal").addEventListener("click", closeReview);
+
+$("#checkBtn").addEventListener("click", check);
+$("#hintBtn").addEventListener("click", hint);
+$("#skipBtn").addEventListener("click", skip);
+$("#knowBtn").addEventListener("click", know);
+
+$("#exportBtn").addEventListener("click", ()=>{
+  const data = JSON.stringify(S, null, 2);
+  const blob = new Blob([data], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "b1_word_formation_session_playful.json";
+  a.click();
+});
+
+$("#resetBtn").addEventListener("click", ()=>{
+  if(confirm("Reset the session? All progress in your browser will be cleared.")){
+    localStorage.removeItem(STORAGE_KEY);
+    S = load(); order = shuffled(S.pool);
+    renderStats(); pickNext();
+  }
+});
+
+/* Init */
+function init(){ renderStats(); pickNext(); }
+init();
+</script>
+</body>
+</html>

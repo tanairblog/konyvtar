@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Conversation Builder – final (DB-t majd ide illeszted)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --primary-500:#F4A329; --primary-700:#B45309;
+  --secondary-500:#2BB6B4; --secondary-700:#0F766E;
+  --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+  --text:#1F2937; --text-2:#4B5563; --muted:#6B7280; --inv:#fff;
+  --shadow:0 4px 14px rgba(17,24,39,0.08);
+}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.5 "Inter","Nunito",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(255,247,242,.95), rgba(255,247,242,.85));
+  border-bottom:1px solid var(--border);backdrop-filter:saturate(1.05) blur(6px)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:28px;margin:0 0 8px;font-weight:600}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+select,button{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+button{cursor:pointer} button.primary{background:linear-gradient(90deg,var(--primary-700),var(--primary-500));color:var(--inv);border:0;font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9999px;background:var(--surface-alt);
+  border:1px solid var(--border);color:var(--muted);font-size:12px}
+.pill.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#2F9E44}
+.pill.warn{background:rgba(245,159,0,.12);border-color:rgba(245,159,0,.35);color:#B45309}
+.pill.bad{background:rgba(217,45,32,.12);border-color:rgba(217,45,32,.35);color:#D92D20}
+.tabs{display:flex;gap:8px;margin-top:8px}
+.tab{padding:10px 12px;border-radius:12px;background:var(--surface);border:1px solid var(--border);cursor:pointer}
+.tab.active{background:linear-gradient(180deg,#fff,#fbfbfd)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;margin:16px 0;box-shadow:var(--shadow)}
+.muted{color:var(--muted)}
+.quote{padding:12px 14px;border:1px solid var(--border);border-left:5px solid var(--secondary-500);
+  border-radius:12px;background:var(--surface-alt);color:var(--text-2)}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:800px){.twocol{grid-template-columns:1fr}}
+.opt{padding:12px;border-radius:12px;background:var(--surface-alt);border:1px solid var(--border);cursor:pointer}
+.opt.correct{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.45)}
+.opt.wrong{background:rgba(217,45,32,.08);border-color:rgba(217,45,32,.40)}
+.progress{height:10px;background:var(--surface-alt);border:1px solid var(--border);border-radius:9999px;overflow:hidden;margin-top:8px}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--secondary-700),var(--secondary-500));width:0%}
+.cloze-line{margin:10px 0;padding:10px;background:var(--surface-alt);border:1px dashed var(--border);border-radius:12px}
+input.blank{display:inline-block;min-width:72px;border:1px solid var(--border);border-radius:8px;padding:3px 6px;background:#fff;color:var(--text);width:92px;max-width:40vw}
+input.blank.correct{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.45)}
+input.blank.wrong{background:rgba(217,45,32,.08);border-color:rgba(217,45,32,.35)}
+.order-list{display:flex;flex-direction:column;gap:10px}
+.order-item{padding:12px;border-radius:12px;background:var(--surface-alt);border:1px solid var(--border)}
+.order-input.ok{ background:rgba(34,197,94,.10); border-color:rgba(34,197,94,.45) }
+.order-input.bad{ background:rgba(217,45,32,.08); border-color:rgba(217,45,32,.40) }
+.speak-solution{margin-top:10px;padding:10px;border-left:4px solid #7EDAD6;background:var(--surface-alt);border-radius:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Conversation Builder</h1>
+    <div class="toolbar">
+      <span id="status" class="pill">Várakozás DB-re…</span>
+      <select id="topicSelect" aria-label="Téma"></select>
+      <button id="startBtn" class="primary">Start</button>
+      <span class="pill" id="scorePill">Pont: 0</span>
+      <span class="pill" id="modePill">Mód: BUILD</span>
+    </div>
+    <div class="tabs" role="tablist">
+      <div class="tab active" data-tab="build">① Build</div>
+      <div class="tab" data-tab="cloze">② Cloze</div>
+      <div class="tab" data-tab="order">③ Order</div>
+      <div class="tab" data-tab="speak">④ Speak</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- BUILD -->
+  <section id="build" class="card">
+    <h2>Build</h2>
+    <div class="muted">Előző sor</div>
+    <div id="buildPrev" class="quote"></div>
+    <div class="muted">Mi jön most?</div>
+    <div id="buildOptions" class="twocol"></div>
+    <div class="actions"><button id="buildShow">Show solution</button> <button id="buildNext" class="primary" disabled>Tovább</button></div>
+    <div id="buildFeedback" class="muted"></div>
+    <div class="progress"><div id="buildProg"></div></div>
+  </section>
+
+  <!-- CLOZE -->
+  <section id="cloze" class="card" hidden>
+    <h2>Cloze</h2>
+    <label>Nehézség:
+      <select id="clozeLevel"><option value="A">A – gyakori funkciószavak</option><option value="AB">A+B – segédigék/prepozíciók is</option></select>
+    </label>
+    <div class="pill">Megoldott/Összes: <span id="clozeStats">0/0</span></div>
+    <div id="clozeArea"></div>
+    <div class="actions"><button id="clozeCheck" class="primary">Ellenőrzés</button> <button id="clozeSolve">Show solution</button></div>
+    <div id="clozeFeedback" class="muted"></div>
+  </section>
+
+  <!-- ORDER -->
+  <section id="order" class="card" hidden>
+    <h2>Order</h2>
+    <div id="orderList" class="order-list"></div>
+    <div class="actions"><button id="orderCheck" class="primary">Ellenőrzés</button> <button id="orderSolve">Show solution</button></div>
+    <div id="orderFeedback" class="muted"></div>
+  </section>
+
+  <!-- SPEAK -->
+  <section id="speak" class="card" hidden>
+    <h2>Speak</h2>
+    <div id="speakPrompt" class="quote"></div>
+    <div id="speakSolution" class="speak-solution muted" hidden></div>
+    <div class="actions"><button id="sSpeak">See solution</button> <button id="sNext" class="primary">Next</button></div>
+  </section>
+</main>
+
+<!-- IDE ILLeszd be a DB-t mint EGY darab JSON-objektumot. -->
+<script id="embedded-db" type="application/json">
+
+{
+  "schema_version": 1,
+  "meta": {
+    "title": "Conversation Builder â€“ Exam-Compatible Dialogues",
+    "language": "en",
+    "level": "B1â€“B2",
+    "created_at": "2025-10-07",
+    "source_note": "Based on Hungarian Ă©rettsĂ©gi-style speaking tasks; adapted for interactive practice.",
+    "author": "ChatGPT (with teacher prompts)",
+    "license": "For classroom use"
+  },
+  "topics": [
+    {
+      "id": "fashion_parties",
+      "title": "Fashion & Parties",
+      "situation": "Your foreign friend asks for advice about a house party tonight and the opera tomorrow.",
+      "functions": [
+        "greeting and topic-setting",
+        "asking for clarification",
+        "making polite suggestions",
+        "giving advice",
+        "cultural norms",
+        "closing politely"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Hey, can I ask for your advice? Iâ€™ve got a house party tonight and the opera tomorrow, and honestly, I have no idea what to wear."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Oh, thatâ€™s quite a contrast! Well, for the house party, Iâ€™d go with something casual â€” jeans and a nice shirt. Keep it simple, but clean."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Right, that makes sense. By the way, should I bring anything for the host, or is that weird?"
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Not weird at all â€” itâ€™s polite. A small snack or a bottle of soft drink is perfect. Nothing too expensive."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Okay, thanks. And about behaviour, I donâ€™t want to seem rude or anything."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "No worries â€” greet the host, be friendly, and thank them before you leave. Also, try not to stay too late unless they say so."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Got it. Now, the opera is a different story, I guess."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Yeah, totally. People usually dress more formally there â€” maybe a dress or a suit. Itâ€™s about showing respect for the event."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "I see. Is it okay to take photos during the performance, or is that a big no?"
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Better not â€” itâ€™s distracting. Take photos before or after, and keep your phone on silent the whole time."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Fair enough. I donâ€™t want to look like a tourist, you know. Iâ€™ll just enjoy the atmosphere and be quiet."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Exactly. Youâ€™ll be fine â€” confidence and a smile go with any outfit. Have fun at both events, and tell me how they went!"
+        }
+      ]
+    },
+    {
+      "id": "food_hungary",
+      "title": "Food in Hungary",
+      "situation": "Your foreign friend is staying in Hungary and asks about Hungarian food and eating habits.",
+      "functions": [
+        "asking for information",
+        "describing",
+        "giving recommendations",
+        "expressing opinion",
+        "contrasting",
+        "closing"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "So, Iâ€™m staying in Hungary for a few months, and honestly, I have no idea what people usually eat here. I want to try local food, but I also eat healthy."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Youâ€™ll love it! Hungarian food is special â€” lots of soups and stews, and yes, paprika. Some dishes are heavy, but there are lighter options too."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Right, Iâ€™ve heard about goulash. Is everything spicy, or can I ask for something milder?"
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Not everything is spicy. You can always ask for less spicy, and many restaurants have international menus as well."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Good to know. By the way, are there salad bars or places for healthy meals around schools or in the city centre?"
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Yes, more and more. Still, traditional food can be heavy, so maybe balance it with salads or soups. Itâ€™s about balance, really."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Makes sense. And what about school canteens â€” are they good these days?"
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Theyâ€™re improving, but, to be honest, itâ€™s a lot of pasta and fried food. Itâ€™s okay sometimes, but not every day."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "I get it. Iâ€™ll try a mix then â€” some traditional dishes and some lighter meals."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Great idea. Start with goulash or chicken paprikash, and then try lĂˇngos just once for fun. You can always walk it off later!"
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Haha, fair enough. Thanks for the tips â€” Iâ€™ll keep an open mind and a small plate."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Perfect. Food is part of culture, so enjoy the experience, and donâ€™t forget dessert once in a while."
+        }
+      ]
+    },
+    {
+      "id": "learning_languages",
+      "title": "Learning Languages",
+      "situation": "Your penfriend wants to learn English faster and asks for practical advice.",
+      "functions": [
+        "asking for advice",
+        "suggesting strategies",
+        "encouraging",
+        "sharing personal experience",
+        "setting goals"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Youâ€™re really good at English. How did you learn so fast? I feel stuck, even though I study a lot."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Thanks! To be honest, films and YouTube helped a lot. I stopped reading subtitles and tried to understand from context."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "That sounds tough. I usually end up reading the subtitles and not listening. Any tricks for grammar, by the way?"
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Learn grammar inside short stories or diary entries. Examples make rules easier, and you remember them longer."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Okay, that could work. I hate learning vocabulary, though â€” it just doesnâ€™t stay in my head."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Use flashcards and repeat small sets daily. Also, label objects at home â€” itâ€™s silly, but it works."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Nice idea. Do you ever lose motivation? I do, especially after a long day."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Of course I do. Thatâ€™s why I set tiny goals, like ten minutes a day. Small wins keep you going."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "I like that approach. Maybe Iâ€™ll try a language app in the evenings, just for a short session."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Great plan. Mix input and output â€” watch a short video, then write a few sentences about it. It closes the loop."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Makes sense. Thanks for the realistic tips â€” nothing crazy, just steady practice."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Exactly. A little bit every day beats a lot once a month. Youâ€™ll see progress sooner than you think."
+        }
+      ]
+    },
+    {
+      "id": "shopping_parties",
+      "title": "Shopping & Parties",
+      "situation": "You and your friend are planning a weekend party together.",
+      "functions": [
+        "planning",
+        "negotiating tasks",
+        "making suggestions",
+        "agreeing politely",
+        "logistics"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "So, about the party on Saturday â€” we should probably start organizing things. The guest list looks longer than last time."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Youâ€™re right. First, letâ€™s estimate how many people are coming, and then we can decide on food and drinks."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Okay, around twelve, maybe more if everyone brings someone. Should we cook together, or just order pizza?"
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Ordering is easier, but cooking tacos together could be fun. It also makes the party feel more personal."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "True. For drinks, Iâ€™d buy soft drinks and some juice, and maybe ask guests to bring one item each."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Good plan. I can handle music and decorations â€” Iâ€™ve got lights and a decent playlist."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Awesome. What about plates and cups? Iâ€™d rather avoid too much plastic if possible."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Same here. We can use reusable ones and wash them after. Itâ€™s greener and not that hard."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Great. Letâ€™s write a shared list so we donâ€™t forget anything. Iâ€™ll also post the start time and the buzzer code."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Perfect. Then weâ€™re set â€” now letâ€™s just hope nobody spills wine on the carpet this time!"
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Haha, right. Either way, with this plan, itâ€™ll be a success."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Exactly. Good organization always saves the night â€” and our nerves."
+        }
+      ]
+    },
+    {
+      "id": "travel_plans",
+      "title": "Travel Plans",
+      "situation": "You and your friend have saved up some money and are planning a hiking trip.",
+      "functions": [
+        "weighing options",
+        "preferences",
+        "budgeting",
+        "making decisions",
+        "next steps"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "So, we finally saved enough money. Any ideas where we should go? Iâ€™d prefer something active, not just lying on the beach."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Same here. How about the mountains in Austria or Slovakia? We could hike and take amazing photos."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "That sounds perfect. Train or car, though? Train is cheaper, but a car gives us freedom."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "True. If we rent a car, we can stop anywhere. On the other hand, trains are more relaxing â€” no driving stress."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Good point. What about accommodation â€” hostel, guesthouse, or Airbnb? Iâ€™m fine with something simple."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "A small guesthouse could be cosy and cheap. We can cook our own food and save money."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Great. Speaking of money, whatâ€™s our budget per person? I was thinking about 150 euros."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "That should work if we plan meals and skip tourist traps. Letâ€™s also check student discounts."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Agreed. Iâ€™ll look up routes and easy trails for two days. We donâ€™t want to overdo it on day one."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Exactly. Letâ€™s compare options tonight and book by tomorrow. That way, prices wonâ€™t jump."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Deal. This is going to be a great trip â€” active, but not stressful."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Totally. A little planning now means a lot of fun later."
+        }
+      ]
+    },
+    {
+      "id": "job_interview",
+      "title": "Job Interview",
+      "situation": "Your friend has an important job interview and asks for advice.",
+      "functions": [
+        "giving advice",
+        "dos and donâ€™ts",
+        "self-presentation",
+        "asking questions",
+        "closing politely"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Iâ€™ve got a job interview tomorrow, and honestly, Iâ€™m terrified. I donâ€™t want to freeze or say something silly."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Youâ€™ll be fine. Smile, make eye contact, and speak clearly. First impressions matter, but theyâ€™re not everything."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Okay, thanks. What should I wear, by the way? I donâ€™t want to be overdressed."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Go smart but simple â€” a shirt and trousers or a plain dress. Clean shoes and no loud accessories."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Right. If they ask about weaknesses, what should I say without sounding negative?"
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Pick a real one, but show progress: â€śI used to rush tasks, but now I plan my week and double-check.â€ť It shows growth."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Nice. Should I ask questions at the end, or is that annoying?"
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Definitely ask! It shows interest. Ask about the team or the first projects youâ€™d work on."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Good idea. Is there anything I should avoid completely?"
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Donâ€™t speak badly about past jobs, and donâ€™t ask about salary too early. Keep it positive and curious."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Got it. Thanks for calming me down â€” I feel more prepared already."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Anytime. Youâ€™ve got this â€” just be yourself, and let your motivation show."
+        }
+      ]
+    },
+    {
+      "id": "friends_feelings",
+      "title": "Friends & Feelings",
+      "situation": "Your mutual friend has been feeling sad lately after a breakup; you want to help.",
+      "functions": [
+        "showing empathy",
+        "making gentle suggestions",
+        "offering support",
+        "respecting boundaries"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Hey, have you talked to Anna recently? She seems really down, and to be honest, Iâ€™m a bit worried."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Yeah, me too. I heard she broke up with her boyfriend, and it hit her hard. She needs time, but not isolation."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Exactly. Maybe we should invite her out this weekend. Nothing heavy â€” just coffee and a short walk."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Good idea. Sometimes a simple chat helps a lot. We can let her lead the conversation."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Right. I donâ€™t want to make her talk about it if she doesnâ€™t want to. We should just be there for her."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Agreed. Iâ€™ll text her something gentle like, â€śWe miss you â€” want to hang out?â€ť No pressure, just care."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Perfect. If she says yes, weâ€™ll plan something quiet and friendly. If not, weâ€™ll try again next week."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Yeah. Healing takes time, you know. But having friends around makes it easier."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "True. Iâ€™ll send the message now and keep it simple. I hope she feels better soon."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Same here. Even small steps count â€” a laugh, a warm drink, and a safe space."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Exactly. Thanks for helping me think this through. It already feels more hopeful."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Anytime. Thatâ€™s what friends are for â€” steady support, not big speeches."
+        }
+      ]
+    },
+    {
+      "id": "buying_presents",
+      "title": "Buying Presents",
+      "situation": "Youâ€™re choosing Christmas gifts for your parents and best friend.",
+      "functions": [
+        "brainstorming",
+        "narrowing options",
+        "budgeting",
+        "polite disagreement",
+        "final decision"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "I have no idea what to buy for my parents this Christmas. They seem to have everything already."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "I know the feeling. When in doubt, go personal â€” a photo album, homemade cookies, or a letter. Itâ€™s the thought that counts."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "True, that could work. And what about my best friend? I want something special but not too expensive."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Well, whatâ€™s she into these days? Music, books, or maybe experiences like a workshop?"
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "She loves music and reading. Concert tickets sound cool, but dates are tricky."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Then a carefully chosen book with a note inside could be perfect. Itâ€™s simple, but it lasts."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Nice idea. How much should I spend, though? Iâ€™m on a student budget."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Set a limit and stick to it â€” price doesnâ€™t equal value. A personal message adds heart for free."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Youâ€™re right. Iâ€™ll pick something meaningful and write a proper card."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Great plan. Gifts are really about connection, not price tags."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Exactly. Thanks for the nudge â€” now it feels doable."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Anytime. Shopping is easier when you know what you want to say with the gift."
+        }
+      ]
+    },
+    {
+      "id": "invitations_arrangements",
+      "title": "Invitations and Arrangements",
+      "situation": "Youâ€™re inviting a friend to hang out and finalizing practical details.",
+      "functions": [
+        "inviting",
+        "accepting/refusing politely",
+        "fixing time and place",
+        "logistics",
+        "friendly close"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Hey, are you free this weekend? I was thinking we could try that new cafĂ© downtown."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Let me checkâ€¦ yeah, Iâ€™m free on Saturday afternoon. Iâ€™ve heard good things about that place."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Great! How about three oâ€™clock? Itâ€™s quieter then, and we can actually talk."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Perfect. Is it close to the metro? I donâ€™t want to get lost again."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Yes, two minutes from the station â€” even you canâ€™t miss it! Iâ€™ll send you the location just in case."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Haha, thanks. Should I bring anything, or just my charming personality?"
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Just yourself is fine â€” and your good mood. Weâ€™ll keep it simple."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Sounds good. How long are you thinking of staying? I have a family dinner later."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "No problem. Letâ€™s do an hour or two and keep it flexible. We can always continue next time."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Nice plan. By the way, can I bring Anna if sheâ€™s free?"
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Sure, the more, the merrier. Iâ€™ll book a table for three just to be safe."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Awesome. See you on Saturday â€” and thanks for organising!"
+        }
+      ]
+    },
+    {
+      "id": "apologies_problems",
+      "title": "Apologies and Problems",
+      "situation": "You forgot your friendâ€™s birthday and want to apologize and make amends.",
+      "functions": [
+        "apologizing",
+        "accepting apologies",
+        "offering to make up",
+        "light humour",
+        "closing politely"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Hey, listenâ€¦ Iâ€™m really sorry I forgot your birthday yesterday. I honestly set a reminder, but somehow I still missed it."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Oh, donâ€™t worry â€” these things happen. I know youâ€™ve been busy, and Iâ€™m not angry."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Still, I feel bad. Let me make it up to you â€” how about coffee and cake tomorrow afternoon? My treat."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "That actually sounds perfect. And, well, cake does help with forgiveness!"
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Deal. Iâ€™ll choose a place with good cheesecake, just to be safe."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Excellent choice. By the way, thanks for saying sorry so quickly â€” it means a lot."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Of course. Friendship first, birthdays second. Iâ€™ll do better next year."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "No pressure â€” just set two reminders next time. Or three!"
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Haha, noted. Thanks for being understanding and kind about it."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Always. Real friends forgive, and then they eat cake together. See you tomorrow!"
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "See you! And thanks again for organising this so quickly."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Anytime. Weâ€™ll turn a mistake into a memory."
+        }
+      ]
+    },
+    {
+      "id": "doctors_health",
+      "title": "At the Doctorâ€™s / Health Issues",
+      "situation": "Your friend doesnâ€™t feel well and you give practical advice and support.",
+      "functions": [
+        "asking about symptoms",
+        "giving advice",
+        "encouraging rest",
+        "if-not-then advice",
+        "closing with care"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "You donâ€™t look too good today. Are you okay, or is it just a long week catching up with you?"
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Not great, to be honest. Iâ€™ve had a terrible headache since yesterday, and painkillers didnâ€™t help much."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Oh no. Have you been drinking enough water and sleeping properly? Dehydration can make it worse."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Probably not. I stayed up late studying, and I forgot to refill my bottle."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Right, that explains a lot. Rest a bit today, drink water, and keep the room quiet and dark."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Sounds sensible. Iâ€™ll try a short nap this afternoon and see if that helps."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Good plan. And if it doesnâ€™t get better, please see a doctor tomorrow. Better safe than sorry."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Youâ€™re right. I sometimes wait too long, but this time Iâ€™ll go if it continues."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Great. Text me later to say how youâ€™re doing, okay? Iâ€™m a bit worried."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Thanks, I will. Itâ€™s nice to feel cared for â€” that already helps."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Of course. Health first, everything else second."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Exactly. Iâ€™ll slow down today and catch up on rest."
+        }
+      ]
+    },
+    {
+      "id": "at_restaurant",
+      "title": "At a Restaurant",
+      "situation": "Youâ€™re eating out with a friend; something is wrong with the order, and you handle it politely.",
+      "functions": [
+        "ordering",
+        "requesting politely",
+        "complaining politely",
+        "apologizing",
+        "positive close"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Excuse me, could we have the menus, please? Weâ€™ve been looking forward to trying this place all week."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Of course â€” here you are. Todayâ€™s specials are on the first page, if youâ€™re interested."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Thanks, that helps. I might try the chicken curry, and maybe we can share a salad to start."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Good idea. Iâ€™ll go for the grilled salmon with rice. And some mineral water for both of us, please."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Perfect. (later) Wow, the dishes look amazing! The presentation is really nice."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Yeah, but actually, mine is a bit cold. Iâ€™m not sure if it waited too long on the counter."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Oh dear. Should we call the waiter and ask them to reheat it? We can be polite about it."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Yes, letâ€™s do that. Excuse me, the chicken is a little cold â€” could you heat it up, please?"
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Iâ€™m very sorry about that. Iâ€™ll take it back to the kitchen right away and bring you a hot one."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Thank you so much. We really appreciate your help â€” and the food looks delicious otherwise."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "No problem at all. Thanks for telling me politely â€” weâ€™ll fix it immediately."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "That was handled so well. Being calm and polite really works, doesnâ€™t it?"
+        }
+      ]
+    },
+    {
+      "id": "directions",
+      "title": "Asking for and Giving Directions",
+      "situation": "You help a tourist find the train station safely and quickly.",
+      "functions": [
+        "asking for directions",
+        "giving clear instructions",
+        "checking understanding",
+        "friendly close"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Excuse me, could you tell me how to get to the train station? I think Iâ€™m a bit lost."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Sure! Go straight for two blocks, then turn left at the big bookstore. Keep walking until you see a park on your right."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Okay, and the station is after the park, right? I donâ€™t want to miss it."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "Yes, itâ€™s just behind the park â€” youâ€™ll see the signs. Itâ€™s about a ten-minute walk from here."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Great, thanks. Is there a bus as well, in case it starts raining?"
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Yes, bus number 9 stops right there and goes directly to the station. The stop is across the street."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Perfect. Thanks for the clear directions â€” that really helps."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Youâ€™re welcome. Be careful at the big crossing near the park â€” the lights change quickly."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Good to know. Iâ€™ll watch out and cross with the crowd."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Excellent. Have a safe trip, and enjoy your day!"
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Thanks again for your kindness. People here are really helpful."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Glad to hear that. Take care and good luck with your journey."
+        }
+      ]
+    },
+    {
+      "id": "making_complaint",
+      "title": "Making a Complaint",
+      "situation": "You return a defective product and resolve the issue politely in a shop.",
+      "functions": [
+        "stating the problem",
+        "providing proof",
+        "requesting solution",
+        "accepting apology",
+        "positive close"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "Good morning. Iâ€™d like to return this jacket â€” the zipper broke on the second day, which is disappointing."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "Iâ€™m very sorry to hear that. Do you happen to have the receipt with you so I can check the purchase?"
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Yes, here it is. I bought it two days ago, and I really liked the design, so I was surprised."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "I understand, and thank you for bringing it back quickly. Would you prefer an exchange or a refund today?"
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "If possible, Iâ€™d like to exchange it for the same model. Iâ€™m hoping this was just a rare fault."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "No problem â€” let me check our stock. Ah, we have your size in one other colour."
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Thatâ€™s fine with me. Could I try it on to be sure the zipper works smoothly this time?"
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Of course â€” the fitting rooms are to your left. Take your time."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Thanks. (later) This one seems perfect â€” the zipper is smooth and the fit is good."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Great! Again, Iâ€™m sorry for the inconvenience, and thank you for your patience."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "No worries. I appreciate the quick help and the polite service today."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Youâ€™re welcome. Have a lovely day, and enjoy your new jacket."
+        }
+      ]
+    },
+    {
+      "id": "opinions_preferences",
+      "title": "Expressing Opinions and Preferences",
+      "situation": "You discuss a film you both watched, offering reasons and polite disagreement.",
+      "functions": [
+        "giving opinion",
+        "agreeing/disagreeing politely",
+        "asking reasons",
+        "conceding a point",
+        "suggesting next step"
+      ],
+      "turns": [
+        {
+          "n": 1,
+          "speaker": "A",
+          "text": "So, did you finally watch the new superhero film? Iâ€™m curious what you thought, because I have mixed feelings."
+        },
+        {
+          "n": 2,
+          "speaker": "B",
+          "text": "I did, and to be honest, I didnâ€™t love it. The action was great, but the story felt a bit flat to me."
+        },
+        {
+          "n": 3,
+          "speaker": "A",
+          "text": "Interesting. I actually enjoyed it, mainly for the special effects and the music. They were pretty epic."
+        },
+        {
+          "n": 4,
+          "speaker": "B",
+          "text": "True, the soundtrack was amazing. Still, the plot was predictable â€” I guessed the ending halfway through."
+        },
+        {
+          "n": 5,
+          "speaker": "A",
+          "text": "Fair point. I guess I was just in the mood for something fun and light. Not every film needs to be deep."
+        },
+        {
+          "n": 6,
+          "speaker": "B",
+          "text": "Exactly. Itâ€™s fine for entertainment, but it wonâ€™t be my favourite. Whatâ€™s yours, by the way?"
+        },
+        {
+          "n": 7,
+          "speaker": "A",
+          "text": "Probably Inception â€” it makes me think, and I love the atmosphere. It stays with you after it ends."
+        },
+        {
+          "n": 8,
+          "speaker": "B",
+          "text": "Same here. I like films that leave a question in your head. Maybe we should pick something like that next time."
+        },
+        {
+          "n": 9,
+          "speaker": "A",
+          "text": "Good idea. Letâ€™s watch something more artistic next weekend, and then we can compare notes."
+        },
+        {
+          "n": 10,
+          "speaker": "B",
+          "text": "Deal. Iâ€™ll bring popcorn, and you choose the film. That way we both win."
+        },
+        {
+          "n": 11,
+          "speaker": "A",
+          "text": "Perfect. A proper movie night beats scrolling on our phones anyway."
+        },
+        {
+          "n": 12,
+          "speaker": "B",
+          "text": "Agreed. Real conversations make films more interesting."
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<script>
+// ===== Helpers =====
+const $ = s=>document.querySelector(s), $$ = s=>Array.from(document.querySelectorAll(s));
+let DB=null, topic=null, score=0;
+const els = {
+  status: $('#status'), topicSelect: $('#topicSelect'), startBtn: $('#startBtn'), scorePill: $('#scorePill'), modePill: $('#modePill'),
+  tabs: $$('.tab'),
+  buildPrev: $('#buildPrev'), buildOptions: $('#buildOptions'), buildShow: $('#buildShow'), buildNext: $('#buildNext'), buildFeedback: $('#buildFeedback'), buildProg: $('#buildProg'),
+  clozeArea: $('#clozeArea'), clozeCheck: $('#clozeCheck'), clozeSolve: $('#clozeSolve'), clozeLevel: $('#clozeLevel'), clozeStats: $('#clozeStats'), clozeFeedback: $('#clozeFeedback'),
+  orderList: $('#orderList'), orderCheck: $('#orderCheck'), orderSolve: $('#orderSolve'), orderFeedback: $('#orderFeedback'),
+  speakPrompt: $('#speakPrompt'), speakSolution: $('#speakSolution'), sSpeak: $('#sSpeak'), sNext: $('#sNext')
+};
+
+// --- DB beolvasás az embedded scriptből, és védett parse több objektum esetére is
+function parseEmbeddedDB(){
+  const el = document.getElementById('embedded-db');
+  if(!el) return null;
+  let raw = el.textContent.trim();
+  if(!raw){ els.status.textContent = 'Nincs beillesztett DB. Illeszd be a JSON-t az embedded-db scriptbe.'; return null; }
+  try { return JSON.parse(raw); }
+  catch(e){
+    let s = raw;
+    const start = s.indexOf('{'); if(start<0){ els.status.textContent='DB: nem találtam { jelet.'; return null; }
+    let depth=0;
+    for(let i=start;i<s.length;i++){
+      const ch=s[i];
+      if(ch=='{') depth++;
+      else if(ch=='}'){
+        depth--;
+        if(depth===0){
+          const first = s.slice(start, i+1);
+          try { els.status.textContent='Figyelem: több objektumot találtam, az elsőt használom.'; return JSON.parse(first); }
+          catch(e2){ els.status.textContent='DB JSON-parse hiba: '+e2.message; return null; }
+        }
+      }
+    }
+    els.status.textContent='DB formátum hiba: nem záródik le az objektum.';
+    return null;
+  }
+}
+
+/* === Mojibake fix / normalizálás (aposztrófok, idézők, gondolatjelek) === */
+function normalizeText(s){
+  if(!s) return s;
+  return s
+    .replace(/â€™/g, "'")
+    .replace(/â€˜/g, "'")
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"')
+    .replace(/â€“/g, '–')
+    .replace(/â€”/g, '—')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"');
+}
+function sanitizeDB(db){
+  if(!db?.topics) return db;
+  db.topics.forEach(t=>{
+    if(Array.isArray(t.turns)){
+      t.turns.forEach(turn=>{
+        if(typeof turn.text === 'string'){
+          turn.text = normalizeText(turn.text);
+        }
+      });
+    }
+  });
+  return db;
+}
+
+function hydrateTopics(){
+  if(!DB?.topics?.length){ els.topicSelect.innerHTML=''; return; }
+  els.topicSelect.innerHTML = DB.topics.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+  els.status.textContent = `Témák betöltve: ${DB.topics.length}`;
+}
+
+function switchTab(name){
+  els.modePill.textContent = 'Mód: '+name.toUpperCase();
+  $$('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  ['build','cloze','order','speak'].forEach(id=>$('#'+id).hidden = (id!==name));
+  if(!topic) return;
+  if(name==='build') setupBuild();
+  if(name==='cloze') setupCloze();
+  if(name==='order') setupOrder();
+  if(name==='speak') setupSpeak();
+}
+
+els.tabs.forEach(tab=>tab.addEventListener('click',()=> switchTab(tab.dataset.tab)));
+els.startBtn.addEventListener('click', ()=>{
+  const id = els.topicSelect.value;
+  topic = DB.topics.find(t=>t.id===id) || DB.topics[0];
+  score = 0; els.scorePill.textContent = 'Pont: 0';
+  switchTab('build');
+});
+
+// ===== BUILD =====
+function setupBuild(){
+  const turns = topic.turns;
+  if(!turns?.length){ els.buildPrev.textContent='Nincs adat.'; return; }
+  if(!setupBuild.step) setupBuild.step = 1; // 1..N-1
+  const step = Math.min(setupBuild.step, turns.length-1);
+  const prev = (step<=1) ? `[Start] ${turns[0].speaker}: ${turns[0].text}` : `${turns[step-1].speaker}: ${turns[step-1].text}`;
+  els.buildPrev.textContent = prev;
+
+  const correct = turns[step];
+  const options = generateMCQOptions(turns, step, correct);
+  renderMCQ(options, correct, step);
+
+  const totalSteps = turns.length-1;
+  const done = Math.max(0, step-1);
+  els.buildProg.style.width = Math.round(done/totalSteps*100)+'%';
+  els.buildFeedback.textContent='';
+  els.buildNext.disabled = true;
+}
+
+function generateMCQOptions(turns, idx, correct){
+  const correctText = `${correct.speaker}: ${correct.text}`;
+  const opts = [{ text: correctText, key:'correct' }];
+  const laterSame = turns.slice(idx+1).filter(t=>t.speaker===correct.speaker);
+  if(laterSame.length){
+    const d = laterSame[Math.floor(Math.random()*laterSame.length)];
+    opts.push({ text:`${d.speaker}: ${d.text}`, key:'later' });
+  }
+  const bank = [
+    "A: Maybe we should think about it for a second.",
+    "B: I see your point, but I’m not fully convinced yet.",
+    "A: That sounds reasonable. Let’s go with that for now."
+  ];
+  opts.push({ text: bank[Math.floor(Math.random()*bank.length)], key:'bank' });
+  while(opts.length<3){
+    const r=turns[Math.floor(Math.random()*turns.length)];
+    const t=`${r.speaker}: ${r.text}`;
+    if(!opts.some(o=>o.text===t)) opts.push({text:t, key:'rand'});
+  }
+  for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
+  return opts.slice(0,3);
+}
+
+function renderMCQ(options, correct, targetIdx){
+  els.buildOptions.innerHTML='';
+  const correctText = `${correct.speaker}: ${correct.text}`;
+  let judged=false;
+
+  options.forEach((o,i)=>{
+    const div=document.createElement('div');
+    div.className='opt'; div.tabIndex=0; div.textContent=o.text;
+    div.addEventListener('click',()=>judge(i));
+    div.addEventListener('keydown',ev=>{ if(['Enter',' '].includes(ev.key)) judge(i); });
+    els.buildOptions.appendChild(div);
+  });
+
+  function disableAll(){ els.buildOptions.querySelectorAll('.opt').forEach(n=>{ n.style.pointerEvents='none'; n.tabIndex=-1; }); }
+  function highlightOnly(correctIdx, chosenIdx, wasCorrect){
+    const nodes = els.buildOptions.querySelectorAll('.opt');
+    nodes.forEach((n,k)=>{
+      n.classList.remove('correct','wrong');
+      if(k===correctIdx) n.classList.add('correct');
+      if(!wasCorrect && k===chosenIdx && k!==correctIdx) n.classList.add('wrong');
+    });
+  }
+
+  function judge(i){
+    if(judged) return; judged=true; disableAll();
+    const correctIdx = options.findIndex(o => o.text === correctText);
+    const ok = (i === correctIdx);
+    highlightOnly(correctIdx, i, ok);
+    if(ok){ els.buildFeedback.innerHTML = '<span class="pill ok">Helyes</span>'; score += 10; els.scorePill.textContent = 'Pont: '+score; }
+    else  { els.buildFeedback.innerHTML = '<span class="pill bad">Nem jó</span> A zöld a helyes válasz.'; }
+    els.buildNext.disabled = false;
+  }
+
+  els.buildShow.onclick=()=>{
+    if(judged) return; judged=true; disableAll();
+    const correctIdx = options.findIndex(o => o.text === correctText);
+    highlightOnly(correctIdx, -1, true);
+    els.buildFeedback.innerHTML = '<span class="pill warn">Megoldás megjelenítve</span>';
+    els.buildNext.disabled = false;
+  };
+  els.buildNext.onclick=()=>{ setupBuild.step = Math.min((setupBuild.step||1)+1, topic.turns.length-1); setupBuild(); };
+}
+
+// ===== CLOZE (garantált 1+ gap) =====
+const STOP_A = new Set(["well","so","actually","you know","i mean","just","really","still","even","already","yet","then","too"]);
+const AUX_PREP = new Set(["am","is","are","was","were","be","being","been","do","does","did","have","has","had","will","would","can","could","should","may","might","that","which","who","because","but","and","or","if","though","although","at","in","on","to","for","of","with","by","from"]);
+const norm = s => (s||"").replace(/\s+/g,' ').trim().toLowerCase();
+
+function maskLine(text, maskSet){
+  const tokens = text.split(/(\b)/);
+  const maskIdx = new Array(tokens.length).fill(false);
+  const ids = [];
+  for(let i=0;i<tokens.length;i+=2){
+    const w = tokens[i], lw=w.toLowerCase();
+    if(/\w/.test(lw) && maskSet.has(lw)) maskIdx[i]=true;
+  }
+  if(!maskIdx.some(Boolean)){
+    for(let i=0;i<tokens.length;i+=2){ const w=tokens[i]; if(/^[A-Za-z]{4,}$/.test(w)){ maskIdx[i]=true; break; } }
+    if(!maskIdx.some(Boolean)){
+      for(let i=0;i<tokens.length;i+=2){ const w=tokens[i]; if(/^[A-Za-z]{2,}$/.test(w)){ maskIdx[i]=true; break; } }
+    }
+  }
+  let html='';
+  for(let i=0;i<tokens.length;i++){
+    if(i%2===0 && maskIdx[i] && /\w/.test(tokens[i])){
+      const id='blank_'+Math.random().toString(36).slice(2,8);
+      html += `<input id="${id}" class="blank" autocomplete="off" />`;
+      ids.push({id, ans: tokens[i].trim()});
+    } else { html += tokens[i]; }
+  }
+  return { html, ids };
+}
+
+function setupCloze(){
+  const level = els.clozeLevel?.value || 'A';
+  const maskSet = (level==='A') ? STOP_A : new Set([...STOP_A, ...AUX_PREP]);
+  els.clozeArea.innerHTML='';
+  const blanks=[];
+  topic.turns.forEach((t, idx)=>{
+    const line = maskLine(t.text, maskSet);
+    const div = document.createElement('div');
+    div.className='cloze-line'; div.dataset.turn=idx+1;
+    div.innerHTML = `<span class="pill" style="margin-right:8px">${t.speaker}</span>` + line.html;
+    els.clozeArea.appendChild(div);
+    line.ids.forEach(b=> blanks.push(b));
+  });
+  const store = blanks.map(b=>({id:b.id, ans:b.ans, correct:false}));
+  function recount(){
+    const c = store.filter(x=>x.correct).length;
+    els.clozeStats.textContent = `${c}/${store.length}`;
+    if(c===store.length){ els.clozeFeedback.innerHTML = '<span class="pill ok">Minden kész</span>'; score += 10; els.scorePill.textContent='Pont: '+score; }
+  }
+  store.forEach(b=>{
+    const inp = document.getElementById(b.id);
+    inp.addEventListener('blur', ()=>{
+      if(b.correct) return;
+      const v = norm(inp.value); if(!v) return;
+      if(v===norm(b.ans)){ b.correct=true; inp.classList.remove('wrong'); inp.classList.add('correct'); inp.disabled=true; recount(); }
+      else{ inp.classList.add('wrong'); }
+    });
+    inp.addEventListener('input', ()=> inp.classList.remove('wrong'));
+  });
+  els.clozeCheck.onclick=()=>{
+    store.forEach(b=>{
+      if(b.correct) return;
+      const inp=document.getElementById(b.id), v=norm(inp.value);
+      if(v && v===norm(b.ans)){ b.correct=true; inp.classList.add('correct'); inp.disabled=true; }
+      else if(v){ inp.classList.add('wrong'); }
+    });
+    recount();
+  };
+  els.clozeSolve.onclick=()=>{
+    store.forEach(b=>{ const inp=document.getElementById(b.id); inp.value=b.ans; inp.classList.add('correct'); inp.disabled=true; b.correct=true; });
+    recount(); els.clozeFeedback.innerHTML='<span class="pill warn">Megoldás megjelenítve</span>';
+  };
+  if(els.clozeLevel) els.clozeLevel.onchange = setupCloze;
+}
+
+// ===== ORDER (számmezők) =====
+let orderRows=[];
+function setupOrder(){
+  const N = topic.turns.length;
+  orderRows = shuffle(topic.turns.map((t,i)=>({orig:i+1, role:t.speaker, text:t.text, guess:null})));
+  renderOrderNumbers(N);
+  els.orderFeedback.textContent='';
+
+  els.orderCheck.onclick=()=>{
+    const inputs = Array.from(document.querySelectorAll('.order-input'));
+    const values = inputs.map(inp => parseInt(inp.value,10));
+    const seen = new Set();
+    let valid = true;
+    for(const v of values){
+      if(!(v>=1 && v<=N)){ valid=false; break; }
+      if(seen.has(v)){ valid=false; break; }
+      seen.add(v);
+    }
+    if(!valid){ els.orderFeedback.innerHTML = `<span class="pill warn">Érvénytelen</span> 1..${N} és ne legyen duplikátum.`; return; }
+    let correct=0;
+    inputs.forEach((inp, idx)=>{
+      const ok = (parseInt(inp.value,10) === orderRows[idx].orig);
+      inp.classList.toggle('ok', ok); inp.classList.toggle('bad', !ok);
+      if(ok) correct++;
+    });
+    if(correct===N){ els.orderFeedback.innerHTML = `<span class="pill ok">Kiváló</span> Minden a helyén.`; score += 10; els.scorePill.textContent='Pont: '+score; }
+    else{ els.orderFeedback.innerHTML = `<span class="pill warn">Még nem tökéletes</span> ${correct}/${N} jó helyen.`; }
+  };
+  els.orderSolve.onclick=()=>{
+    const inputs = Array.from(document.querySelectorAll('.order-input'));
+    inputs.forEach((inp, idx)=>{ inp.value = orderRows[idx].orig; inp.classList.add('ok'); inp.classList.remove('bad'); });
+    els.orderFeedback.innerHTML = `<span class="pill warn">Megoldás megjelenítve</span>`;
+  };
+}
+function renderOrderNumbers(N){
+  const list = els.orderList; list.innerHTML='';
+  orderRows.forEach((row, idx)=>{
+    const c = document.createElement('div'); c.className='order-item';
+    c.innerHTML = `<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <input type="number" min="1" max="${N}" class="order-input" style="width:72px;padding:6px 8px;border-radius:8px;border:1px solid var(--border)" />
+      <div><span class="pill" style="margin-right:8px">${row.role}</span> ${row.text}</div>
+    </div>`;
+    list.appendChild(c);
+  });
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// ===== SPEAK =====
+function setupSpeak(){
+  if(!setupSpeak.idx) setupSpeak.idx = 0;
+  const turns = topic.turns;
+  const idx = setupSpeak.idx % turns.length;
+  els.speakPrompt.textContent = `${turns[idx].speaker}: ${turns[idx].text}`;
+  let reply="(end)";
+  for(let i=idx+1;i<turns.length;i++){ if(turns[i].speaker!==turns[idx].speaker){ reply = `${turns[i].speaker}: ${turns[i].text}`; break; } }
+  els.speakSolution.textContent = reply; els.speakSolution.hidden = true;
+  els.sSpeak.onclick=()=> els.speakSolution.hidden = !els.speakSolution.hidden;
+  els.sNext.onclick=()=>{ setupSpeak.idx = (setupSpeak.idx+1)%turns.length; setupSpeak(); };
+}
+
+// ===== Boot =====
+window.addEventListener('DOMContentLoaded', ()=>{
+  DB = parseEmbeddedDB();
+  if(!DB){ return; }
+  DB = sanitizeDB(DB);   // <-- mojibake fix
+  hydrateTopics();
+  els.startBtn.click(); // auto-start első témával
+  switchTab('build');   // kezdő tab
+});
+</script>
+</body>
+</html>

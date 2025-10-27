@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Word & Relative Clause Game</title>
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#ffffff;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --accent:#2563eb;
+    --accent-weak:#e7efff;
+    --good:#16a34a;
+    --bad:#dc2626;
+    --border:#e5e7eb;
+    --chip:#f1f5f9;
+    --chip-border:#e2e8f0;
+    --shadow: 0 10px 30px rgba(2,6,23,0.08);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    background: radial-gradient(60% 60% at 50% 0%, #eef2ff 0%, var(--bg) 40%, var(--bg) 100%);
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+  .shell{
+    width:min(1080px,100%);
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:22px;
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:16px 20px;
+    border-bottom:1px solid var(--border);
+    background:#fbfdff;
+  }
+  .brand{display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.3px;}
+  .brand .dot{width:12px; height:12px; border-radius:50%; background:linear-gradient(135deg,#60a5fa,#2563eb); box-shadow:0 0 0 4px #dbeafe;}
+  .hud{ display:flex; gap:16px; align-items:center; color:var(--muted); font-size:14px; }
+  .pill{ padding:6px 10px; border-radius:999px; background:var(--accent-weak); color:var(--accent); border:1px solid #c7d2fe; font-weight:700;}
+  .score{color:var(--ink)}
+  nav.tabs{ display:flex; gap:8px; padding:8px; border-bottom:1px solid var(--border); background:#f9fbff; }
+  .tab{ padding:10px 14px; border-radius:12px; cursor:pointer; border:1px solid var(--border); background:#fff; color:var(--muted); font-weight:700; transition:all .15s ease; }
+  .tab.active{ color:#fff; background:var(--ink); border-color:#0b1220; }
+  main{ padding:22px; display:grid; gap:18px; }
+  .row{ display:grid; grid-template-columns: 1fr; gap:14px; }
+  .card{ border:1px solid var(--border); border-radius:16px; padding:18px; background:#fff; }
+  .category{ font-size:12px; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); }
+  .prompt{ font-size:22px; line-height:1.45; padding:14px; border:1px dashed var(--border); background:#f9fafb; border-radius:14px; }
+  .controls{ display:grid; grid-template-columns: 1fr auto auto; gap:12px; align-items:center; }
+  input[type="text"]{ padding:14px 16px; border:1px solid var(--border); border-radius:12px; font-size:16px; outline:none; }
+  button{ padding:12px 16px; border:none; border-radius:12px; font-weight:800; cursor:pointer; }
+  .btn-primary{ background:var(--accent); color:#fff; }
+  .btn-ghost{ background:#f3f4f6; color:var(--ink); }
+  .btn-dark{ background:#0f172a; color:#fff; }
+  .status{ min-height:24px; font-size:15px; }
+  .good{ color:var(--good); }
+  .bad{ color:var(--bad); }
+  .progress-wrap{ height:10px; background:#eef2f7; border-radius:999px; overflow:hidden; border:1px solid var(--border); }
+  .progress{ height:100%; width:0%; background:linear-gradient(90deg, #60a5fa, #2563eb); transition:width .3s ease; }
+  .small{ font-size:13px; color:var(--muted); }
+  .reveal{ padding:10px 12px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; border-radius:10px; display:none; }
+  .hidden{ display:none; }
+  .chipbar{ display:flex; flex-wrap:wrap; gap:10px; }
+  .chip{ background:var(--chip); border:1px solid var(--chip-border); padding:10px 12px; border-radius:999px; cursor:pointer; font-weight:700; }
+  .chip:hover{ background:#e2e8f0; }
+  .chip.correct{ background:#dcfce7; border-color:#86efac; }
+  .chip.wrong{ background:#fee2e2; border-color:#fecaca; }
+  .modebar{ display:flex; gap:8px; }
+  .modebtn{ padding:8px 12px; border:1px solid var(--border); border-radius:10px; cursor:pointer; background:#fff; color:#64748b; font-weight:700; }
+  .modebtn.active{ background:#111827; color:#fff; border-color:#0b1220; }
+  .foot{ display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid var(--border); color:#64748b; font-size:13px; background:#fbfdff; border-radius:0 0 22px 22px; }
+  @media (max-width:680px){
+    .controls{ grid-template-columns:1fr; }
+    button{ width:100%; }
+    nav.tabs{ flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="shell" role="application" aria-labelledby="app-title">
+  <header>
+    <div class="brand"><span class="dot"></span><span id="app-title">Word & Relative Clause Game</span></div>
+    <div class="hud">
+      <div>Score: <strong class="score" id="score">0</strong></div>
+      <div class="pill">+10 correct · -2 wrong · Pass allowed</div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <div class="tab active" data-tab="defs">Definitions -> Word</div>
+    <div class="tab" data-tab="rels">Relative Clauses</div>
+  </nav>
+
+  <main>
+    <section id="panel-defs" class="row">
+      <div class="card">
+        <div class="category" id="defs-category">Category</div>
+        <div class="prompt" id="defs-definition">Definition will appear here.</div>
+        <div class="controls">
+          <input id="defs-answer" type="text" placeholder="Type the word..." autocomplete="off" aria-label="Your answer">
+          <button id="defs-submit" class="btn-primary">Submit</button>
+          <button id="defs-pass" class="btn-ghost">Pass</button>
+        </div>
+        <div class="status" id="defs-status"></div>
+        <div class="reveal" id="defs-reveal"></div>
+        <div class="progress-wrap"><div class="progress" id="defs-progress"></div></div>
+        <div class="small" id="defs-left">Items left: 0</div>
+        <div class="hidden"><button id="defs-next" class="btn-dark">Next</button></div>
+      </div>
+    </section>
+
+    <section id="panel-rels" class="row hidden">
+      <div class="card">
+        <div class="modebar">
+          <button class="modebtn active" data-mode="fill">Fill the Gap</button>
+          <button class="modebtn" data-mode="mc">Multiple Choice</button>
+        </div>
+      </div>
+
+      <div class="card" id="rel-fill-card">
+        <div class="category" id="rel-fill-cat">Relative Clause - Fill the Gap</div>
+        <div class="prompt" id="rel-fill-prompt">Sentence with ___ will appear here.</div>
+        <div class="controls">
+          <input id="rel-fill-answer" type="text" placeholder="Type the pronoun (who, whom, which, that, when, where...)" autocomplete="off">
+          <button id="rel-fill-submit" class="btn-primary">Submit</button>
+          <button id="rel-fill-pass" class="btn-ghost">Pass</button>
+        </div>
+        <div class="status" id="rel-fill-status"></div>
+        <div class="reveal" id="rel-fill-reveal"></div>
+        <div class="progress-wrap"><div class="progress" id="rel-fill-progress"></div></div>
+        <div class="small" id="rel-fill-left">Items left: 0</div>
+        <div class="hidden"><button id="rel-fill-next" class="btn-dark">Next</button></div>
+      </div>
+
+      <div class="card hidden" id="rel-mc-card">
+        <div class="category" id="rel-mc-cat">Relative Clause - Multiple Choice</div>
+        <div class="prompt" id="rel-mc-prompt">Sentence with ___ will appear here.</div>
+        <div class="chipbar" id="rel-mc-chips"></div>
+        <div class="controls">
+          <button id="rel-mc-pass" class="btn-ghost">Pass</button>
+          <button id="rel-mc-next" class="btn-dark hidden">Next</button>
+        </div>
+        <div class="status" id="rel-mc-status"></div>
+        <div class="reveal" id="rel-mc-reveal"></div>
+        <div class="progress-wrap"><div class="progress" id="rel-mc-progress"></div></div>
+        <div class="small" id="rel-mc-left">Items left: 0</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="foot">
+    <div>Modern, clean, minimalist UI. Teen-friendly.</div>
+    <div>Tips: Not case sensitive. For MC, any correct pronoun counts.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var t=arr[i]; arr[i]=arr[j]; arr[j]=t;
+    }
+    return arr;
+  }
+  function norm(s){ return (s||"").trim().toLowerCase(); }
+
+  var SCORE = 0;
+  function addScore(v){
+    SCORE += v;
+    document.getElementById("score").textContent = String(SCORE);
+  }
+
+  var DEFS_DB = [
+    {word:"Doctor", category:"People", def:"A person who examines patients and gives medicine or treatment.", aliases:["physician","medic"]},
+    {word:"Teacher", category:"People", def:"A person who helps you learn at school.", aliases:[]},
+    {word:"Farmer", category:"People", def:"A person who grows crops and looks after farm animals.", aliases:[]},
+    {word:"Police officer", category:"People", def:"A person who catches criminals and keeps people safe.", aliases:["policeman","policewoman","police"]},
+    {word:"Chef", category:"People", def:"A person who cooks meals in a restaurant kitchen.", aliases:["cook"]},
+    {word:"Driver", category:"People", def:"A person who drives a vehicle to take people or things to places.", aliases:["chauffeur"]},
+    {word:"Student", category:"People", def:"A person who studies in a school or class.", aliases:["pupil","learner"]},
+    {word:"Nurse", category:"People", def:"A person who looks after patients and gives care in a hospital.", aliases:[]},
+    {word:"Singer", category:"People", def:"A person who performs songs.", aliases:["vocalist"]},
+    {word:"Friend", category:"People", def:"A person you like and spend time with.", aliases:["buddy","pal"]},
+    {word:"Book", category:"Things", def:"Something you read with pages.", aliases:[]},
+    {word:"Chair", category:"Things", def:"Something you sit on.", aliases:[]},
+    {word:"Phone", category:"Things", def:"A small device you use to call or text people.", aliases:["mobile","mobile phone","cellphone","cell phone","smartphone"]},
+    {word:"Ball", category:"Things", def:"Something round you play games with.", aliases:["football","soccer ball","basketball","tennis ball"]},
+    {word:"Computer", category:"Things", def:"A machine with a keyboard and screen for work, study, or games.", aliases:["pc","laptop","desktop"]},
+    {word:"Bag", category:"Things", def:"Something you use to carry your things.", aliases:["backpack","schoolbag"]},
+    {word:"Table", category:"Things", def:"A piece of furniture you eat or work at.", aliases:["desk"]},
+    {word:"Shoes", category:"Things", def:"Things you wear on your feet.", aliases:["shoe","trainers","sneakers"]},
+    {word:"Watch", category:"Things", def:"Something you wear on your wrist to know the time.", aliases:["wristwatch"]},
+    {word:"Pen", category:"Things", def:"Something you use to write with ink.", aliases:[]},
+    {word:"School", category:"Places", def:"A place where children learn.", aliases:[]},
+    {word:"Hospital", category:"Places", def:"A place where doctors and nurses treat sick people.", aliases:[]},
+    {word:"Restaurant", category:"Places", def:"A place where you sit and eat a cooked meal.", aliases:[]},
+    {word:"Shop", category:"Places", def:"A place where you buy things to take home.", aliases:["store"]},
+    {word:"Bank", category:"Places", def:"A place where you keep, take out, or send money.", aliases:[]},
+    {word:"Park", category:"Places", def:"A place outside where you can walk or play.", aliases:[]},
+    {word:"Airport", category:"Places", def:"A place where planes arrive and leave.", aliases:[]},
+    {word:"Cinema", category:"Places", def:"A place where you watch films on a big screen.", aliases:["movie theater","movie theatre"]},
+    {word:"Beach", category:"Places", def:"A place by the sea with sand.", aliases:[]},
+    {word:"Police station", category:"Places", def:"A place where police officers work and help with crimes.", aliases:[]},
+    {word:"Christmas", category:"Times", def:"The time in December when many people give presents.", aliases:[]},
+    {word:"Birthday", category:"Times", def:"The day each year when you celebrate getting older.", aliases:[]},
+    {word:"Morning", category:"Times", def:"The time when you wake up and start the day.", aliases:[]},
+    {word:"Night", category:"Times", def:"The time when it is dark and you go to bed.", aliases:["evening (late)"]},
+    {word:"Summer", category:"Times", def:"The hot time of year when many children do not go to school.", aliases:["summertime"]}
+  ];
+
+  var REL_DB = [
+    {prompt:"A teacher is a person ___ helps students learn.", answers:["who","that"], show:"A teacher is a person who/that helps students learn."},
+    {prompt:"A nurse is a person ___ looks after patients in a hospital.", answers:["who","that"], show:"A nurse is a person who/that looks after patients in a hospital."},
+    {prompt:"A driver is a person ___ takes people to places by car or bus.", answers:["who","that"], show:"A driver is a person who/that takes people to places by car or bus."},
+    {prompt:"A chef is a person ___ cooks meals in a restaurant.", answers:["who","that"], show:"A chef is a person who/that cooks meals in a restaurant."},
+    {prompt:"A singer is a person ___ performs songs on a stage.", answers:["who","that"], show:"A singer is a person who/that performs songs on a stage."},
+    {prompt:"A farmer is a person ___ grows crops and raises animals.", answers:["who","that"], show:"A farmer is a person who/that grows crops and raises animals."},
+    {prompt:"A student is a person ___ studies in a school or class.", answers:["who","that"], show:"A student is a person who/that studies in a school or class."},
+    {prompt:"A lifeguard is a person ___ watches swimmers and keeps them safe.", answers:["who","that"], show:"A lifeguard is a person who/that watches swimmers and keeps them safe."},
+    {prompt:"A scientist is a person ___ studies how things work.", answers:["who","that"], show:"A scientist is a person who/that studies how things work."},
+    {prompt:"A coach is a person ___ trains a team.", answers:["who","that"], show:"A coach is a person who/that trains a team."},
+    {prompt:"A doctor is a person ___ you visit when you are ill.", answers:["who","that","whom"], show:"A doctor is a person who/that/whom you visit when you are ill."},
+    {prompt:"A friend is a person ___ you spend time with.", answers:["who","that","whom"], show:"A friend is a person who/that/whom you spend time with."},
+    {prompt:"A tutor is a person ___ you get extra help from.", answers:["who","that","whom"], show:"A tutor is a person who/that/whom you get extra help from."},
+    {prompt:"A guide is a person ___ you ask for directions.", answers:["who","that","whom"], show:"A guide is a person who/that/whom you ask for directions."},
+    {prompt:"A barber is a person ___ you go to for a haircut.", answers:["who","that","whom"], show:"A barber is a person who/that/whom you go to for a haircut."},
+    {prompt:"A reporter is a person ___ you see on TV giving news.", answers:["who","that","whom"], show:"A reporter is a person who/that/whom you see on TV giving news."},
+    {prompt:"A mechanic is a person ___ you take your car to.", answers:["who","that","whom"], show:"A mechanic is a person who/that/whom you take your car to."},
+    {prompt:"A cashier is a person ___ you pay in a shop.", answers:["who","that","whom"], show:"A cashier is a person who/that/whom you pay in a shop."},
+    {prompt:"A photographer is a person ___ you hire to take pictures.", answers:["who","that","whom"], show:"A photographer is a person who/that/whom you hire to take pictures."},
+    {prompt:"A neighbor is a person ___ you live next to.", answers:["who","that","whom"], show:"A neighbor is a person who/that/whom you live next to."},
+    {prompt:"A dictionary is a thing ___ explains the meanings of words.", answers:["that","which"], show:"A dictionary is a thing that/which explains the meanings of words."},
+    {prompt:"A map is a thing ___ shows you where places are.", answers:["that","which"], show:"A map is a thing that/which shows you where places are."},
+    {prompt:"A battery is a thing ___ gives power to devices.", answers:["that","which"], show:"A battery is a thing that/which gives power to devices."},
+    {prompt:"A helmet is a thing ___ protects your head.", answers:["that","which"], show:"A helmet is a thing that/which protects your head."},
+    {prompt:"A password is a thing ___ keeps your account safe.", answers:["that","which"], show:"A password is a thing that/which keeps your account safe."},
+    {prompt:"A blanket is a thing ___ keeps you warm.", answers:["that","which"], show:"A blanket is a thing that/which keeps you warm."},
+    {prompt:"A ticket is a thing ___ lets you enter a bus, train, or event.", answers:["that","which"], show:"A ticket is a thing that/which lets you enter a bus, train, or event."},
+    {prompt:"A keyboard is a thing ___ you use to type.", answers:["that","which"], show:"A keyboard is a thing that/which you use to type."},
+    {prompt:"A camera is a thing ___ takes photos.", answers:["that","which"], show:"A camera is a thing that/which takes photos."},
+    {prompt:"A seatbelt is a thing ___ keeps you safe in a car.", answers:["that","which"], show:"A seatbelt is a thing that/which keeps you safe in a car."},
+    {prompt:"A book is a thing ___ you read.", answers:["that","which"], show:"A book is a thing that/which you read."},
+    {prompt:"A phone is a thing ___ you call people with.", answers:["that","which"], show:"A phone is a thing that/which you call people with."},
+    {prompt:"A pen is a thing ___ you write with.", answers:["that","which"], show:"A pen is a thing that/which you write with."},
+    {prompt:"A ruler is a thing ___ you measure lines with.", answers:["that","which"], show:"A ruler is a thing that/which you measure lines with."},
+    {prompt:"A charger is a thing ___ you use to power your phone.", answers:["that","which"], show:"A charger is a thing that/which you use to power your phone."},
+    {prompt:"A mirror is a thing ___ you look at yourself in.", answers:["that","which"], show:"A mirror is a thing that/which you look at yourself in."},
+    {prompt:"A remote is a thing ___ you use to change channels.", answers:["that","which"], show:"A remote is a thing that/which you use to change channels."},
+    {prompt:"A backpack is a thing ___ you carry your books in.", answers:["that","which"], show:"A backpack is a thing that/which you carry your books in."},
+    {prompt:"A scarf is a thing ___ you wear around your neck.", answers:["that","which"], show:"A scarf is a thing that/which you wear around your neck."},
+    {prompt:"A wallet is a thing ___ you keep your money in.", answers:["that","which"], show:"A wallet is a thing that/which you keep your money in."},
+    {prompt:"A school is a place ___ students learn.", answers:["where","in which"], show:"A school is a place where/in which students learn."},
+    {prompt:"A hospital is a place ___ sick people get help.", answers:["where","in which"], show:"A hospital is a place where/in which sick people get help."},
+    {prompt:"A library is a place ___ you can borrow books.", answers:["where","in which"], show:"A library is a place where/in which you can borrow books."},
+    {prompt:"A restaurant is a place ___ you eat meals.", answers:["where","in which"], show:"A restaurant is a place where/in which you eat meals."},
+    {prompt:"A park is a place ___ families relax and play.", answers:["where","in which"], show:"A park is a place where/in which families relax and play."},
+    {prompt:"A bank is a place ___ people keep their money.", answers:["where","in which"], show:"A bank is a place where/in which people keep their money."},
+    {prompt:"A cinema is a place ___ you watch films.", answers:["where","in which"], show:"A cinema is a place where/in which you watch films."},
+    {prompt:"An airport is a place ___ planes arrive and leave.", answers:["where","in which"], show:"An airport is a place where/in which planes arrive and leave."},
+    {prompt:"A stadium is a place ___ teams play sports.", answers:["where","in which"], show:"A stadium is a place where/in which teams play sports."},
+    {prompt:"A museum is a place ___ you see art and history.", answers:["where","in which"], show:"A museum is a place where/in which you see art and history."},
+    {prompt:"A supermarket is a place ___ you buy food.", answers:["where","in which"], show:"A supermarket is a place where/in which you buy food."},
+    {prompt:"A factory is a place ___ people make products.", answers:["where","in which"], show:"A factory is a place where/in which people make products."},
+    {prompt:"A gym is a place ___ you exercise.", answers:["where","in which"], show:"A gym is a place where/in which you exercise."},
+    {prompt:"A cafe is a place ___ you drink coffee and talk.", answers:["where","in which"], show:"A cafe is a place where/in which you drink coffee and talk."},
+    {prompt:"A beach is a place ___ you swim and sit on the sand.", answers:["where","in which"], show:"A beach is a place where/in which you swim and sit on the sand."},
+    {prompt:"A farm is a place ___ crops grow and animals live.", answers:["where","in which"], show:"A farm is a place where/in which crops grow and animals live."},
+    {prompt:"A bus stop is a place ___ people wait for a bus.", answers:["where","in which"], show:"A bus stop is a place where/in which people wait for a bus."},
+    {prompt:"A classroom is a place ___ a teacher gives a lesson.", answers:["where","in which"], show:"A classroom is a place where/in which a teacher gives a lesson."},
+    {prompt:"A hotel is a place ___ travelers sleep.", answers:["where","in which"], show:"A hotel is a place where/in which travelers sleep."},
+    {prompt:"A police station is a place ___ officers work.", answers:["where","in which"], show:"A police station is a place where/in which officers work."},
+    {prompt:"Morning is a time ___ many people have breakfast.", answers:["when","at which"], show:"Morning is a time when/at which many people have breakfast."},
+    {prompt:"Night is a time ___ most people sleep.", answers:["when","at which"], show:"Night is a time when/at which most people sleep."},
+    {prompt:"Summer is a time ___ children do not go to school.", answers:["when","at which"], show:"Summer is a time when/at which children do not go to school."},
+    {prompt:"Winter is a time ___ it is often cold.", answers:["when","at which"], show:"Winter is a time when/at which it is often cold."},
+    {prompt:"Lunchtime is a time ___ students eat at school.", answers:["when","at which"], show:"Lunchtime is a time when/at which students eat at school."},
+    {prompt:"Midnight is a time ___ the day changes.", answers:["when","at which"], show:"Midnight is a time when/at which the day changes."},
+    {prompt:"Sunset is a time ___ the sky gets orange.", answers:["when","at which"], show:"Sunset is a time when/at which the sky gets orange."},
+    {prompt:"Weekend is a time ___ many people relax.", answers:["when","at which"], show:"Weekend is a time when/at which many people relax."},
+    {prompt:"Birthday is a time ___ you celebrate getting older.", answers:["when","at which"], show:"Birthday is a time when/at which you celebrate getting older."},
+    {prompt:"Christmas is a time ___ families give presents.", answers:["when","at which"], show:"Christmas is a time when/at which families give presents."},
+    {prompt:"That is the reason ___ I stayed at home.", answers:["why","for which"], show:"That is the reason why/for which I stayed at home."},
+    {prompt:"This is the reason ___ she called you.", answers:["why","for which"], show:"This is the reason why/for which she called you."},
+    {prompt:"Do you know the reason ___ the lesson was late?", answers:["why","for which"], show:"Do you know the reason why/for which the lesson was late?"},
+    {prompt:"I forgot the reason ___ they moved.", answers:["why","for which"], show:"I forgot the reason why/for which they moved."},
+    {prompt:"We explained the reason ___ the match was canceled.", answers:["why","for which"], show:"We explained the reason why/for which the match was canceled."},
+    {prompt:"He met a woman ___ car was stolen.", answers:["whose"], show:"He met a woman whose car was stolen."},
+    {prompt:"I have a friend ___ brother lives abroad.", answers:["whose"], show:"I have a friend whose brother lives abroad."},
+    {prompt:"We visited a writer ___ books are famous.", answers:["whose"], show:"We visited a writer whose books are famous."},
+    {prompt:"She helped a boy ___ bag was heavy.", answers:["whose"], show:"She helped a boy whose bag was heavy."},
+    {prompt:"They talked to a player ___ knee was hurt.", answers:["whose"], show:"They talked to a player whose knee was hurt."},
+    {prompt:"I bought a laptop ___ battery lasts long.", answers:["whose","of which"], show:"I bought a laptop whose/of which battery lasts long."},
+    {prompt:"We stayed in a house ___ roof is red.", answers:["whose","of which"], show:"We stayed in a house whose/of which roof is red."},
+    {prompt:"He fixed a bike ___ chain was broken.", answers:["whose","of which"], show:"He fixed a bike whose/of which chain was broken."},
+    {prompt:"She opened a box ___ lid was stuck.", answers:["whose","of which"], show:"She opened a box whose/of which lid was stuck."},
+    {prompt:"They cleaned a room ___ floor was dirty.", answers:["whose","of which"], show:"They cleaned a room whose/of which floor was dirty."},
+    {prompt:"I read a novel ___ ending was surprising.", answers:["whose","of which"], show:"I read a novel whose/of which ending was surprising."},
+    {prompt:"We saw a tree ___ leaves were yellow.", answers:["whose","of which"], show:"We saw a tree whose/of which leaves were yellow."},
+    {prompt:"She used a phone ___ screen was cracked.", answers:["whose","of which"], show:"She used a phone whose/of which screen was cracked."},
+    {prompt:"He chose a project ___ goal was clear.", answers:["whose","of which"], show:"He chose a project whose/of which goal was clear."},
+    {prompt:"They visited a museum ___ collection is large.", answers:["whose","of which"], show:"They visited a museum whose/of which collection is large."},
+    {prompt:"He is the student ___ works the hardest in our class.", answers:["who","that"], show:"He is the student who/that works the hardest in our class."},
+    {prompt:"She is the singer ___ we all like most.", answers:["who","that","whom"], show:"She is the singer who/that/whom we all like most."},
+    {prompt:"This is the best cafe ___ you can find nearby.", answers:["that","which"], show:"This is the best cafe that/which you can find nearby."},
+    {prompt:"That is the only bus ___ goes to the airport.", answers:["that","which"], show:"That is the only bus that/which goes to the airport."},
+    {prompt:"This is the first film ___ I have seen in English.", answers:["that","which"], show:"This is the first film that/which I have seen in English."},
+    {prompt:"She is the only person ___ I trust completely.", answers:["who","that","whom"], show:"She is the only person who/that/whom I trust completely."},
+    {prompt:"This is the kind of job ___ suits you.", answers:["that","which"], show:"This is the kind of job that/which suits you."},
+    {prompt:"That is the type of music ___ I listen to.", answers:["that","which"], show:"That is the type of music that/which I listen to."},
+    {prompt:"He is the coach ___ the team respects.", answers:["who","that","whom"], show:"He is the coach who/that/whom the team respects."},
+    {prompt:"This is the team ___ won the final.", answers:["that","which"], show:"This is the team that/which won the final."}
+  ];
+
+  var PRONOUN_CHIPS = ["who","whom","that","which","whose","where","in which","when","at which","why","for which"];
+
+  var tabs = document.querySelectorAll(".tab");
+  var panelDefs = document.getElementById("panel-defs");
+  var panelRels = document.getElementById("panel-rels");
+  Array.prototype.forEach.call(tabs, function(tab){
+    tab.addEventListener("click", function(){
+      Array.prototype.forEach.call(tabs, function(t){ t.classList.remove("active"); });
+      tab.classList.add("active");
+      if(tab.getAttribute("data-tab")==="defs"){ panelDefs.classList.remove("hidden"); panelRels.classList.add("hidden"); }
+      else{ panelRels.classList.remove("hidden"); panelDefs.classList.add("hidden"); }
+    });
+  });
+
+  var modeBtns = document.querySelectorAll(".modebtn");
+  var fillCard = document.getElementById("rel-fill-card");
+  var mcCard = document.getElementById("rel-mc-card");
+  Array.prototype.forEach.call(modeBtns, function(b){
+    b.addEventListener("click", function(){
+      Array.prototype.forEach.call(modeBtns, function(x){ x.classList.remove("active"); });
+      b.classList.add("active");
+      var mode = b.getAttribute("data-mode");
+      if(mode==="fill"){ fillCard.classList.remove("hidden"); mcCard.classList.add("hidden"); }
+      else{ mcCard.classList.remove("hidden"); fillCard.classList.add("hidden"); }
+    });
+  });
+
+  // Definitions game
+  var defs = {
+    items: shuffle(DEFS_DB.slice(0)),
+    i: 0,
+    els: {
+      cat: document.getElementById("defs-category"),
+      def: document.getElementById("defs-definition"),
+      ans: document.getElementById("defs-answer"),
+      submit: document.getElementById("defs-submit"),
+      pass: document.getElementById("defs-pass"),
+      status: document.getElementById("defs-status"),
+      reveal: document.getElementById("defs-reveal"),
+      progress: document.getElementById("defs-progress"),
+      left: document.getElementById("defs-left"),
+      next: document.getElementById("defs-next")
+    }
+  };
+  function defsNormMatch(input, item){
+    var a = norm(input).replace(/[\.!?,]/g,"");
+    if(!a) return false;
+    var target = norm(item.word);
+    if(a===target) return true;
+    if(a+"s"===target || a===target+"s") return true;
+    for(var k=0;k<item.aliases.length;k++){ if(a===norm(item.aliases[k])) return true; }
+    return false;
+  }
+  function defsLoad(){
+    if(defs.i >= defs.items.length){
+      defs.els.cat.textContent = "Done";
+      defs.els.def.textContent = "You finished all definition items. Great job!";
+      defs.els.ans.disabled = true; defs.els.submit.disabled = true; defs.els.pass.disabled = true;
+      defs.els.status.innerHTML = "Final score: <strong>"+SCORE+"</strong>";
+      defs.els.status.className = "status good";
+      defs.els.reveal.style.display = "none";
+      defs.els.left.textContent = "Items left: 0";
+      defs.els.progress.style.width = "100%";
+      defs.els.next.parentElement.classList.add("hidden");
+      return;
+    }
+    var it = defs.items[defs.i];
+    defs.els.cat.textContent = it.category;
+    defs.els.def.textContent = it.def;
+    defs.els.ans.value = "";
+    defs.els.ans.disabled = false; defs.els.submit.disabled = false; defs.els.pass.disabled = false;
+    defs.els.status.textContent = ""; defs.els.status.className = "status";
+    defs.els.reveal.style.display = "none";
+    defs.els.next.parentElement.classList.add("hidden");
+    defs.els.ans.focus();
+    var done = defs.i, total = defs.items.length;
+    defs.els.left.textContent = "Items left: " + (total - done);
+    defs.els.progress.style.width = Math.round(done/total*100) + "%";
+  }
+  function defsSubmit(){
+    if(defs.i >= defs.items.length) return;
+    var it = defs.items[defs.i];
+    var val = defs.els.ans.value;
+    if(defsNormMatch(val, it)){
+      addScore(10);
+      defs.els.status.textContent = "Correct! +10 points";
+      defs.els.status.className = "status good";
+      defs.els.reveal.textContent = "Answer: " + it.word;
+      defs.els.reveal.style.display = "block";
+      defsLock();
+    }else{
+      addScore(-2);
+      defs.els.status.textContent = "Not quite. -2 points";
+      defs.els.status.className = "status bad";
+    }
+  }
+  function defsPass(){
+    if(defs.i >= defs.items.length) return;
+    var it = defs.items[defs.i];
+    defs.els.status.textContent = "Passed. No points added or removed.";
+    defs.els.reveal.textContent = "Answer: " + it.word;
+    defs.els.reveal.style.display = "block";
+    defsLock();
+  }
+  function defsLock(){
+    defs.els.ans.disabled = true; defs.els.submit.disabled = true; defs.els.pass.disabled = true;
+    defs.els.next.parentElement.classList.remove("hidden"); defs.els.next.focus();
+  }
+  function defsNext(){ defs.i++; defsLoad(); }
+  defs.els.submit.addEventListener("click", defsSubmit);
+  defs.els.pass.addEventListener("click", defsPass);
+  defs.els.next.addEventListener("click", defsNext);
+  defs.els.ans.addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); defsSubmit(); }});
+  defsLoad();
+
+  // Relative: Fill-in
+  var rf = {
+    items: shuffle(REL_DB.slice(0)),
+    i: 0,
+    els: {
+      prompt: document.getElementById("rel-fill-prompt"),
+      ans: document.getElementById("rel-fill-answer"),
+      submit: document.getElementById("rel-fill-submit"),
+      pass: document.getElementById("rel-fill-pass"),
+      status: document.getElementById("rel-fill-status"),
+      reveal: document.getElementById("rel-fill-reveal"),
+      progress: document.getElementById("rel-fill-progress"),
+      left: document.getElementById("rel-fill-left"),
+      next: document.getElementById("rel-fill-next")
+    }
+  };
+  function rfLoad(){
+    if(rf.i >= rf.items.length){
+      rf.els.prompt.textContent = "You finished all relative-clause items (fill-in).";
+      rf.els.ans.disabled = true; rf.els.submit.disabled = true; rf.els.pass.disabled = true;
+      rf.els.status.innerHTML = "Final score: <strong>"+SCORE+"</strong>";
+      rf.els.status.className = "status good";
+      rf.els.reveal.style.display = "none";
+      rf.els.left.textContent = "Items left: 0";
+      rf.els.progress.style.width = "100%";
+      rf.els.next.parentElement.classList.add("hidden");
+      return;
+    }
+    var it = rf.items[rf.i];
+    rf.els.prompt.textContent = it.prompt;
+    rf.els.ans.value = "";
+    rf.els.ans.disabled = false; rf.els.submit.disabled = false; rf.els.pass.disabled = false;
+    rf.els.status.textContent = ""; rf.els.status.className = "status";
+    rf.els.reveal.style.display = "none";
+    rf.els.next.parentElement.classList.add("hidden");
+    rf.els.ans.focus();
+    var done = rf.i, total = rf.items.length;
+    rf.els.left.textContent = "Items left: " + (total - done);
+    rf.els.progress.style.width = Math.round(done/total*100) + "%";
+  }
+  function rfSubmit(){
+    if(rf.i >= rf.items.length) return;
+    var it = rf.items[rf.i];
+    var a = norm(rf.els.ans.value).replace(/\s+/g," ").trim();
+    var ok = false;
+    for(var i=0;i<it.answers.length;i++){ if(a === norm(it.answers[i])) { ok = true; break; } }
+    if(ok){
+      addScore(10);
+      rf.els.status.textContent = "Correct! +10 points";
+      rf.els.status.className = "status good";
+      rf.els.reveal.textContent = "Accepted answers: " + it.answers.join(", ") + "  |  " + it.show;
+      rf.els.reveal.style.display = "block";
+      rfLock();
+    }else{
+      addScore(-2);
+      rf.els.status.textContent = "Not quite. -2 points";
+      rf.els.status.className = "status bad";
+    }
+  }
+  function rfPass(){
+    if(rf.i >= rf.items.length) return;
+    var it = rf.items[rf.i];
+    rf.els.status.textContent = "Passed. No points added or removed.";
+    rf.els.reveal.textContent = "Accepted answers: " + it.answers.join(", ") + "  |  " + it.show;
+    rf.els.reveal.style.display = "block";
+    rfLock();
+  }
+  function rfLock(){
+    rf.els.ans.disabled = true; rf.els.submit.disabled = true; rf.els.pass.disabled = true;
+    rf.els.next.parentElement.classList.remove("hidden"); rf.els.next.focus();
+  }
+  function rfNext(){ rf.i++; rfLoad(); }
+  document.getElementById("rel-fill-submit").addEventListener("click", rfSubmit);
+  document.getElementById("rel-fill-pass").addEventListener("click", rfPass);
+  document.getElementById("rel-fill-next").addEventListener("click", rfNext);
+  rfLoad();
+
+  // Relative: Multiple Choice
+  var rm = {
+    items: shuffle(REL_DB.slice(0)),
+    i: 0,
+    els: {
+      prompt: document.getElementById("rel-mc-prompt"),
+      chips: document.getElementById("rel-mc-chips"),
+      pass: document.getElementById("rel-mc-pass"),
+      next: document.getElementById("rel-mc-next"),
+      status: document.getElementById("rel-mc-status"),
+      reveal: document.getElementById("rel-mc-reveal"),
+      progress: document.getElementById("rel-mc-progress"),
+      left: document.getElementById("rel-mc-left")
+    }
+  };
+  var PRONOUN_CHIPS = ["who","whom","that","which","whose","where","in which","when","at which","why","for which"];
+  function rmLoad(){
+    if(rm.i >= rm.items.length){
+      rm.els.prompt.textContent = "You finished all relative-clause items (multiple choice).";
+      rm.els.chips.innerHTML = "";
+      rm.els.pass.disabled = true;
+      rm.els.status.innerHTML = "Final score: <strong>"+SCORE+"</strong>";
+      rm.els.status.className = "status good";
+      rm.els.reveal.style.display = "none";
+      rm.els.left.textContent = "Items left: 0";
+      rm.els.progress.style.width = "100%";
+      rm.els.next.classList.add("hidden");
+      return;
+    }
+    var it = rm.items[rm.i];
+    rm.els.prompt.textContent = it.prompt;
+    rm.els.chips.innerHTML = "";
+    rm.els.status.textContent = ""; rm.els.status.className = "status";
+    rm.els.reveal.style.display = "none";
+    rm.els.next.classList.add("hidden");
+    rm.els.pass.disabled = false;
+
+    for(var i=0;i<PRONOUN_CHIPS.length;i++){
+      (function(p){
+        var btn = document.createElement("button");
+        btn.className = "chip";
+        btn.textContent = p;
+        btn.addEventListener("click", function(){ rmPick(btn, p, it); });
+        rm.els.chips.appendChild(btn);
+      })(PRONOUN_CHIPS[i]);
+    }
+
+    var done = rm.i, total = rm.items.length;
+    rm.els.left.textContent = "Items left: " + (total - done);
+    rm.els.progress.style.width = Math.round(done/total*100) + "%";
+  }
+  function rmPick(btn, choice, it){
+    if(!rm.els.next.classList.contains("hidden")) return;
+    var ok = false;
+    for(var i=0;i<it.answers.length;i++){ if(norm(choice) === norm(it.answers[i])) { ok = true; break; } }
+    if(ok){
+      btn.classList.add("correct"); addScore(10);
+      rm.els.status.textContent = "Correct! +10 points"; rm.els.status.className = "status good";
+    }else{
+      btn.classList.add("wrong"); addScore(-2);
+      rm.els.status.textContent = "Not quite. -2 points"; rm.els.status.className = "status bad";
+    }
+    rm.els.reveal.textContent = "Accepted answers: " + it.answers.join(", ") + "  |  " + it.show;
+    rm.els.reveal.style.display = "block";
+    var children = rm.els.chips.children;
+    for(var k=0;k<children.length;k++){ children[k].disabled = true; }
+    rm.els.pass.disabled = true;
+    rm.els.next.classList.remove("hidden");
+    rm.els.next.focus();
+  }
+  function rmPass(){
+    var it = rm.items[rm.i];
+    rm.els.status.textContent = "Passed. No points added or removed.";
+    rm.els.reveal.textContent = "Accepted answers: " + it.answers.join(", ") + "  |  " + it.show;
+    rm.els.reveal.style.display = "block";
+    var children = rm.els.chips.children;
+    for(var k=0;k<children.length;k++){ children[k].disabled = true; }
+    rm.els.pass.disabled = true;
+    rm.els.next.classList.remove("hidden");
+    rm.els.next.focus();
+  }
+  function rmNext(){ rm.i++; rmLoad(); }
+  document.getElementById("rel-mc-pass").addEventListener("click", rmPass);
+  document.getElementById("rel-mc-next").addEventListener("click", rmNext);
+  rmLoad();
+
+})();</script>
+</body>
+</html>

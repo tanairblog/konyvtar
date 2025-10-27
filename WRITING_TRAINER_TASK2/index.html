@@ -1,0 +1,668 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B1 Exam Writing Practice</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-300: #F9C97A; --primary-500: #F4A329; --primary-700: #B45309;
+            --secondary-300: #7EDAD6; --secondary-500: #2BB6B4; --secondary-700: #0F766E;
+            --accent-300: #F49DB8; --accent-500: #E8467B; --accent-700: #A61E4D;
+            --bg: #FFF7F2; --surface: #FFFFFF; --surface-alt: #F5F7FA; --border: #E6E9EF;
+            --text: #1F2937; --text-2: #4B5563; --text-muted: #6B7280; --text-inverse: #FFFFFF;
+            --success: #2F9E44; --warning: #F59F00; --error: #D92D20; --info: #2563EB;
+            --feedback-success-bg: #E1F8F6;
+            --feedback-error-bg: #FFE4E6;
+            --feedback-missed-bg: #FFF5E0;
+        }
+        body {
+            font-family: "Inter", system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        h1 { font-size: 32px; font-weight: 600; }
+        h2 { font-size: 24px; font-weight: 600; }
+        .card-shadow { box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08); }
+        .primary-btn { background-color: var(--primary-700); color: var(--text-inverse); transition: all 180ms ease; }
+        .primary-btn:hover { filter: brightness(0.95); }
+        .secondary-btn { background-color: transparent; color: var(--primary-700); border: 1px solid var(--primary-300); transition: all 180ms ease; }
+        .secondary-btn:hover { background-color: rgba(249, 201, 122, 0.24); }
+        .focus-ring:focus { outline: 2px solid var(--secondary-500); outline-offset: 2px; }
+        .text-area-input { border: 1px solid var(--border); transition: border-color 180ms ease; }
+        .text-area-input:focus { border-color: var(--secondary-500); }
+        .tailwind-config-script { display: none; }
+    </style>
+    <script class="tailwind-config-script">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'var-bg': 'var(--bg)', 'var-surface': 'var(--surface)', 'var-surface-alt': 'var(--surface-alt)',
+                        'var-border': 'var(--border)', 'var-text': 'var(--text)', 'var-text-2': 'var(--text-2)',
+                        'var-primary-700': 'var(--primary-700)', 'var-secondary-500': 'var(--secondary-500)',
+                        'var-success': 'var(--success)', 'var-warning': 'var(--warning)', 'var-error': 'var(--error)',
+                        'var-accent-500': 'var(--accent-500)',
+                    },
+                    borderRadius: { 'xl': '16px', 'full': '9999px' },
+                    spacing: { '1': '4px', '2': '8px', '3': '12px', '4': '16px', '6': '24px' },
+                    boxShadow: { 'xl': '0 4px 14px rgba(17, 24, 39, 0.08)' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <header class="text-center pb-4 pt-2">
+            <h1>B1 Functional Writing Exam Trainer</h1>
+            <p class="text-var-text-2 mt-1">Practice writing tasks with guided structure and language scaffolding.</p>
+        </header>
+
+        <main id="app-container" class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+            
+            <div id="task-selector-column" class="lg:col-span-1">
+                <div class="bg-var-surface card-shadow rounded-xl p-4 sticky top-6">
+                    <h2 class="text-lg font-semibold text-var-text mb-4">Select Task</h2>
+                    <div id="task-list" class="space-y-2 max-h-[70vh] overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div id="main-content-column" class="lg:col-span-2 space-y-4">
+                <div id="welcome-card" class="bg-var-surface card-shadow rounded-xl p-6 text-center">
+                    <h2 class="text-xl text-var-secondary-500">Welcome!</h2>
+                    <p class="text-var-text-2 mt-2">Choose a task from the list on the left to begin your practice session.</p>
+                </div>
+
+                <div id="stage-1-card" class="bg-var-surface card-shadow rounded-xl p-6 hidden">
+                    <h2 class="text-xl text-var-text mb-4">Stage 1: Identify the Requirements</h2>
+                    <div class="p-4 rounded-xl bg-var-surface-alt border border-var-border mb-4">
+                        <p class="text-var-text-2 font-semibold text-sm uppercase mb-1">Prompt:</p>
+                        <p id="prompt-display" class="whitespace-pre-wrap"></p>
+                    </div>
+                    <p class="font-semibold text-sm uppercase text-var-text-2 mb-3">Choose the mandatory points (click to select):</p>
+                    <div id="checklist-options" class="space-y-2"></div>
+                    <button id="check-checklist-btn" class="primary-btn w-full mt-6 py-3 rounded-full font-semibold focus-ring" onclick="validateChecklist()">Check Requirements</button>
+                    <div id="checklist-feedback" class="mt-4 text-center font-semibold hidden"></div>
+                    <button id="show-answers-btn" class="secondary-btn w-full mt-3 py-3 rounded-full font-semibold focus-ring hidden" onclick="showCorrectAnswers()">Show Answers & Continue to Writing</button>
+                </div>
+
+                <div id="stage-3-card" class="bg-var-surface card-shadow rounded-xl p-6 hidden space-y-4">
+                    <h2 class="text-xl text-var-secondary-500 mb-2">Stage 3: Write Your Response</h2>
+                    <div class="flex items-center justify-between text-sm text-var-text-2">
+                        <div class="flex items-center space-x-4">
+                            <span id="register-display" class="font-semibold px-3 py-1 rounded-full text-var-text-inverse"></span>
+                            <span id="word-count-display">Words: 0 / 200</span>
+                        </div>
+                        <button id="download-btn" class="secondary-btn px-4 py-2 rounded-full font-semibold focus-ring text-sm" onclick="downloadDraft()">Download Draft (.txt)</button>
+                    </div>
+                    <div id="word-meter-container" class="w-full h-2 rounded-full overflow-hidden bg-var-surface-alt border border-var-border">
+                        <div id="word-meter-bar" class="h-full transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                    <textarea id="writing-area" class="text-area-input w-full min-h-[300px] p-4 rounded-xl resize-y focus-ring" oninput="updateWordCount()"></textarea>
+                    
+                    <div class="p-4 rounded-xl bg-var-surface-alt border border-var-border">
+                        <p class="text-var-text-2 font-semibold text-sm uppercase mb-2">Your Selected Points:</p>
+                        <ul id="required-points-summary" class="list-disc pl-5 text-var-text-2 space-y-1"></ul>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-var-surface-alt border border-var-border">
+                        <p class="text-var-text-2 font-semibold text-sm uppercase mb-2">Original Prompt:</p>
+                        <p id="prompt-summary-display" class="whitespace-pre-wrap text-sm text-var-text-2"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="scaffolding-column" class="lg:col-span-1 space-y-4 hidden">
+                <div class="bg-var-surface card-shadow rounded-xl p-4 sticky top-6">
+                    <h2 class="text-lg font-semibold text-var-secondary-500 mb-4">Stage 2: Language Helper</h2>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-var-text-2 mb-1">Current Register:</label>
+                        <select id="register-selector" class="w-full p-2 border border-var-border rounded-xl text-area-input focus-ring" onchange="updateScaffolding(this.value)">
+                            <option value="informal">Informal (Friends/Forum)</option>
+                            <option value="formal">Formal (Teachers/Recruiters)</option>
+                        </select>
+                    </div>
+                    <h3 class="text-md font-semibold text-var-text mt-6 mb-2">Functional Expressions</h3>
+                    <div id="functional-expressions" class="space-y-3 max-h-48 overflow-y-auto pr-2"></div>
+                    <h3 class="text-md font-semibold text-var-text mt-6 mb-2">Discourse Markers</h3>
+                    <div id="discourse-markers" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- 1. DATA SOURCES ---
+        const EXAM_TASKS = [
+    {
+        "id": "task-max-sports",
+        "name": "Email: Advice on Starting a Sport",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Max,\n\n",
+        "prompt": "Hi – Look, I need some advice. As you know I've always been a couch-potato, but now that I’m at uni I’m feeling awkward with all the guys around me, fit and strong, going to the gym and working out daily or doing sports regularly. Even worse that it’s not only that they do it but they talk about ’what’s a good cardio’ and ’what builds stamina’ all the time. If I don’t start a sport straight away, I’m sure I’ll feel left out and I can only hope that it’s not too late now. Honestly, I’m not sure how I’ll have time for my studies (tests and assignments every week plus presentations, brrr) AND for a sport too. Anyway, I’ve made up my mind so I’ll give it a try. The main question is what sport to start? I can swim and there’s always running but is that serious enough? Good for cardio and building stamina? Or shall I start something new? A friend of mine is doing wrestling and there’s also a tennis club near the university. What do you think? Any personal experience with sports you have done and been successful in? I’d appreciate your ideas ASAP. Best, Max",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Give your opinion on doing sports while at university.", "isCorrect": true },
+                { "id": 2, "text": "Complain about how much work you have at university.", "isCorrect": false },
+                { "id": 3, "text": "Comment on the sports Max mentions (swimming, running, etc.).", "isCorrect": true },
+                { "id": 4, "text": "Recommend other sports he could try.", "isCorrect": true },
+                { "id": 5, "text": "Tell him that wrestling is too dangerous.", "isCorrect": false },
+                { "id": 6, "text": "Share your personal experience with sports.", "isCorrect": true },
+                { "id": 7, "text": "Ask Max for more details about his university schedule.", "isCorrect": false },
+                { "id": 8, "text": "Tell him it's more important to focus only on his studies.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-jessica-vegetarian",
+        "name": "Email: Vegetarian Dilemma",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hello Jessica,\n\n",
+        "prompt": "You know I’ve been a vegetarian for 5 years, mainly for animal rights reasons. Now I have this new boyfriend, Alex, a nice boy… and a die-hard meat lover. It’s his birthday next week and he invited me to his parents’ home in Mesa, Arizona. There’s a traditional birthday dish, he told me, expertly made by his mother: bean stew with lamb, pork, and veal. I immediately said that he had probably noticed I didn’t eat meat but he looked surprised and said he thought I was on a diet or something. And that he hoped I wouldn’t be rude to his mother and refuse the food. He even said that after trying it I would certainly change my mind about not eating meat. We haven’t talked about it since then and I’m getting more and more scared. What would you do? Pls help!",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Give your opinion on Alex’s attitude.", "isCorrect": true },
+                { "id": 2, "text": "Ask for pictures of her new boyfriend, Alex.", "isCorrect": false },
+                { "id": 3, "text": "Mention if you know anyone on a special diet.", "isCorrect": true },
+                { "id": 4, "text": "Share your thoughts on being a vegetarian.", "isCorrect": true },
+                { "id": 5, "text": "Suggest she should just try the meat to be polite.", "isCorrect": false },
+                { "id": 6, "text": "Advise her on what she should do in this situation.", "isCorrect": true },
+                { "id": 7, "text": "Tell her to break up with Alex immediately.", "isCorrect": false },
+                { "id": 8, "text": "Ask her about the weather in Arizona.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-benjamin-teacher",
+        "name": "Forum: A Future Teacher's Doubts",
+        "wordLimit": 200,
+        "register": "Informal (Forum)",
+        "starter": "Benjamin:\n\n",
+        "prompt": "I want to get an English Major and teach English literature to elementary school children across the USA. I want to make America literate again! The only problem is that all my family and friends say that the last career I should choose is a teacher’s. They say that a teacher should be hardworking and patient whereas I’m lazy and moody. Do you agree that these are the most important personality traits of a teacher? As simple as that? I’d like to know what you think.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Comment on his future plans.", "isCorrect": true },
+                { "id": 2, "text": "Agree with his family that he would be a bad teacher.", "isCorrect": false },
+                { "id": 3, "text": "Discuss the importance of being hardworking and patient.", "isCorrect": true },
+                { "id": 4, "text": "Say whether you think he would make a good teacher.", "isCorrect": true },
+                { "id": 5, "text": "Ask him what his favourite books are.", "isCorrect": false },
+                { "id": 6, "text": "Advise if he should choose a different career.", "isCorrect": true },
+                { "id": 7, "text": "Tell him that his slogan is not very good.", "isCorrect": false },
+                { "id": 8, "text": "Suggest that he should become a writer instead of a teacher.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-heikki-nepal",
+        "name": "Email: Gap Year in Nepal",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Heikki,\n\n",
+        "prompt": "I decided to take a gap year and do some charity work before I go to college, partly to improve my CV, but also to try myself doing something useful. I found Alliance Nepal, a charity which offers a volunteer experience in Nepal where I could teach English and also assist in other school activities. It has always been my dream to go to Nepal, which I think is one of the most mysterious places in the world, so I can’t wait to apply but first I’d like to know what you think of this idea. Imagine ME standing there? Please reply ASAP.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Share your opinion on taking a gap year.", "isCorrect": true },
+                { "id": 2, "text": "Tell him a gap year is a waste of time and money.", "isCorrect": false },
+                { "id": 3, "text": "Say if you like his choice of country and charity.", "isCorrect": true },
+                { "id": 4, "text": "Mention if you have done or would do a similar project.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the weather in Nepal.", "isCorrect": false },
+                { "id": 6, "text": "Suggest some practical questions he should ask the organisers.", "isCorrect": true },
+                { "id": 7, "text": "Ask for the website of the Alliance Nepal charity.", "isCorrect": false },
+                { "id": 8, "text": "Suggest he should visit a different country instead.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-peter-siblings",
+        "name": "Forum: Sibling Rivalry Pressure",
+        "wordLimit": 200,
+        "register": "Informal (Forum)",
+        "starter": "Hi Peter,\n\n",
+        "prompt": "My family are all extremely talented and I just know I’m going to be the one who breaks the pattern. My brother is 25 and did brilliantly at everything. He’s now a lawyer. My sister is 19. She got into the national swimming team last year and still got fantastic A levels. She’s at Cambridge University now. I know I’ll never achieve anything like that. Whatever I do, it’s never going to be as good. I know I’m the one putting pressure on myself but I get really panicky when I think about it. I feel like I’m going to be a big disappointment to my parents.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Give your opinion about his problem.", "isCorrect": true },
+                { "id": 2, "text": "Tell him his siblings sound amazing and he should work harder.", "isCorrect": false },
+                { "id": 3, "text": "Advise him on whether he should talk to his family.", "isCorrect": true },
+                { "id": 4, "text": "Ask what subjects he is studying for his A levels.", "isCorrect": false },
+                { "id": 5, "text": "Suggest some things he could do to feel better.", "isCorrect": true },
+                { "id": 6, "text": "Tell him that he is probably just jealous of his brother and sister.", "isCorrect": false },
+                { "id": 7, "text": "Ask what university he wants to go to.", "isCorrect": false },
+                { "id": 8, "text": "Tell him not to compare himself to others.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-myra-acting",
+        "name": "Email: Job vs. Family Vacation",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Myra,\n\n",
+        "prompt": "One of my dreams has come true! I got a summer job performing a play for little kids in daycares. It is a big time commitment with rehearsals and performances several times a week. So, everything is great except that my mom and dad behave as if I let them down. They refuse to talk to me because we have planned a big family vacation, the last one before I go to college, and now I may not be able to make it. You know how close I’ve always been to my parents, and I don’t want to be mean to them but I also feel I mustn’t miss this fantastic opportunity. Am I right? What do you think?",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Congratulate her and ask about the play.", "isCorrect": true },
+                { "id": 2, "text": "Tell her that family should always come first.", "isCorrect": false },
+                { "id": 3, "text": "Give your opinion on the situation with her parents.", "isCorrect": true },
+                { "id": 4, "text": "Criticise her parents for being selfish.", "isCorrect": false },
+                { "id": 5, "text": "Suggest ways she could solve the conflict.", "isCorrect": true },
+                { "id": 6, "text": "Ask for free tickets to see her performance.", "isCorrect": false },
+                { "id": 7, "text": "Suggest that she should quit the play.", "isCorrect": false },
+                { "id": 8, "text": "Tell her she is right not to miss the opportunity.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-marcus-exam",
+        "name": "Forum: Piano Exam Nerves",
+        "wordLimit": 200,
+        "register": "Informal (Forum)",
+        "starter": "Hi Marcus,\n\n",
+        "prompt": "It’s less than 48 hours before my final piano exam and I am really nervous. I have nowhere to practise before the exam. Right now I am fixated on what to wear. I don't know what to wear now that I have no school uniform. Do you think examiners get upset by people who wear decent and clean jeans? Even with a white shirt? Or would a suit be better? Does anyone else worry about silly things like this, or is it just me projecting all my exam nerves onto the clothing?",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say if you think clothes are important in an exam.", "isCorrect": true },
+                { "id": 2, "text": "Tell him his worries about clothes are silly.", "isCorrect": false },
+                { "id": 3, "text": "Give him specific advice on what to wear.", "isCorrect": true },
+                { "id": 4, "text": "Ask him which musical pieces he is going to play.", "isCorrect": false },
+                { "id": 5, "text": "Share how you relax before exams.", "isCorrect": true },
+                { "id": 6, "text": "Suggest he wears a funny t-shirt to make the examiners laugh.", "isCorrect": false },
+                { "id": 7, "text": "Ask for the location of the music school.", "isCorrect": false },
+                { "id": 8, "text": "Reassure him that it's normal to worry about small things.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-erin-grade",
+        "name": "Email: The Wrong Grade",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Erin,\n\n",
+        "prompt": "My school-report arrived and my parents saw it. They said: “Nice report, Honey! We knew you could do it!” The problem is that I’m absolutely sure that the chemistry grade was wrong, as unfortunately I got a C- on the exam, not an A. Mr Thompson, the teacher, must have made a mistake. My best friend Rachel said: “Why should you say anything? It was the teacher’s mistake, not yours. That grade could decide whether or not you get into the college you want.” I can see her point but I have to decide if I can live with knowing the grade was a lie. I need your advice!",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say how serious you think the problem is.", "isCorrect": true },
+                { "id": 2, "text": "Agree with her friend Rachel that she should keep the grade.", "isCorrect": false },
+                { "id": 3, "text": "Advise her on what she should do.", "isCorrect": true },
+                { "id": 4, "text": "Tell a story about a time you or a friend had a score miscalculated.", "isCorrect": true },
+                { "id": 5, "text": "Ask her what her other grades were.", "isCorrect": false },
+                { "id": 6, "text": "Criticise her teacher, Mr Thompson, for making a mistake.", "isCorrect": false },
+                { "id": 7, "text": "Tell her that honesty is the most important thing.", "isCorrect": true },
+                { "id": 8, "text": "Suggest that the teacher might fix the mistake later anyway.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-jennifer-party",
+        "name": "Email: The Host Family Party",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Jennifer,\n\n",
+        "prompt": "I’m staying with my host family through a student exchange. Last week rumors started about a party at a girl’s house while her parents are out of town. Everyone says this is going to be the best party of the year. I’m eager to go but there is no way my host parents will let me go if they realise the parents are out of town. My friends are telling me just not to say anything and only lie if they ask. OK, but what if I’m caught lying? It’ll ruin our relationship. What do you think?",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say whether you think this is a serious dilemma.", "isCorrect": true },
+                { "id": 2, "text": "Tell her she should definitely lie to her host parents to go to the party.", "isCorrect": false },
+                { "id": 3, "text": "Give her your advice on what she should do.", "isCorrect": true },
+                { "id": 4, "text": "Explain how your own parents would react in a similar situation.", "isCorrect": true },
+                { "id": 5, "text": "Ask for the address of the party.", "isCorrect": false },
+                { "id": 6, "text": "Tell her the party sounds boring and she shouldn't go.", "isCorrect": false },
+                { "id": 7, "text": "Suggest she invites her host parents to the party.", "isCorrect": false },
+                { "id": 8, "text": "Emphasise the importance of trust with her host family.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-annie-present",
+        "name": "Email: A Present for a Nephew",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Annie,\n\n",
+        "prompt": "My nephew Peter is turning 11 soon and I’d like to buy him a present. The only thing I can think of is a boardgame called Labyrinth because my family loves them. Players design labyrinths for others, which needs strategic thinking. IF Peter likes boardgames at all, he might find this one challenging. Or am I completely on the wrong track? What do you think?",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Comment on the types of games children usually like.", "isCorrect": true },
+                { "id": 2, "text": "Tell her that board games are boring and old-fashioned.", "isCorrect": false },
+                { "id": 3, "text": "Share your personal feelings about board games.", "isCorrect": true },
+                { "id": 4, "text": "Say if you think the Labyrinth game is a good present.", "isCorrect": true },
+                { "id": 5, "text": "Suggest some other possible presents for an 11-year-old boy.", "isCorrect": true },
+                { "id": 6, "text": "Ask for a photo of her nephew, Peter.", "isCorrect": false },
+                { "id": 7, "text": "Suggest she should just give him money instead.", "isCorrect": false },
+                { "id": 8, "text": "Ask if she plays board games often.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-calvin-bullying",
+        "name": "Email: New School Bullying",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Calvin,\n\n",
+        "prompt": "My life just melted away. We moved to the West Coast and the new school is WAY below my expectations. The kids in my class tease me because I'm a vegetarian and I'm not good at sports. They're constantly telling me how weird I am, and the girl who I sit next to enjoys throwing my pens off my desk. Sometimes I get so frustrated that I start screaming at them. Then they ask me why I'm so mad. It's like they purposely upset me for fun. What should I do?",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Share any experience you have with changing schools.", "isCorrect": true },
+                { "id": 2, "text": "Tell him he should start eating meat to fit in.", "isCorrect": false },
+                { "id": 3, "text": "Give your opinion on his classmates' behaviour.", "isCorrect": true },
+                { "id": 4, "text": "Advise if he should change his own behaviour.", "isCorrect": true },
+                { "id": 5, "text": "Advise if he should tell his parents or teachers.", "isCorrect": true },
+                { "id": 6, "text": "Tell him to fight the kids who are teasing him.", "isCorrect": false },
+                { "id": 7, "text": "Ask why his dad had problems with his work.", "isCorrect": false },
+                { "id": 8, "text": "Suggest he quit the school band.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-heikki-dance",
+        "name": "Email: The Birthday Dance",
+        "wordLimit": 200,
+        "register": "Informal (Friend)",
+        "starter": "Hi Heikki,\n\n",
+        "prompt": "My sister Liisa's 30th birthday is next month. I thought that together with some friends we would learn an all-boy showdance and perform it at the party as a thank you present for her. My friends were enthusiastic. My mother, however, said such a performance would be in very bad taste and might shock some of the older aunts and uncles. She suggested I buy her a necklace instead. Earrings! I’m sure Liisa would know it wasn’t my choice. I want something that is really ME. What do you think?",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say whether you like his idea for a present.", "isCorrect": true },
+                { "id": 2, "text": "Agree with his mother that the idea is in bad taste.", "isCorrect": false },
+                { "id": 3, "text": "Comment on giving performances vs. buying presents in general.", "isCorrect": true },
+                { "id": 4, "text": "Give reasons why his mother might be against the idea.", "isCorrect": true },
+                { "id": 5, "text": "Advise him on what he should do or give his sister.", "isCorrect": true },
+                { "id": 6, "text": "Ask for a video of the dance rehearsal.", "isCorrect": false },
+                { "id": 7, "text": "Suggest he buys a very expensive necklace for Liisa.", "isCorrect": false },
+                { "id": 8, "text": "Ask about his twin baby nieces.", "isCorrect": false }
+            ]
+        }
+    }
+];
+
+        const LANGUAGE_FUNCTIONS_DB = [
+            { "function": "Greeting & Self-Introduction", "purpose": "To start the email and introduce yourself if necessary.", "informal": ["Hi [Name],", "Hello [Name],", "Dear [Name],", "I'm [Your Name], a student at [School]."], "formal": ["Dear Mr/Ms [Surname],", "Dear Sir/Madam,", "I am writing to introduce myself.", "My name is [Your Name] and I am a student at..."] },
+            { "function": "Stating Purpose & Gratitude", "purpose": "To clearly state the reason for writing and express thanks.", "informal": ["I'm writing because...", "Thanks so much for...", "I got your email/message about..."], "formal": ["I am writing to inquire about...", "Thank you for your email regarding...", "I am writing with reference to..."] },
+            { "function": "Giving Advice & Suggestions", "purpose": "To offer solutions or recommendations.", "informal": ["If I were you, I would...", "Maybe you should try...", "How about you...?", "Have you thought about...?"], "formal": ["I would suggest that you...", "It might be advisable to...", "I recommend that you consider...", "One possible solution would be to..."] },
+            { "function": "Expressing Opinion & Feelings", "purpose": "To share your personal viewpoint or emotional reaction.", "informal": ["I think that's a great/terrible idea because...", "To be honest, I feel that...", "It sounds like a difficult situation.", "I completely understand why you feel..."], "formal": ["In my opinion, the situation requires...", "It is my belief that...", "I believe the most suitable choice is...", "I find the proposal to be..."] },
+            { "function": "Sharing Personal Experience", "purpose": "To provide examples from your own life.", "informal": ["Something similar happened to me once.", "I remember when I...", "From my experience,...", "I've never been in that situation, but..."], "formal": ["In my experience, it is often best to...", "I have previously encountered a similar issue.", "Based on my knowledge of the subject,..."] },
+            { "function": "Asking Questions & Requesting Info", "purpose": "To ask for specific information.", "informal": ["Can you tell me more about...?", "What do you think about...?", "I was wondering if...?"], "formal": ["Could you please provide further details regarding...?", "I would appreciate it if you could clarify...", "I would be grateful if you could..."] },
+            { "function": "Agreeing & Disagreeing", "purpose": "To show if you share the same or a different opinion.", "informal": ["I totally agree with you.", "You're absolutely right.", "I see your point, but...", "I'm not so sure about that."], "formal": ["I concur with your assessment.", "I support this viewpoint.", "While I understand your position, I must disagree.", "I hold a different view on this matter."] },
+            { "function": "Showing Empathy & Reassurance", "purpose": "To show you understand someone's feelings.", "informal": ["I'm sorry to hear you're going through that.", "Don't worry too much about it.", "That must be really tough.", "I'm sure everything will be fine."], "formal": ["I understand this must be a challenging situation.", "Please be assured of my support.", "I can appreciate the difficulty of your position."] },
+            { "function": "Sign-Off / Closing Remarks", "purpose": "To end the email politely.", "informal": ["Hope that helps!", "Let me know what you decide.", "Best wishes,", "Take care,"], "formal": ["I look forward to hearing from you.", "Yours sincerely,", "Best regards,", "Thank you for your time and consideration."] }
+        ];
+        
+        const DISCOURSE_MARKERS_DB = {
+            "informal": { "Sequencing & Listing": ["First of all,", "To start with,", "Next,", "After that,", "Then,", "Finally,"], "Adding & Developing": ["Also,", "Plus,", "And also,", "As well as that,", "Another thing is,", "To be honest,"], "Contrasting & Shifting Topic": ["But,", "Though,", "Still,", "Anyway,", "On the other hand,"], "Cause & Result": ["So,", "Because,", "That's why,", "As a result,"], "Emphasis & Clarity": ["Actually,", "In fact,", "You know,", "I mean,", "Seriously,", "Look,", "The thing is,"], "Concluding & Summarizing": ["All in all,", "To sum up,", "Anyway,", "So yeah,"] },
+            "formal": { "Sequencing & Listing": ["First,", "Secondly,", "Next,", "Finally,", "To begin with,"], "Adding & Developing": ["Furthermore,", "Moreover,", "In addition,", "Additionally,", "Also,"], "Contrasting & Conceding": ["However,", "Nevertheless,", "On the other hand,", "Although,", "Despite this,"], "Cause & Result": ["Therefore,", "Consequently,", "As a result,", "For this reason,", "Thus,"], "Emphasis & Specific Focus": ["Indeed,", "Notably,", "Specifically,", "In particular,", "Above all,"], "Concluding & Summarizing": ["In conclusion,", "To summarize,", "To sum up,", "Overall,"] }
+        };
+
+        // --- 2. GLOBAL STATE & ELEMENTS ---
+        let currentTask = null;
+        let selectedChecklistIds = [];
+        let MAX_WORD_LIMIT = 200; 
+
+        const taskListEl = document.getElementById('task-list');
+        const welcomeCard = document.getElementById('welcome-card');
+        const stage1Card = document.getElementById('stage-1-card');
+        const stage3Card = document.getElementById('stage-3-card');
+        const scaffoldingColumn = document.getElementById('scaffolding-column');
+        const promptDisplay = document.getElementById('prompt-display');
+        const checklistOptionsEl = document.getElementById('checklist-options');
+        const checklistFeedbackEl = document.getElementById('checklist-feedback');
+        const writingArea = document.getElementById('writing-area');
+        const requiredPointsSummaryEl = document.getElementById('required-points-summary');
+        const wordCountDisplay = document.getElementById('word-count-display');
+        const wordMeterBar = document.getElementById('word-meter-bar');
+        const registerDisplay = document.getElementById('register-display');
+        const registerSelector = document.getElementById('register-selector');
+        const functionalExpressionsEl = document.getElementById('functional-expressions');
+        const discourseMarkersEl = document.getElementById('discourse-markers');
+        const checkChecklistBtn = document.getElementById('check-checklist-btn');
+        const showAnswersBtn = document.getElementById('show-answers-btn');
+        const promptSummaryDisplay = document.getElementById('prompt-summary-display');
+
+        // --- 3. CORE FUNCTIONS ---
+        function renderTaskList() {
+            taskListEl.innerHTML = '';
+            EXAM_TASKS.forEach(task => {
+                const button = document.createElement('button');
+                button.className = 'secondary-btn w-full text-left p-3 rounded-xl font-medium focus-ring';
+                button.textContent = task.name;
+                button.onclick = () => selectTask(task.id);
+                taskListEl.appendChild(button);
+            });
+        }
+
+        function selectTask(taskId) {
+            currentTask = EXAM_TASKS.find(t => t.id === taskId);
+            if (!currentTask) return;
+            selectedChecklistIds = [];
+            MAX_WORD_LIMIT = currentTask.wordLimit;
+            welcomeCard.classList.add('hidden');
+            stage3Card.classList.add('hidden');
+            scaffoldingColumn.classList.add('hidden');
+            stage1Card.classList.remove('hidden');
+            renderChecklist();
+            checklistFeedbackEl.classList.add('hidden');
+            checklistFeedbackEl.textContent = '';
+            checkChecklistBtn.classList.remove('hidden');
+            checkChecklistBtn.disabled = false;
+            showAnswersBtn.classList.add('hidden');
+        }
+
+        function renderChecklist() {
+            promptDisplay.textContent = currentTask.prompt;
+            checklistOptionsEl.innerHTML = '';
+            currentTask.checklist.options.forEach(option => {
+                const div = document.createElement('div');
+                div.id = `checklist-item-${option.id}`;
+                div.className = 'flex items-start p-3 rounded-xl cursor-pointer border border-var-border transition-colors hover:bg-var-surface-alt bg-var-surface';
+                div.innerHTML = `<input type="checkbox" id="option-${option.id}" data-id="${option.id}" class="mt-1 h-5 w-5 rounded focus-ring" style="color: var(--primary-700); border-color: var(--primary-300);" onchange="handleChecklistChange(${option.id})"><label for="option-${option.id}" class="ml-3 text-sm font-medium text-var-text cursor-pointer">${option.text}</label>`;
+                checklistOptionsEl.appendChild(div);
+            });
+            resetChecklistColors();
+        }
+        
+        function handleChecklistChange(optionId) {
+            const checkbox = document.getElementById(`option-${optionId}`);
+            if (checkbox.checked) {
+                if (!selectedChecklistIds.includes(optionId)) selectedChecklistIds.push(optionId);
+            } else {
+                const index = selectedChecklistIds.indexOf(optionId);
+                if (index > -1) selectedChecklistIds.splice(index, 1);
+            }
+            checklistFeedbackEl.classList.add('hidden');
+            showAnswersBtn.classList.add('hidden');
+        }
+
+        function resetChecklistColors() {
+            document.querySelectorAll('#checklist-options > div').forEach(div => {
+                div.style.borderColor = 'var(--border)';
+                div.style.backgroundColor = 'var(--surface)';
+            });
+        }
+
+        function validateChecklist() {
+            checkChecklistBtn.disabled = true;
+            resetChecklistColors(); 
+            selectedChecklistIds = [];
+            const allOptions = currentTask.checklist.options;
+            const correctIds = allOptions.filter(opt => opt.isCorrect).map(opt => opt.id);
+            const checkboxes = document.querySelectorAll('#checklist-options input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) { selectedChecklistIds.push(parseInt(checkbox.dataset.id)); }
+            });
+
+            const allCorrectPresent = correctIds.every(id => selectedChecklistIds.includes(id));
+            const incorrectSelected = selectedChecklistIds.filter(id => !correctIds.includes(id));
+            const noIncorrectSelected = incorrectSelected.length === 0;
+            checklistFeedbackEl.classList.remove('hidden');
+
+            if (allCorrectPresent && noIncorrectSelected) {
+                checklistFeedbackEl.style.color = 'var(--success)';
+                checklistFeedbackEl.textContent = 'Success! All mandatory points identified. Proceeding to the writing stage...';
+                correctIds.forEach(id => {
+                    const div = document.getElementById(`checklist-item-${id}`);
+                    div.style.borderColor = 'var(--success)';
+                    div.style.backgroundColor = 'var(--feedback-success-bg)';
+                });
+                setTimeout(startWritingStage, 1000);
+            } else {
+                checklistFeedbackEl.style.color = 'var(--error)';
+                checklistFeedbackEl.textContent = 'Incorrect selection. Review the color-coded feedback and try again, or show answers.';
+                checkChecklistBtn.disabled = false;
+                showAnswersBtn.classList.remove('hidden');
+                allOptions.forEach(option => {
+                    const isChecked = selectedChecklistIds.includes(option.id);
+                    const div = document.getElementById(`checklist-item-${option.id}`);
+                    if (isChecked) {
+                        if (option.isCorrect) {
+                            div.style.borderColor = 'var(--success)';
+                            div.style.backgroundColor = 'var(--feedback-success-bg)'; 
+                        } else {
+                            div.style.borderColor = 'var(--error)';
+                            div.style.backgroundColor = 'var(--feedback-error-bg)'; 
+                        }
+                    } else if (option.isCorrect) {
+                        div.style.borderColor = 'var(--warning)';
+                        div.style.backgroundColor = 'var(--feedback-missed-bg)'; 
+                    }
+                });
+            }
+        }
+
+        function showCorrectAnswers() {
+            checkChecklistBtn.classList.add('hidden'); 
+            showAnswersBtn.classList.add('hidden'); 
+            const correctIds = currentTask.checklist.options.filter(opt => opt.isCorrect).map(opt => opt.id);
+            
+            // MODIFIED: Update the selected IDs to the correct ones
+            selectedChecklistIds = correctIds;
+
+            resetChecklistColors(); 
+            document.querySelectorAll('#checklist-options input[type="checkbox"]').forEach(checkbox => {
+                const optionId = parseInt(checkbox.dataset.id);
+                const div = checkbox.closest('div');
+                if (correctIds.includes(optionId)) {
+                    div.style.borderColor = 'var(--success)';
+                    div.style.backgroundColor = 'var(--feedback-success-bg)';
+                    checkbox.checked = true;
+                } else {
+                    div.style.borderColor = 'var(--error)';
+                    div.style.backgroundColor = 'var(--feedback-error-bg)';
+                    checkbox.checked = false;
+                }
+                checkbox.disabled = true;
+            });
+
+            checklistFeedbackEl.style.color = 'var(--info)';
+            checklistFeedbackEl.innerHTML = `<p>Answers shown. Please review the mandatory points before continuing.</p><button class="primary-btn w-full mt-3 py-3 rounded-full font-semibold focus-ring" onclick="startWritingStage()">Review complete. Start Writing.</button>`;
+        }
+
+        function startWritingStage() {
+            stage1Card.classList.add('hidden');
+            stage3Card.classList.remove('hidden');
+            scaffoldingColumn.classList.remove('hidden');
+            writingArea.value = currentTask.starter;
+            updateWordCount();
+            registerDisplay.textContent = currentTask.register;
+            const registerType = currentTask.register.includes('Informal') ? 'informal' : 'formal';
+            registerSelector.value = registerType;
+            updateScaffolding(registerType);
+            
+            // MODIFIED: Show the user's selected points
+            const selectedOptions = currentTask.checklist.options.filter(opt => selectedChecklistIds.includes(opt.id));
+            requiredPointsSummaryEl.innerHTML = selectedOptions
+                .map(opt => `<li>${opt.text}</li>`)
+                .join('');
+
+            // NEW: Show the original prompt for reference
+            promptSummaryDisplay.textContent = currentTask.prompt;
+        }
+
+        function updateScaffolding(register) {
+            registerDisplay.textContent = register === 'informal' ? 'Informal (Friend/Forum)' : 'Formal (Business/Teacher)';
+            registerDisplay.style.backgroundColor = register === 'informal' ? 'var(--secondary-500)' : 'var(--accent-500)';
+
+            functionalExpressionsEl.innerHTML = '';
+            LANGUAGE_FUNCTIONS_DB.forEach(func => {
+                const funcSection = document.createElement('div');
+                funcSection.className = 'border-l-4 pl-3 py-1';
+                funcSection.style.borderColor = register === 'informal' ? 'var(--secondary-300)' : 'var(--accent-300)';
+                funcSection.innerHTML = `<p class="font-semibold text-sm text-var-text mb-1">${func.function}</p>`;
+                const expressionsContainer = document.createElement('div');
+                expressionsContainer.className = 'space-y-1';
+                (func[register] || []).forEach(expression => { 
+                    const button = document.createElement('button');
+                    button.className = 'w-full text-left text-xs px-2 py-1 rounded-md bg-var-surface-alt text-var-text-2 hover:bg-var-border focus-ring transition-colors';
+                    button.textContent = expression;
+                    button.onclick = () => insertText(expression);
+                    expressionsContainer.appendChild(button);
+                });
+                funcSection.appendChild(expressionsContainer);
+                functionalExpressionsEl.appendChild(funcSection);
+            });
+
+            discourseMarkersEl.innerHTML = '';
+            const markers = DISCOURSE_MARKERS_DB[register];
+            for (const category in markers) {
+                markers[category].forEach(marker => {
+                    const button = document.createElement('button');
+                    button.className = 'text-xs px-3 py-1 rounded-full bg-var-primary-300 text-var-primary-700 hover:bg-var-primary-500 hover:text-var-text-inverse focus-ring transition-colors font-medium';
+                    button.textContent = marker;
+                    button.onclick = () => insertText(marker + ' ');
+                    discourseMarkersEl.appendChild(button);
+                });
+            }
+        }
+
+        function insertText(text) {
+            const start = writingArea.selectionStart;
+            const end = writingArea.selectionEnd;
+            const value = writingArea.value;
+            writingArea.value = value.substring(0, start) + text + value.substring(end);
+            writingArea.selectionStart = writingArea.selectionEnd = start + text.length;
+            writingArea.focus();
+            updateWordCount();
+        }
+
+        function updateWordCount() {
+            const text = writingArea.value.trim();
+            const words = text === '' ? 0 : text.split(/\s+/).filter(w => w.length > 0).length;
+            wordCountDisplay.textContent = `Words: ${words} / ${MAX_WORD_LIMIT}`;
+            let percentage = (words / MAX_WORD_LIMIT) * 100;
+            percentage = Math.min(percentage, 100);
+            wordMeterBar.style.width = `${percentage}%`;
+            let color = 'var(--success)';
+            // Change to warning color when user is in the target range (e.g., above 150 words for a 200 word limit)
+            if (words > (MAX_WORD_LIMIT * 0.75) && words <= MAX_WORD_LIMIT) {
+                color = 'var(--warning)';
+            } else if (words > MAX_WORD_LIMIT) {
+                color = 'var(--error)';
+            }
+            wordMeterBar.style.backgroundColor = color;
+        }
+
+        function downloadDraft() {
+            if (!currentTask) return;
+            const content = writingArea.value;
+            const filename = `${currentTask.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_draft.txt`;
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- 4. INITIALIZATION ---
+        window.onload = () => {
+            renderTaskList();
+        };
+    </script>
+</body>
+</html>

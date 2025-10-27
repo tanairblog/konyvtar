@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Személyre szabható bemutatkozó – Interaktív app</title>
+<style>
+  /* ===============
+     DESIGN SYSTEM
+     A brief alapján CSS változók
+  =============== */
+  :root{
+    --primary-300:#F9C97A; --primary-500:#F4A329; --primary-700:#B45309;
+    --secondary-300:#7EDAD6; --secondary-500:#2BB6B4; --secondary-700:#0F766E;
+    --accent-300:#F49DB8; --accent-500:#E8467B; --accent-700:#A61E4D;
+    --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+    --text:#1F2937; --text-2:#4B5563; --text-muted:#6B7280; --text-inverse:#FFFFFF;
+    --success:#2F9E44; --warning:#F59F00; --error:#D92D20; --info:#2563EB;
+
+    --radius-card:16px; --radius-pill:9999px; 
+    --shadow-card:0 4px 14px rgba(17,24,39,0.08);
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:24px; 
+  }
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 Inter, Nunito, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;}
+  .container{max-width:1200px;margin:0 auto;padding:24px;}
+  h1{font-size:32px;margin:0 0 12px;}
+  h2{font-size:24px;margin:0 0 8px;}
+  p.lead{color:var(--text-2);margin-top:0}
+
+  /* Layout */
+  .grid{display:grid;grid-template-columns:1fr 420px;gap:24px;}
+  @media (max-width:1024px){.grid{grid-template-columns:1fr}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);}
+  .card .header{padding:16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .card .body{padding:16px;}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--primary-700);cursor:pointer;transition:filter .18s ease,transform .06s ease,background .18s ease,border-color .18s ease;}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--primary-700);color:var(--text-inverse);} 
+  .btn.primary:hover{filter:brightness(0.95);}
+  .btn.ghost{border-color:color-mix(in oklab, var(--primary-300) 50%, #0000);}
+  .btn.ghost:hover{background:color-mix(in oklab, var(--primary-300) 24%, #0000);} 
+  .btn.icon{padding:8px 10px;border-radius:10px}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+
+  /* Inputs */
+  .field{display:grid;gap:6px;margin-bottom:14px}
+  .label{font-weight:600;color:var(--text-2)}
+  .hint{color:var(--text-muted);font-size:14px}
+  input[type="text"], input[type="number"], select, textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);outline:none;transition:border-color .18s ease, box-shadow .18s ease}
+  input:focus, select:focus, textarea:focus{border-color:var(--secondary-500);box-shadow:0 0 0 2px color-mix(in oklab, var(--secondary-500) 60%, #0000)}
+  .row{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:12px}
+  @media (max-width:560px){.row{grid-template-columns:1fr}}
+
+  /* Stepper */
+  .stepper{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{padding:6px 10px;border-radius:var(--radius-pill);border:1px solid var(--border);background:var(--surface-alt);color:var(--text-2);font-size:14px}
+  .chip.active{background:var(--secondary-500);color:var(--text-inverse);border-color:transparent}
+
+  .nav{display:flex;gap:10px;justify-content:space-between}
+
+  /* Preview */
+  .preview{white-space:pre-wrap;line-height:1.6}
+  .preview .token{background:var(--secondary-300);padding:0 6px;border-radius:8px}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9999px;background:var(--surface-alt);border:1px solid var(--border);color:var(--text-2);font-size:14px}
+
+  .progress{height:8px;background:var(--surface-alt);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
+  .progress>span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--secondary-500),var(--primary-500));transition:width .24s ease}
+
+  /* Toast */
+  .toast{position:fixed;inset:auto 16px 16px auto;display:none;padding:10px 12px;border-radius:12px;background:var(--text);color:var(--text-inverse);box-shadow:var(--shadow-card)}
+  .toast.show{display:block;animation:fade .18s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* A11y */
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+  <div class="container">
+    <header style="margin-bottom:16px">
+      <h1>Személyre szabható bemutatkozó</h1>
+      <p class="lead">Választhatsz opciók közül, vagy megírhatod a saját változatod. A végén egyben látod a szövegedet, amit kimásolhatsz.</p>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Builder -->
+      <section class="card" id="builder">
+        <div class="header">
+          <div class="badge"><span id="step-label">1 / N</span> – <strong id="step-title">Bevezetés</strong></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ghost icon" id="btn-reset" title="Alaphelyzet"><span>↺</span> Reset</button>
+            <button class="btn ghost icon" id="btn-load" title="Betöltés"><span>⤓</span> Betölt</button>
+            <button class="btn ghost icon" id="btn-save" title="Mentés"><span>💾</span> Ment</button>
+          </div>
+        </div>
+        <div class="body" id="step-content"></div>
+        <div class="body" style="padding-top:0">
+          <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+        </div>
+        <div class="body nav">
+          <button class="btn ghost" id="btn-prev">◀ Előző</button>
+          <div style="display:flex;gap:8px;align-items:center"><span class="hint" id="autosave-hint">Auto‑mentés: be</span></div>
+          <button class="btn primary" id="btn-next">Következő ▶</button>
+        </div>
+      </section>
+
+      <!-- Right: Live preview -->
+      <aside class="card">
+        <div class="header"><h2 style="margin:0">Előnézet</h2><button class="btn ghost icon" id="btn-copy">📋 Másol</button></div>
+        <div class="body">
+          <div class="preview" id="preview">(Még nincs tartalom.)</div>
+        </div>
+        <div class="body">
+          <button class="btn ghost" id="btn-download">⬇ Letöltés (.txt)</button>
+        </div>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:24px">
+      <div class="header"><h2 style="margin:0">Lépések</h2></div>
+      <div class="body">
+        <div class="stepper" id="stepper"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/******************************
+ * ADATMODELL – LÉPÉSEK
+ * Minden lépés: { id, title, parts:[ ... ] }
+ * part típusok: 
+ *   {type:"text", text:"szó szerinti"}
+ *   {type:"input", placeholder:"...", key:"kulcs"}
+ *   {type:"select", key:"kulcs", options:["A","B",...]}  
+ *   {type:"number", key:"kulcs", min, max, placeholder}
+ * A kimenet a parts sorban összefűzött értékekből áll.
+ ******************************/
+const STEPS = [
+  { id:"hello", title:"Köszönés + Név", parts:[
+    {type:"text", text:"Hello. My name is "},
+    {type:"input", key:"name", placeholder:"(név)"},
+    {type:"text", text:"."}
+  ]},
+  { id:"from", title:"Származás", parts:[
+    {type:"text", text:"I come from Hungary."}
+  ]},
+  { id:"live", title:"Lakhely", parts:[
+    {type:"text", text:" I live in "},
+    {type:"input", key:"city", placeholder:"(város)"},
+    {type:"text", text:" ."}
+  ]},
+  { id:"siblings", title:"Testvérek", parts:[
+    {type:"select", key:"siblings", options:[
+      "I have a brother and a sister.",
+      "I have two brothers and a sister.",
+      "I have a brother and two sisters.",
+      "I have two brothers and two sisters.",
+      "I don't have a brother or a sister."
+    ]}
+  ]},
+  { id:"sport", title:"Kedvenc sport", parts:[
+    {type:"text", text:" My favourite sport is "},
+    {type:"input", key:"favSport", placeholder:"(sport)"},
+    {type:"text", text:" ."}
+  ]},
+  { id:"team", title:"Kedvenc focicsapat", parts:[
+    {type:"text", text:" My favourite football team is "},
+    {type:"select", key:"favTeam", options:["Arsenal","Real Madrid","Barcelona","Bayern München","Ferencváros","other..."]},
+    {type:"input", key:"favTeamOther", placeholder:"(other)", whenKeyEquals:{key:"favTeam", equals:"other..."}},
+    {type:"text", text:" ."}
+  ]},
+  { id:"dad", title:"Apa kora (benyomás)", parts:[
+    {type:"text", text:" My dad is "},
+    {type:"select", key:"dadAgeFeel", options:["quite young","quite old","in his 40s","in his 50s","in his 60s"]},
+    {type:"text", text:" ."}
+  ]},
+  { id:"familySize", title:"Család mérete", parts:[
+    {type:"text", text:" I come from quite a "},
+    {type:"select", key:"famSize", options:["big","small"]},
+    {type:"text", text:" family."}
+  ]},
+  { id:"age", title:"Életkor", parts:[
+    {type:"text", text:" I am "},
+    {type:"number", key:"age", min:6, max:20, placeholder:"(életkor)"},
+    {type:"text", text:" years old."}
+  ]},
+  { id:"siblingAge", title:"Testvér/best friend kora", parts:[
+    {type:"text", text:" My "},
+    {type:"select", key:"rel", options:["older brother","younger brother","older sister","younger sister","best friend"]},
+    {type:"text", text:" is "},
+    {type:"number", key:"relAge", min:6, max:30, placeholder:"(kor)"},
+    {type:"text", text:" years old."}
+  ]},
+  { id:"nationalityLeague", title:"Nemzetiség + bajnokság", parts:[
+    {type:"text", text:" I am Hungarian and my favourite football league is "},
+    {type:"select", key:"league", options:["English","Spanish","German","French","Hungarian","Italian","other..."]},
+    {type:"input", key:"leagueOther", placeholder:"(other)", whenKeyEquals:{key:"league", equals:"other..."}},
+    {type:"text", text:" ."}
+  ]},
+  { id:"favCountries", title:"Kedvenc országok", parts:[
+    {type:"text", text:" My favourite countries are "},
+    {type:"input", key:"country1", placeholder:"(ország)"},
+    {type:"text", text:" and "},
+    {type:"input", key:"country2", placeholder:"(ország)"},
+    {type:"text", text:" ."}
+  ]},
+  { id:"bestFriend", title:"Legjobb barát + osztály", parts:[
+    {type:"text", text:" My best friend is "},
+    {type:"input", key:"bf", placeholder:"(név)"},
+    {type:"text", text:" and he/she "},
+    {type:"select", key:"bfClass", options:["is in my class","is not in my class"]},
+    {type:"text", text:" ."}
+  ]},
+  { id:"schoolOpinion", title:"Iskola vélemény (BUBAKI)", parts:[
+    {type:"text", text:" I think BUBAKI is "},
+    {type:"select", key:"bubaki", options:["a good school for me","not really a good school for me"]},
+    {type:"text", text:" ."}
+  ]},
+  { id:"bestDay", title:"A hét legjobb napja", parts:[
+    {type:"text", text:" The best day of the week is "},
+    {type:"select", key:"bestDay", options:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]},
+    {type:"text", text:" ."}
+  ]},
+  { id:"interest", title:"Fő érdeklődés", parts:[
+    {type:"text", text:" Actually, my main interest is "},
+    {type:"select", key:"interest1", options:["music","sport","gaming","reading","art","coding"]},
+    {type:"text", text:" and "},
+    {type:"input", key:"interest2", placeholder:"(még valami)"},
+    {type:"text", text:" ."}
+  ]},
+  { id:"grandparents", title:"Nagyszülők látogatása", parts:[
+    {type:"text", text:" Normally, I visit my grandparents at Christmas and in the summer."}
+  ]},
+  { id:"breadwinner", title:"Családfenntartó(k)", parts:[
+    {type:"text", text:" My "},
+    {type:"select", key:"breadw", options:["father","mother","father and mother"]},
+    {type:"text", text:" "},
+    {type:"select", key:"bwVerb", options:["is","are"]},
+    {type:"text", text:" the breadwinner"},
+    {type:"select", key:"bwS", options:["","s"]},
+    {type:"text", text:"."}
+  ]},
+  { id:"footballOpinion", title:"Vélemény a fociról", parts:[
+    {type:"text", text:" I would say that football is a very interesting sport."}
+  ]},
+  { id:"cousin", title:"Unokatestvér", parts:[
+    {type:"text", text:" I have a cousin who is around my age."}
+  ]},
+  { id:"room", title:"Szoba/otthon – 1", parts:[
+    {type:"text", text:" There is a "},
+    {type:"select", key:"placeType", options:["room","flat","house"]},
+    {type:"text", text:" with a "},
+    {type:"input", key:"furn1", placeholder:"(tárgy)"},
+    {type:"text", text:" ."}
+  ]},
+  // három térbeli elhelyezés blokk – a hosszú ismétlések helyett
+  { id:"spatial1", title:"Térbeli viszonyok – 1", parts:[
+    {type:"select", key:"sp1prep", options:["Next to","Near","In front of","Behind","On","In","Above","Under"]},
+    {type:"text", text:" there is/are "},
+    {type:"input", key:"sp1obj", placeholder:"(tárgy/tárgyak)"},
+    {type:"text", text:" ."}
+  ]},
+  { id:"spatial2", title:"Térbeli viszonyok – 2", parts:[
+    {type:"select", key:"sp2prep", options:["Next to","Near","In front of","Behind","On","In","Above","Under"]},
+    {type:"text", text:" there is/are "},
+    {type:"input", key:"sp2obj", placeholder:"(tárgy/tárgyak)"},
+    {type:"text", text:" ."}
+  ]},
+  { id:"spatial3", title:"Térbeli viszonyok – 3", parts:[
+    {type:"select", key:"sp3prep", options:["Next to","Near","In front of","Behind","On","In","Above","Under"]},
+    {type:"text", text:" there is/are "},
+    {type:"input", key:"sp3obj", placeholder:"(tárgy/tárgyak)"},
+    {type:"text", text:" ."}
+  ]},
+  // érzelmek – több helyzet
+  ...[
+    ["late","go to bed late"],
+    ["summer","it is summer"],
+    ["friendIll","my friend is ill"],
+    ["seeFriends","I see my friends"],
+    ["winter","it is winter"],
+    ["noLunch","I don't eat lunch"],
+    ["longLesson","the lesson is long"],
+    ["arsenalLose","Arsenal lose"],
+    ["dark","it is dark"],
+    ["teamLoses","my team loses"],
+    ["test","I have a test"],
+    ["playFootball","I play football"],
+  ].map(([key,when])=>({id:`feel_${key}`, title:`Érzelmek – ${when}`, parts:[
+    {type:"text", text:" I am "},
+    {type:"input", key:`feel_${key}`, placeholder:"(melléknév: happy, tired, excited, etc.)"},
+    {type:"text", text:` when ${when}.`}
+  ]})),
+  { id:"routineA", title:"Napi rutin – bevezető", parts:[
+    {type:"text", text:" My daily routine is "},
+    {type:"select", key:"routineSame", options:["a bit different","the same"]},
+    {type:"text", text:" now that I'm studying in a secondary school."}
+  ]},
+  { id:"routineB", title:"Napi rutin – reggel", parts:[
+    {type:"text", text:" I start the day by getting up at about "},
+    {type:"select", key:"getUp", options:["half past seven","six o'clock","seven o'clock","quarter to seven","other..."]},
+    {type:"input", key:"getUpOther", placeholder:"(időpont)", whenKeyEquals:{key:"getUp", equals:"other..."}},
+    {type:"text", text:", then I have a shower and have breakfast."}
+  ]}
+];
+
+/******************************
+ * ÁLLAPOT + HELYI MENTÉS
+ ******************************/
+const LS_KEY = 'intro_builder_v1';
+const state = {
+  stepIndex:0,
+  values: {},     // kulcs -> érték
+  rendered: {},   // id -> utoljára renderelt sztring
+};
+
+function saveLocal(){
+  try{localStorage.setItem(LS_KEY, JSON.stringify({values:state.values, stepIndex:state.stepIndex}));
+      showToast('Mentve.');}catch(e){console.warn(e)}
+}
+function loadLocal(){
+  try{const data = JSON.parse(localStorage.getItem(LS_KEY)||'null');
+      if(data){state.values = data.values||{}; state.stepIndex = data.stepIndex||0;}}
+  catch(e){console.warn(e)}
+}
+function resetAll(){
+  state.values={}; state.rendered={}; state.stepIndex=0; renderAll(); showToast('Visszaállítva.');
+}
+
+/******************************
+ * SEGÉDEK
+ ******************************/
+const byId = id => document.getElementById(id);
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[m])); }
+function setProgress(){
+  const p = Math.round(((state.stepIndex+1)/STEPS.length)*100);
+  byId('progress-bar').style.width = p+"%";
+  byId('step-label').textContent = `${state.stepIndex+1} / ${STEPS.length}`;
+}
+function showToast(msg){ const t=byId('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); }
+
+/******************************
+ * RENDER – EGY LÉPÉS
+ ******************************/
+function renderStep(){
+  setProgress();
+  const step = STEPS[state.stepIndex];
+  byId('step-title').textContent = step.title;
+  const wrap = byId('step-content');
+  wrap.innerHTML='';
+
+  // komponáljuk a mezőket a parts alapján
+  step.parts.forEach((part,i)=>{
+    if(part.type==='text'){
+      wrap.appendChild(el(`<div class="field"><div class="hint">${esc(part.text)}</div></div>`));
+      return;
+    }
+
+    if(part.type==='input'){
+      const val = state.values[part.key]||'';
+      const node = el(`
+        <div class="field">
+          <label class="label">${part.placeholder||'Írj be valamit'}</label>
+          <input type="text" data-key="${part.key}" placeholder="${esc(part.placeholder||'...')}" value="${esc(val)}" />
+        </div>`);
+      wrap.appendChild(node);
+    }
+
+    if(part.type==='number'){
+      const val = state.values[part.key]??'';
+      const node = el(`
+        <div class="field row">
+          <div>
+            <label class="label">${part.placeholder||'Szám'}</label>
+            <input type="number" min="${part.min||0}" max="${part.max||120}" data-key="${part.key}" value="${esc(val)}" />
+          </div>
+          <div class="hint">Tartomány: ${part.min||0}–${part.max||120}</div>
+        </div>`);
+      wrap.appendChild(node);
+    }
+
+    if(part.type==='select'){
+      const current = state.values[part.key]||'';
+      const selectId = `sel_${state.stepIndex}_${i}`;
+      const node = el(`
+        <div class="field">
+          <label class="label">Válassz!</label>
+          <select data-key="${part.key}" id="${selectId}">
+            <option value="">— válassz —</option>
+            ${part.options.map(opt=>`<option ${current===opt?'selected':''}>${esc(opt)}</option>`).join('')}
+          </select>
+          ${part.whenKeyEquals?`<div class="hint">Ha "${esc(part.whenKeyEquals.equals)}", adj meg egyéni értéket alább.</div>`:''}
+        </div>`);
+      wrap.appendChild(node);
+
+      // feltételes extra input
+      if(part.whenKeyEquals){
+        const k = part.whenKeyEquals.key; const eq = part.whenKeyEquals.equals;
+        const visible = state.values[k]===eq;
+        const extraVal = state.values[part.key+"_extra"] || state.values[part.key+"Other"] || state.values[part.key] || '';
+        const extra = el(`
+          <div class="field" data-extra-for="${esc(part.key)}" style="${visible?'':'display:none'}">
+            <label class="label">Egyéni megadás</label>
+            <input type="text" data-key="${part.key.replace(/Other$/,'')+'Other'}" placeholder="(egyéni)" value="${esc(extraVal)}" />
+          </div>`);
+        wrap.appendChild(extra);
+      }
+    }
+  });
+
+  // Navigáció – ugyanaz a konténer, nincs once:true, így nem vesznek el a figyelők
+  // (Delegált eseménykezelés lent globálisan.)
+
+  renderPreview();
+  renderStepper();
+}
+
+/******************************
+ * PREVIEW ÖSSZEFŰZÉS
+ ******************************/
+function composeStep(step){
+  let out='';
+  for(const part of step.parts){
+    if(part.type==='text'){ out += part.text; continue; }
+    if(part.type==='input'){
+      const v = state.values[part.key]||'____';
+      out += v;
+      continue;
+    }
+    if(part.type==='number'){
+      const v = state.values[part.key];
+      out += (v==null||v==='')? '____' : v;
+      continue;
+    }
+    if(part.type==='select'){
+      let v = state.values[part.key]||'';
+      // ha "other...", akkor a kapcsolt Other kulcs
+      if(v==="other..." || v===""){
+        const ov = state.values[part.key+"Other"]||'';
+        v = ov||v;
+      }
+      out += v||'____';
+      continue;
+    }
+  }
+  return out.trim();
+}
+
+function renderPreview(){
+  const parts = [];
+  STEPS.forEach(s=>{ const fragment = composeStep(s); if(fragment) parts.push(fragment); });
+  const text = parts.join(" ").replace(/\s+([\.,!\?])/g,'$1');
+  byId('preview').textContent = text || '(Még nincs tartalom.)';
+}
+
+function renderStepper(){
+  const host = byId('stepper');
+  host.innerHTML='';
+  STEPS.forEach((s,idx)=>{
+    const chip = el(`<button class="chip ${idx===state.stepIndex?'active':''}" data-goto="${idx}" aria-label="Ugrás: ${esc(s.title)}">${idx+1}. ${esc(s.title)}</button>`);
+    host.appendChild(chip);
+  });
+}
+
+/******************************
+ * ESEMÉNYEK – DELEGÁLVA (nincs once:true bug)
+ ******************************/
+byId('step-content').addEventListener('input', e=>{
+  const t = e.target;
+  const key = t.getAttribute('data-key');
+  if(!key) return;
+  state.values[key] = t.value;
+  // kapcsolt extra-mező megjelenítése, ha szükséges
+  const sel = t.tagName==='SELECT' ? t : null;
+  if(sel){
+    const k = key; const v = sel.value;
+    const step = STEPS[state.stepIndex];
+    const part = step.parts.find(p=>p.type==='select' && p.key===k && p.whenKeyEquals);
+    if(part){
+      const show = state.values[part.whenKeyEquals.key]===part.whenKeyEquals.equals || v===part.whenKeyEquals.equals;
+      const extra = byId('step-content').querySelector(`[data-extra-for="${CSS.escape(k)}"]`);
+      if(extra){ extra.style.display = show?'' : 'none'; }
+    }
+  }
+  renderPreview();
+  // Auto‑mentés csendben (nem toastolunk minden leütésre)
+  try{localStorage.setItem(LS_KEY, JSON.stringify({values:state.values, stepIndex:state.stepIndex}));}catch{}
+});
+
+byId('stepper').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-goto]');
+  if(!btn) return;
+  state.stepIndex = +btn.dataset.goto;
+  renderStep();
+});
+
+byId('btn-prev').addEventListener('click', ()=>{ if(state.stepIndex>0){state.stepIndex--; renderStep();}});
+byId('btn-next').addEventListener('click', ()=>{ if(state.stepIndex<STEPS.length-1){state.stepIndex++; renderStep();} });
+
+byId('btn-copy').addEventListener('click', async ()=>{
+  const txt = byId('preview').textContent.trim();
+  if(!txt){showToast('Nincs mit másolni.'); return;}
+  try{await navigator.clipboard.writeText(txt); showToast('Kimásolva a vágólapra.');}
+  catch{showToast('Másolás nem sikerült.')} 
+});
+
+byId('btn-download').addEventListener('click', ()=>{
+  const blob = new Blob([byId('preview').textContent||''], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bemutatkozo.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+byId('btn-save').addEventListener('click', saveLocal);
+byId('btn-load').addEventListener('click', ()=>{ loadLocal(); renderAll(); showToast('Betöltve.'); });
+byId('btn-reset').addEventListener('click', ()=>{ if(confirm('Biztosan törlöd az összes választ?')) resetAll(); });
+
+/******************************
+ * KEZDŐ RENDER
+ ******************************/
+function renderAll(){
+  renderStep();
+}
+
+loadLocal();
+renderAll();
+
+</script>
+</body>
+</html>

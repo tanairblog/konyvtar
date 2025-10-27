@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolúciós szimuláció</title>
+    <style>
+        /* CSS Rész */
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .controls {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .slider-container input[type="range"] {
+            width: 120px;
+        }
+        
+        .slider-container span {
+            width: 25px;
+            text-align: right;
+        }
+
+        #animalInfo {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            min-height: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #555;
+            width: 50%;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        button:hover {
+            background-color: #f0f0f0;
+        }
+
+        #field {
+            width: 80vw;
+            height: 70vh;
+            border: 2px solid #333;
+            position: relative;
+            background-color: #FFFFFF;
+            overflow: hidden;
+            border-radius: 5px;
+        }
+
+        .animal {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            cursor: pointer;
+        }
+        
+        .animal.highlighted svg {
+            filter: drop-shadow(0px 0px 4px gold) drop-shadow(0px 0px 2px gold);
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Evolúciós Szimuláció</h1>
+    <div class="controls">
+        <button id="startStopBtn">Indítás</button>
+        <div class="sliders">
+            <div class="slider-container">
+                <label for="rSlider">R:</label>
+                <input type="range" id="rSlider" min="0" max="255" value="255">
+                <span id="rValue">255</span>
+            </div>
+            <div class="slider-container">
+                <label for="gSlider">G:</label>
+                <input type="range" id="gSlider" min="0" max="255" value="255">
+                <span id="gValue">255</span>
+            </div>
+            <div class="slider-container">
+                <label for="bSlider">B:</label>
+                <input type="range" id="bSlider" min="0" max="255" value="255">
+                <span id="bValue">255</span>
+            </div>
+        </div>
+    </div>
+    <div id="animalInfo">Kattints egy állatra az adataiért!</div>
+    <div id="field"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const field = document.getElementById('field');
+            const startStopBtn = document.getElementById('startStopBtn');
+            const rSlider = document.getElementById('rSlider');
+            const gSlider = document.getElementById('gSlider');
+            const bSlider = document.getElementById('bSlider');
+            const rValue = document.getElementById('rValue');
+            const gValue = document.getElementById('gValue');
+            const bValue = document.getElementById('bValue');
+            const animalInfoDiv = document.getElementById('animalInfo');
+
+            let animals = [];
+            const animalCount = 100;
+            const animalSize = 40;
+            let simulationInterval, generationInterval;
+            let isRunning = false;
+            let backgroundColor = { r: 255, g: 255, b: 255 };
+            
+            // JAVÍTVA: Kijelölési logika
+            let selectedAnimal = null;
+            let selectedAncestorId = null; // A kijelölt vérvonal alapítója
+            let nextAnimalId = 0; // Egyedi azonosító minden állatnak
+
+            function colorDistance(rgb1, rgb2) {
+                const dr = rgb1.r - rgb2.r;
+                const dg = rgb1.g - rgb2.g;
+                const db = rgb1.b - rgb2.b;
+                return Math.sqrt(dr * dr + dg * dg + db * db);
+            }
+
+            class Animal {
+                constructor(parent = null) {
+                    this.element = document.createElement('div');
+                    this.element.classList.add('animal');
+
+                    // JAVÍTVA: Egyedi ID és szülő ID kezelése
+                    this.id = nextAnimalId++;
+                    this.parentId = parent ? parent.id : null;
+
+                    if (parent) {
+                        const mutationStrength = 20;
+                        const parentColor = parent.color;
+                        this.color = {
+                            r: Math.max(0, Math.min(255, parentColor.r + Math.floor(Math.random() * (mutationStrength * 2 + 1)) - mutationStrength)),
+                            g: Math.max(0, Math.min(255, parentColor.g + Math.floor(Math.random() * (mutationStrength * 2 + 1)) - mutationStrength)),
+                            b: Math.max(0, Math.min(255, parentColor.b + Math.floor(Math.random() * (mutationStrength * 2 + 1)) - mutationStrength)),
+                        };
+                    } else {
+                        this.color = { r: 255, g: 255, b: 255 };
+                    }
+
+                    this.dx = (Math.random() - 0.5) * 2;
+                    this.dy = (Math.random() - 0.5) * 2;
+
+                    const animalColor = `rgb(${this.color.r}, ${this.color.g}, ${this.color.b})`;
+                    this.element.innerHTML = `
+                        <svg width="100%" height="100%" viewBox="58 90 20 10" preserveAspectRatio="xMidYMid meet" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                            <g>
+                                <path style="fill:#e27bb6;stroke:#000000;stroke-width:0.26;fill-opacity:1" d="m 63.738817,92.364585 c -1.062775,0.562329 -1.702541,1.639322 -2.480014,2.514084 -0.483798,0.609718 -0.889068,1.300588 -1.452984,1.856638 -0.256701,0.424829 -1.226054,0.594518 -1.014163,1.147663 0.487732,0.224201 1.269321,0.470005 1.249474,-0.301126 0.323776,-0.820498 1.283748,-1.074012 2.078019,-1.13751 0.655027,0.140765 1.422007,0.521445 1.956277,-0.148586 0.494192,-0.617297 1.045839,-1.395321 0.83813,-2.234539 -0.127595,-0.56926 -0.207501,-1.504127 -0.953736,-1.531291 -0.08935,-0.02778 -0.171797,-0.08428 -0.221003,-0.165333 z" />
+                                <path class="animal-body" style="fill:${animalColor};stroke:#000000;stroke-width:0.26;fill-opacity:1" d="m 68.030244,92.271046 c 1.23493,-0.07554 2.507429,-0.05977 3.700727,0.298029 0.994927,0.361046 1.868909,1.018632 2.610691,1.762207 0.567025,0.60455 0.210035,1.423559 -0.361407,1.861967 -0.497211,0.693666 -1.419718,0.520498 -2.155095,0.624746 -0.642162,0.10467 -1.567692,0.126305 -1.709548,0.94153 -0.06808,0.443564 0.486956,1.404133 -0.412894,1.07111 -0.555231,-0.173923 -1.771894,0.237405 -1.771069,-0.585438 0.173585,-0.494318 1.239191,-1.421655 0.10319,-1.339919 -1.051558,0.07654 -2.05646,-0.384584 -3.106577,-0.286708 -0.622585,0.328727 -0.461986,1.320085 -1.09078,1.715094 -0.581931,0.679765 -1.976498,-0.159934 -1.032281,-0.776773 0.249921,-0.165043 0.551984,-0.858309 0.531837,-0.86112 0.265249,-0.02878 0.52107,-0.127483 0.738388,-0.400023 0.494192,-0.617297 1.045839,-1.395321 0.83813,-2.234539 -0.127595,-0.56926 -0.207501,-1.504127 -0.902466,-1.529672 1.362494,-0.2083 2.69223,-0.278196 4.019154,-0.260491 z" />
+                                <path style="fill:none;stroke:#000000;stroke-width:0.26" d="m 63.636704,95.568074 c 0.03185,0.455573 -0.735882,1.041354 -0.959467,0.991942" />
+                                <path style="fill:#0c4bb6;stroke:#000000;stroke-width:0.26;fill-opacity:1" d="m 62.415144,93.48766 c 0.431839,0.301474 -0.596529,1.042527 0.230205,1.114241 0.939637,-0.14318 -0.123779,-1.385112 -0.597883,-0.628229 l -0.05752,0.01135" />
+                                <path style="fill:#fc0000;stroke:none;stroke-width:0.26;fill-opacity:1" d="m 68.030244,92.271046 c 1.23493,-0.07554 2.507429,-0.05977 3.700727,0.298029 0.994927,0.361046 1.868909,1.018632 2.610691,1.762207 0.567025,0.60455 0.210035,1.423559 -0.369396,1.86103 -0.745085,-0.346946 0.09353,-0.34589 0.428904,-0.539507 0.677824,-0.165176 1.467348,-0.271388 2.05639,-0.561955 -0.631677,-0.133874 -1.277825,-0.216233 -1.91509,-0.343258 0.134273,-0.183152 1.067959,-0.124612 1.503073,-0.175852 0.08808,-0.218525 -0.793938,-0.570171 -1.148659,-0.733684 -0.292464,-0.233342 -1.598928,-0.286882 -1.175514,-0.466189 0.617793,-0.18921 1.555611,0.109328 2.000534,-0.23751 -0.820283,-0.353908 -1.751909,-0.288488 -2.628081,-0.289488 -0.176979,-0.05313 0.831042,-0.382238 1.09451,-0.56646 0.808743,-0.298866 -0.0757,-0.264446 -0.466684,-0.209666 -0.809774,0.0031 -1.594199,0.198185 -2.388316,0.327636 0.08296,-0.205861 1.129408,-0.751717 1.657641,-0.919411 -1.237092,-0.008 -2.390697,0.55754 -3.623325,0.5909 0.0657,-0.460839 0.856997,-0.478882 1.208682,-0.753627 -0.680704,0.255624 -1.412886,0.307866 -2.104964,0.528104 -0.472553,0.09946 -0.970773,0.382792 -1.393685,0.468462 0.421345,-0.436638 0.97167,-0.74942 1.52191,-1.000307 -1.0954,0.15326 -2.130729,0.646785 -3.196196,0.954084 -0.894585,0.348794 0.17285,-0.332306 0.458656,-0.544085 0.690251,-0.358515 1.290386,-0.856901 1.964244,-1.245527 -0.217664,0.01737 -1.262955,0.439389 -1.765362,0.689155 -0.644868,0.444737 -1.625426,0.593262 -1.965149,1.383736 1.277799,-0.224626 2.607535,-0.294522 3.934459,-0.276817 z" />
+                            </g>
+                        </svg>`;
+                    
+                    this.randomizePosition();
+                    field.appendChild(this.element);
+
+                    this.element.addEventListener('click', () => {
+                        selectedAncestorId = this.id;
+                        selectedAnimal = this;
+                        updateHighlights();
+                        animalInfoDiv.textContent = `Kijelölt állat RGB: ${this.color.r}, ${this.color.g}, ${this.color.b}`;
+                    });
+                }
+
+                randomizePosition() {
+                    // JAVÍTVA: Megbízhatóbb méretlekérdezés
+                    const rect = field.getBoundingClientRect();
+                    const fieldWidth = rect.width;
+                    const fieldHeight = rect.height;
+                    this.x = Math.random() * (fieldWidth - animalSize);
+                    this.y = Math.random() * (fieldHeight - animalSize);
+                    this.element.style.left = `${this.x}px`;
+                    this.element.style.top = `${this.y}px`;
+                }
+                
+                move() {
+                    this.x += this.dx; this.y += this.dy;
+                    this.dx += (Math.random() - 0.5) * 0.4; this.dy += (Math.random() - 0.5) * 0.4;
+                    const maxSpeed = 2;
+                    this.dx = Math.max(-maxSpeed, Math.min(maxSpeed, this.dx)); this.dy = Math.max(-maxSpeed, Math.min(maxSpeed, this.dy));
+                    if (this.x <= 0 || this.x >= field.clientWidth - animalSize) this.dx *= -1;
+                    if (this.y <= 0 || this.y >= field.clientHeight - animalSize) this.dy *= -1;
+                    this.element.style.left = `${this.x}px`; this.element.style.top = `${this.y}px`;
+                }
+
+                getFitness() { return colorDistance(this.color, backgroundColor); }
+                destroy() { if (this.element.parentNode) field.removeChild(this.element); }
+            }
+
+            function init() {
+                animals.forEach(animal => animal.destroy());
+                animals = [];
+                nextAnimalId = 0;
+                for (let i = 0; i < animalCount; i++) animals.push(new Animal());
+            }
+
+            function updateBackgroundColor() {
+                backgroundColor.r = parseInt(rSlider.value);
+                backgroundColor.g = parseInt(gSlider.value);
+                backgroundColor.b = parseInt(bSlider.value);
+                rValue.textContent = backgroundColor.r;
+                gValue.textContent = backgroundColor.g;
+                bValue.textContent = backgroundColor.b;
+                field.style.backgroundColor = `rgb(${backgroundColor.r}, ${backgroundColor.g}, ${backgroundColor.b})`;
+            }
+            
+            // JAVÍTVA: Új, precízebb kijelölési logika
+            function isDescendantOrSelf(animalId, ancestorId, animalMap) {
+                if (animalId === ancestorId) return true;
+                let current = animalMap.get(animalId);
+                while (current && current.parentId !== null) {
+                    if (current.parentId === ancestorId) return true;
+                    current = animalMap.get(current.parentId);
+                }
+                return false;
+            }
+
+            function updateHighlights() {
+                if (selectedAncestorId === null) {
+                    animals.forEach(a => a.element.classList.remove('highlighted'));
+                    return;
+                }
+                const animalMap = new Map(animals.map(a => [a.id, a]));
+                animals.forEach(a => {
+                    if (isDescendantOrSelf(a.id, selectedAncestorId, animalMap)) {
+                        a.element.classList.add('highlighted');
+                    } else {
+                        a.element.classList.remove('highlighted');
+                    }
+                });
+            }
+
+            function toggleSimulation() {
+                if (isRunning) {
+                    clearInterval(simulationInterval);
+                    clearInterval(generationInterval);
+                    startStopBtn.textContent = 'Indítás';
+                } else {
+                    simulationInterval = setInterval(() => { animals.forEach(animal => animal.move()); }, 40);
+                    generationInterval = setInterval(() => {
+                        animals.sort((a, b) => a.getFitness() - b.getFitness());
+                        const survivors = animals.slice(0, animalCount / 2);
+                        const removed = animals.slice(animalCount / 2);
+
+                        if (selectedAnimal && removed.includes(selectedAnimal)) {
+                            selectedAnimal = null;
+                            animalInfoDiv.textContent = 'A kijelölt állat elpusztult. A leszármazottai továbbra is ki vannak jelölve.';
+                        }
+                        
+                        removed.forEach(animal => animal.destroy());
+                        const offspring = survivors.map(parent => new Animal(parent));
+                        animals = [...survivors, ...offspring];
+
+                        if (selectedAncestorId !== null) {
+                            const animalMapForCheck = new Map(animals.map(a => [a.id, a]));
+                            const lineageStillAlive = animals.some(a => isDescendantOrSelf(a.id, selectedAncestorId, animalMapForCheck));
+                            if (!lineageStillAlive) {
+                                selectedAncestorId = null;
+                                selectedAnimal = null;
+                                animalInfoDiv.textContent = 'A kijelölt vérvonal kihalt. Válassz újat!';
+                            }
+                        }
+                        
+                        updateHighlights();
+                    }, 1000);
+                    startStopBtn.textContent = 'Megállítás';
+                }
+                isRunning = !isRunning;
+            }
+
+            startStopBtn.addEventListener('click', toggleSimulation);
+            rSlider.addEventListener('input', updateBackgroundColor);
+            gSlider.addEventListener('input', updateBackgroundColor);
+            bSlider.addEventListener('input', updateBackgroundColor);
+            
+            // JAVÍTVA: Eseményfigyelő a szóköz billentyűhöz
+            document.addEventListener('keydown', (event) => {
+                // Ellenőrizzük, hogy a lenyomott billentyű a szóköz-e
+                if (event.code === 'Space') {
+                    event.preventDefault(); // Megakadályozza az oldal görgetését
+                    toggleSimulation();
+                }
+            });
+            
+            updateBackgroundColor();
+            init();
+        });
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Use of English – Cloze & Word Formation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :focus { outline: none; }
+    .tab-active { background: black; color: white; }
+    .tab-inactive { background: white; color: #6b7280; border: 1px solid #e5e7eb; }
+    kbd{border:1px solid #e5e7eb;border-bottom-width:2px;border-radius:.375rem;padding:.1rem .35rem}
+    .disabled{opacity:.5;cursor:not-allowed}
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900">
+  <div class="max-w-4xl mx-auto p-6">
+    <header class="mb-6 flex items-center justify-between flex-wrap gap-3">
+      <h1 class="text-2xl md:text-3xl font-bold">Use of English Practice</h1>
+      <div class="flex items-center gap-3">
+        <label class="inline-flex items-center gap-2 text-sm">
+          <input id="toggleRandom" type="checkbox" class="accent-black" checked />
+          Randomize
+        </label>
+        <label class="inline-flex items-center gap-2 text-sm">
+          <input id="toggleStrict" type="checkbox" class="accent-black" />
+          Strict
+          <span class="text-xs text-gray-500 hidden md:inline">(off = ignore accents & hyphens, articles)</span>
+        </label>
+      </div>
+    </header>
+
+    <div id="loadBar" class="mb-4 text-sm text-gray-600">Loading databases…</div>
+
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <button id="tabCloze" class="py-2 rounded-2xl tab-active">Open Cloze</button>
+      <button id="tabWF" class="py-2 rounded-2xl tab-inactive">Word Formation</button>
+    </div>
+
+    <!-- ========== Cloze ========== -->
+    <section id="clozeSection" class="bg-white rounded-2xl shadow p-5 md:p-7">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div class="text-sm">Item <span id="clozeIndex" class="font-semibold">1</span> / <span id="clozeTotal">1</span></div>
+        <div class="text-sm">Attempts: <span id="clozeAttempts" class="font-semibold">0</span></div>
+        <div class="text-sm">Score: <span id="clozeScore" class="font-semibold">0</span></div>
+      </div>
+
+      <p id="clozeSentence" class="text-lg md:text-xl leading-relaxed mb-4">(no item)</p>
+
+      <div class="flex items-center gap-2 mb-3">
+        <input id="clozeInput" placeholder="Type your answer here"
+               class="flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-black" />
+        <button id="clozeCheck" class="px-4 py-3 rounded-xl bg-black text-white hover:opacity-90">Check</button>
+        <button id="clozeGiveUp" class="px-4 py-3 rounded-xl bg-gray-100 border hover:bg-gray-50">Give up</button>
+        <button id="clozeShow" class="px-4 py-3 rounded-xl bg-gray-100 border hover:bg-gray-50">Show answer</button>
+        <button id="clozeNext" class="px-4 py-3 rounded-2xl bg-gray-100 border hover:bg-gray-50">Next</button>
+      </div>
+
+      <div id="clozeFeedback" class="mb-2 text-sm"></div>
+
+      <div id="clozeReveal" class="text-sm text-gray-700 hidden">
+        Correct answer(s): <span id="clozeAnswers"></span>
+      </div>
+
+      <div class="mt-6 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div id="clozeProgress" class="h-full bg-black" style="width:0%"></div>
+      </div>
+    </section>
+
+    <!-- ========== Word Formation ========== -->
+    <section id="wfSection" class="mt-6 bg-white rounded-2xl shadow p-5 md:p-7 hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-1">
+        <div class="text-sm">Item <span id="wfIndex" class="font-semibold">1</span> / <span id="wfTotal">1</span></div>
+        <div class="text-sm">Attempts: <span id="wfAttempts" class="font-semibold">0</span></div>
+        <div class="text-sm">Score: <span id="wfScore" class="font-semibold">0</span></div>
+      </div>
+
+      <p id="wfSentence" class="text-lg md:text-xl leading-relaxed mb-2">(no item)</p>
+      <p class="text-sm text-gray-600 mb-4">Base word: <span id="wfBase" class="font-semibold">—</span></p>
+
+      <div class="flex items-center gap-2 mb-3">
+        <input id="wfInput" placeholder="Form the correct word"
+               class="flex-1 px-4 py-3 rounded-xl border focus:outline-none focus:ring-2 focus:ring-black" />
+        <button id="wfCheck" class="px-4 py-3 rounded-xl bg-black text-white hover:opacity-90">Check</button>
+        <button id="wfGiveUp" class="px-4 py-3 rounded-xl bg-gray-100 border hover:bg-gray-50">Give up</button>
+        <button id="wfShow" class="px-4 py-3 rounded-xl bg-gray-100 border hover:bg-gray-50">Show answer</button>
+        <button id="wfNext" class="px-4 py-3 rounded-2xl bg-gray-100 border hover:bg-gray-50">Next</button>
+      </div>
+
+      <div id="wfFeedback" class="mb-2 text-sm"></div>
+
+      <div id="wfReveal" class="text-sm text-gray-700 hidden">
+        Correct answer(s): <span id="wfAnswers"></span>
+      </div>
+
+      <div class="mt-6 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div id="wfProgress" class="h-full bg-black" style="width:0%"></div>
+      </div>
+    </section>
+
+    <footer class="text-xs text-gray-500 mt-8">
+      Tip: Press <kbd>Enter</kbd> to check your answer. Use URL params to override DBs:
+      <code>?db=...&wfdb=...</code>
+    </footer>
+  </div>
+
+  <script>
+    // ===== Helpers =====
+    function normalizeBase(s) {
+      return s
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')           // accents off
+        .replace(/[“”"'`]/g, '')                   // quotes
+        .replace(/[-–—]/g, '')                     // hyphens
+        .replace(/[.,!?;:()\[\]{}]/g, '')          // punct
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    function stripArticles(s) { return s.replace(/^(?:a|an|the)\s+/i, '').trim(); }
+    function normalizeLenient(s) { return normalizeBase(stripArticles(s)); }
+    function normalizeStrict(s)  { return normalizeBase(s); }
+
+    // Safe multi-answer splitter (supports '/', ',', '|' and 'or')
+    function splitAnswers(sol) {
+      let s = String(sol ?? '');
+      s = s.replace(/\bor\b/ig, '|');
+      s = s.split(',').join('|');
+      s = s.split('/').join('|');
+      s = s.split('||').join('|');
+      return s.split('|').map(p => p.trim()).filter(Boolean);
+    }
+
+    function shuffle(arr) { for (let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+    // ===== Global toggles =====
+    const toggleStrict = document.getElementById('toggleStrict');
+    const toggleRandom = document.getElementById('toggleRandom');
+    const stateGlobal = { strict:false, randomize:true };
+    toggleStrict.addEventListener('change', ()=> stateGlobal.strict = toggleStrict.checked);
+    toggleRandom.addEventListener('change', ()=> {
+      stateGlobal.randomize = toggleRandom.checked;
+      clozeDeck.setItems(clozeDeck.items);
+      wfDeck.setItems(wfDeck.items);
+    });
+
+    // ===== Deck factory (with both bugfixes) =====
+    function makeDeck(cfg){
+  const st = {
+    items: [], idx: 0, attempts: 0, score: 0,
+    showAns: false, peeked: false, solved: false
+  };
+
+  function setItems(newItems){
+    st.items = Array.isArray(newItems) ? newItems.slice() : [];
+    if (stateGlobal.randomize) shuffle(st.items);
+    st.idx = 0; st.attempts = 0; st.showAns = false; st.peeked = false; st.solved = false;
+    cfg.input.value = '';
+    enableAnswering(true);
+    render();
+  }
+  function current(){ return st.items[Math.min(st.idx, Math.max(0, st.items.length-1))]; }
+  function forfeited(){ return st.peeked || st.attempts > 0; }
+
+  function enableAnswering(on){
+    cfg.input.disabled = !on;
+    cfg.btnCheck.disabled = !on;
+    cfg.input.classList.toggle('disabled', !on);
+    cfg.btnCheck.classList.toggle('disabled', !on);
+  }
+
+  function render(){
+    const total = st.items.length || 1;
+    const idx = Math.min(st.idx, total-1);
+    const cur = st.items[idx] || {};
+    cfg.idxEl.textContent = idx + 1;
+    cfg.totalEl.textContent = total;
+    cfg.attemptsEl.textContent = st.attempts;
+    cfg.scoreEl.textContent = st.score;
+    cfg.sentEl.textContent = cur.sentence || '(no item)';
+    if (cfg.baseEl) cfg.baseEl.textContent = cur.base || '—';
+    cfg.progressEl.style.width = `${((idx+1)/total)*100}%`;
+    if (!st.showAns) {
+      cfg.revealBox.classList.add('hidden');
+    } else {
+      cfg.revealBox.classList.remove('hidden');
+      cfg.answersEl.textContent = cur.solution ? splitAnswers(cur.solution).join(', ') : '';
+    }
+  }
+
+  function resetForItem(){
+    st.attempts = 0;
+    st.showAns  = false;
+    st.peeked   = false;
+    st.solved   = false;
+    cfg.input.value = '';
+    cfg.feedback.className = 'mb-2 text-sm';
+    cfg.feedback.textContent = '';
+    enableAnswering(true);
+  }
+
+  function next(){ st.idx = (st.idx + 1) % (st.items.length || 1); resetForItem(); render(); cfg.input.focus(); }
+
+  function show(){
+  // Reveal without score penalty, but forfeit positive points on this item
+  st.peeked = true;
+  cfg.feedback.textContent = '👀 Revealed answer. (This item will now give 0 points even if correct.)';
+  cfg.feedback.className = 'mb-2 text-sm text-amber-600';
+  st.showAns = true;
+    render();
+  }
+
+  function giveUp(){
+  // Give up: no score change, but item forfeited => 0 pts if later answered
+  st.peeked = true;
+  cfg.feedback.textContent = '⏭️ Passed. 0 points for this item.';
+  cfg.feedback.className = 'mb-2 text-sm text-gray-600';
+  next();
+}
+
+  function check(){
+    if (st.solved){
+      cfg.feedback.textContent = '✔️ Already solved. Use Next.';
+      cfg.feedback.className = 'mb-2 text-sm text-gray-600';
+      return;
+    }
+    const cur = current(); if (!cur) return;
+    const sols = splitAnswers(cur.solution);
+    const userRaw = cfg.input.value;
+    const norm = stateGlobal.strict ? normalizeStrict : normalizeLenient;
+    const user = norm(userRaw);
+    const set = new Set(sols.map(s=>norm(s)));
+
+    if (set.has(user)){
+      st.solved = true;
+      if (forfeited()){
+        // Correct after wrong or reveal -> 0 points
+        cfg.feedback.textContent = '✅ Correct, but 0 points (already wrong/peeked).';
+        cfg.feedback.className = 'mb-2 text-sm text-amber-700';
+      } else {
+        st.score += 10;
+        cfg.feedback.textContent = '✅ Correct! +10';
+        cfg.feedback.className = 'mb-2 text-sm text-green-600';
+      }
+      enableAnswering(false);    // lock input for this item
+    } else {
+      st.score   -= 5;
+      st.attempts += 1;
+      cfg.feedback.textContent = '❌ Not quite. -5. (This item will now give 0 points even if correct.)';
+      cfg.feedback.className = 'mb-2 text-sm text-red-600';
+    }
+    render();
+  }
+
+  cfg.btnCheck .addEventListener('click', check);
+  cfg.btnGiveUp.addEventListener('click', giveUp);
+  cfg.btnShow  .addEventListener('click', show);
+  cfg.btnNext  .addEventListener('click', next);
+  return { setItems, items: st.items, render, next };
+}
+
+    // ===== Wire up Cloze deck =====
+    const clozeDeck = makeDeck({
+      idxEl: document.getElementById('clozeIndex'),
+      totalEl: document.getElementById('clozeTotal'),
+      attemptsEl: document.getElementById('clozeAttempts'),
+      scoreEl: document.getElementById('clozeScore'),
+      sentEl: document.getElementById('clozeSentence'),
+      baseEl: null,
+      input: document.getElementById('clozeInput'),
+      feedback: document.getElementById('clozeFeedback'),
+      revealBox: document.getElementById('clozeReveal'),
+      answersEl: document.getElementById('clozeAnswers'),
+      progressEl: document.getElementById('clozeProgress'),
+      btnCheck: document.getElementById('clozeCheck'),
+      btnGiveUp: document.getElementById('clozeGiveUp'),
+      btnShow: document.getElementById('clozeShow'),
+      btnNext: document.getElementById('clozeNext'),
+    });
+
+    // ===== Wire up WF deck =====
+    const wfDeck = makeDeck({
+      idxEl: document.getElementById('wfIndex'),
+      totalEl: document.getElementById('wfTotal'),
+      attemptsEl: document.getElementById('wfAttempts'),
+      scoreEl: document.getElementById('wfScore'),
+      sentEl: document.getElementById('wfSentence'),
+      baseEl: document.getElementById('wfBase'),
+      input: document.getElementById('wfInput'),
+      feedback: document.getElementById('wfFeedback'),
+      revealBox: document.getElementById('wfReveal'),
+      answersEl: document.getElementById('wfAnswers'),
+      progressEl: document.getElementById('wfProgress'),
+      btnCheck: document.getElementById('wfCheck'),
+      btnGiveUp: document.getElementById('wfGiveUp'),
+      btnShow: document.getElementById('wfShow'),
+      btnNext: document.getElementById('wfNext'),
+    });
+
+    // ===== Tabs =====
+    const tabCloze = document.getElementById('tabCloze');
+    const tabWF    = document.getElementById('tabWF');
+    const clozeSection = document.getElementById('clozeSection');
+    const wfSection    = document.getElementById('wfSection');
+    tabCloze.addEventListener('click', () => {
+      tabCloze.className = 'py-2 rounded-2xl tab-active';
+      tabWF.className    = 'py-2 rounded-2xl tab-inactive';
+      clozeSection.classList.remove('hidden');
+      wfSection.classList.add('hidden');
+      document.getElementById('clozeInput').focus();
+    });
+    tabWF.addEventListener('click', () => {
+      tabWF.className    = 'py-2 rounded-2xl tab-active';
+      tabCloze.className = 'py-2 rounded-2xl tab-inactive';
+      wfSection.classList.remove('hidden');
+      clozeSection.classList.add('hidden');
+      document.getElementById('wfInput').focus();
+    });
+
+    // ===== Loaders =====
+    const STARTER_CLOZE = [
+      { sentence: "And we are sure you’ll enjoy your time ______ us.", solution: "with" },
+      { sentence: "There ______ a full commentary in English and a choice of six other languages.", solution: "is" },
+      { sentence: "Unlike some other companies, your tickets ______ completely unrestricted.", solution: "are" },
+      { sentence: "Each route includes frequent stops – simply hop off ______ you want to and return to the same stop", solution: "whenever" },
+    ];
+    const STARTER_WF = [
+      { sentence: "Items men, women, and children left behind when they died … tell (0) ______ (anthropology) a lot.", base:"anthropology", solution:"anthropologists" },
+      { sentence: "Experts believe that a (20) ______ (discover) in Mexico is the oldest example of writing ever found in the Americas.", base:"discover", solution:"discovery" }
+    ];
+
+    async function loadClozeDB(){
+      const urlParam = new URLSearchParams(location.search).get('db');
+      if (urlParam) {
+        try{ const r = await fetch(urlParam); if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.every(x=>x.sentence && x.solution)) return {data:d, source:'url'}; } }catch(e){}
+      }
+      try{ const r = await fetch('./open_cloze_database.json', {cache:'no-store'});
+           if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.every(x=>x.sentence && x.solution)) return {data:d, source:'local-json'}; } }catch(e){}
+      try{ const r = await fetch('./open_cloze_database_sample.json', {cache:'no-store'});
+           if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.every(x=>x.sentence && x.solution)) return {data:d, source:'sample'}; } }catch(e){}
+      return {data: STARTER_CLOZE, source:'starter'};
+    }
+
+    async function loadWFDB(){
+      const urlParam = new URLSearchParams(location.search).get('wfdb');
+      if (urlParam) {
+        try{ const r = await fetch(urlParam); if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.every(x=>x.sentence && x.solution)){ return {data:d, source:'url'}; } } }catch(e){}
+      }
+      try{ const r = await fetch('./word_formation_database.json', {cache:'no-store'});
+           if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.every(x=>x.sentence && x.solution)) return {data:d, source:'local-json'}; } }catch(e){}
+      try{ const r = await fetch('./word_formation_all.json', {cache:'no-store'});
+           if(r.ok){ const d = await r.json(); if(Array.isArray(d) && d.every(x=>x.sentence && x.solution)) return {data:d, source:'bundle'}; } }catch(e){}
+      return {data: STARTER_WF, source:'starter'};
+    }
+
+    // Enter = Check
+    window.addEventListener('keydown', (e) => {
+      const onCloze = !document.getElementById('clozeSection').classList.contains('hidden');
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        (onCloze ? document.getElementById('clozeCheck') : document.getElementById('wfCheck')).click();
+      }
+    });
+
+    // Boot
+    (async () => {
+      const [clozeDB, wfDB] = await Promise.all([loadClozeDB(), loadWFDB()]);
+      clozeDeck.setItems(clozeDB.data);
+      wfDeck.setItems(wfDB.data);
+      document.getElementById('clozeInput').focus();
+      let msg = `Cloze: ${clozeDB.source}; Word Formation: ${wfDB.source}.`;
+      msg += " Use ?db= and ?wfdb= to point to your own JSON files.";
+      const loadBar = document.getElementById('loadBar');
+      loadBar.textContent = msg;
+      loadBar.className = "mb-4 text-xs text-gray-500";
+    })();
+  </script>
+</body>
+</html>

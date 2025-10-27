@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A–Z (X nélkül) — Gyors definíciós játék</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* design brief */
+    --primary-300:#7EDAD6; --primary-500:#2BB6B4; --primary-700:#0F766E;
+    --accent-300:#F9C97A; --accent-500:#F4A329;
+    --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+    --text:#1F2937; --muted:#6B7280; --inv:#FFFFFF;
+    --ok:#2F9E44; --ok-50:#ECFDF3; --err:#D92D20;
+    --shadow:0 10px 30px rgba(17,24,39,.08);
+    --r-xl:20px; --r-md:12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:16px/1.5 Inter,Nunito,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .container{max-width:1100px;margin:32px auto;padding:0 16px;
+             display:grid;grid-template-columns:1fr 380px;gap:24px}
+  @media (max-width:960px){.container{grid-template-columns:1fr}}
+  .card,.panel{background:var(--surface);border:1px solid var(--border);
+               border-radius:var(--r-xl);box-shadow:var(--shadow);padding:16px}
+  .panel{padding:18px;display:flex;flex-direction:column;gap:14px}
+
+  .ring-area{position:relative;aspect-ratio:1/1;
+             background:linear-gradient(180deg,#fff 0%,#FAFAFA 100%);
+             border-radius:var(--r-md);border:1px dashed #E2E8F0}
+  .brand{display:flex;align-items:center;gap:8px;margin-bottom:8px;color:var(--muted);font-weight:700}
+  .brand-dot{width:10px;height:10px;border-radius:999px;background:var(--primary-500);
+             box-shadow:0 0 0 4px rgba(43,182,180,.18)}
+
+  .letter{
+          z-index:1;position:absolute;width:58px;height:58px;border-radius:999px;
+          display:grid;place-items:center;user-select:none;cursor:pointer;
+          background:#F1F5F9;color:#334155;font-weight:800;font-size:20px;
+          border:1px solid #E2E8F0;box-shadow:0 4px 14px rgba(2,6,23,.06);
+          transition:transform .15s,background .2s,color .2s,border-color .2s,box-shadow .2s,opacity .2s}
+  .letter:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(2,6,23,.10)}
+  .letter.active{background:rgba(43,182,180,.12);color:var(--primary-700);border-color:var(--primary-500)}
+  .letter.done{background:var(--ok-50);color:#166534;border-color:#86EFAC;box-shadow:0 8px 22px rgba(34,197,94,.18)}
+  .letter.passed{background:#F8FAFC;color:#64748B;border-color:#E2E8F0} /* továbbra is kattintható! */
+
+  .panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .stats{display:flex;gap:14px;color:var(--muted);font-weight:700;flex-wrap:wrap}
+  .stats b{color:var(--text)}
+  .timer{font-variant-numeric:tabular-nums;font-size:30px;font-weight:800;
+         padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:#fff}
+  .clue{min-height:72px;border-radius:var(--r-md);padding:12px 14px;background:#fff;border:1px solid var(--border)}
+  .big-letter{display:inline-grid;place-items:center;width:40px;height:40px;margin-right:10px;
+              border-radius:999px;background:var(--primary-500);color:#fff;font-weight:800}
+
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  input[type="text"]{flex:1;min-height:44px;padding:10px 14px;font-size:16px;color:var(--text);
+                     background:#fff;border-radius:12px;border:1px solid var(--border);outline:none}
+  input[type="text"]:focus{border-color:var(--primary-500);box-shadow:0 0 0 3px rgba(43,182,180,.18)}
+  .btn{min-height:44px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;
+       font-weight:800;cursor:pointer;background:#fff;color:var(--text);
+       transition:transform .05s,box-shadow .15s,background .2s,border-color .2s}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(2,6,23,.08)}
+  .btn.primary{background:var(--primary-500);color:#fff;border-color:var(--primary-500)}
+  .btn.secondary{background:#F1F5F9}
+  .feedback{min-height:24px;font-weight:800}
+  .ok{color:var(--ok)} .bad{color:var(--err)} .muted{color:var(--muted)}
+  .note{font-size:12px;color:var(--muted)}
+
+  /* Reset gomb külön sorban, lejjebb */
+  .bottom-controls{
+    margin-top: 28px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    justify-content: center;
+  }
+
+  /* +10 animáció */
+  .bonus {
+    z-index: 5;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--ok);
+    opacity: 0;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+    pointer-events: none;
+    text-shadow: 0 6px 20px rgba(47,158,68,0.25);
+  }
+  .bonus.show {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div class="brand"><span class="brand-dot"></span> A–Z Board</div>
+    <div class="ring-area" id="ring">
+      <!-- +10 animáció helye -->
+      <div id="bonus" class="bonus">+10</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="stats">
+        <span>Pontszám: <b id="score">0</b></span>
+        <span>Megoldva: <b id="solved">0</b>/25</span>
+        <span>Passz: <b id="passed">0</b></span>
+        <span>Hátra: <b id="left">25</b></span>
+      </div>
+      <div class="timer" id="timer">05:00</div>
+    </div>
+
+    <div class="clue" id="clue"><span class="muted">Kattints egy betűre! Az 5 perc az első kattintástól folyamatosan ketyeg.</span></div>
+
+    <div class="controls">
+      <input id="answer" type="text" placeholder="Válasz…" autocomplete="off" disabled />
+      <button id="submit" class="btn primary" disabled>Beküld</button>
+      <button id="pass" class="btn secondary" disabled>Passz</button>
+    </div>
+
+    <!-- Reset külön, jóval lejjebb -->
+    <div class="bottom-controls">
+      <button id="reset" class="btn" title="Játék újra">Reset</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+    <div class="note">A válaszok kis-/nagybetűtől függetlenek; csak az adott betűvel kezdődő, egyszerű szavakat fogad el.</div>
+  </div>
+</div>
+
+<!-- Rövid sikerhang -->
+<audio id="ding" preload="auto" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
+<script>
+/* ====== CLUES (3 kérdés betűnként; válasz az adott betűvel kezdődik) ====== */
+const CLUES = {
+  A:[{clue:"A place where planes take off and land.",answers:["airport"]},
+     {clue:"A red or green fruit you can eat.",answers:["apple"]},
+     {clue:"A comfortable chair with arms.",answers:["armchair"]}],
+  B:[{clue:"You sleep in it.",answers:["bed"]},
+     {clue:"You carry your school things in it.",answers:["bag","backpack"]},
+     {clue:"A round object you can kick or throw.",answers:["ball"]}],
+  C:[{clue:"You sit on it.",answers:["chair"]},
+     {clue:"It shows the time on the wall.",answers:["clock"]},
+     {clue:"You drink tea or coffee from it.",answers:["cup"]}],
+  D:[{clue:"You open it to enter a room.",answers:["door"]},
+     {clue:"It wags its tail and barks.",answers:["dog"]},
+     {clue:"You write and study at this piece of furniture.",answers:["desk"]}],
+  E:[{clue:"A very big animal with a trunk.",answers:["elephant"]},
+     {clue:"A part of your body you hear with.",answers:["ear"]},
+     {clue:"A food you eat for breakfast; from a chicken.",answers:["egg"]}],
+  F:[{clue:"You eat with it; not a spoon or knife.",answers:["fork"]},
+     {clue:"A cold cupboard that keeps food fresh.",answers:["fridge"]},
+     {clue:"A small animal that swims.",answers:["fish"]}],
+  G:[{clue:"You wear these on your hands in winter.",answers:["gloves"]},
+     {clue:"The green carpet in a garden.",answers:["grass"]},
+     {clue:"An area with trees and flowers next to a house.",answers:["garden"]}],
+  H:[{clue:"A building where people live.",answers:["house","home"]},
+     {clue:"A place where sick people get help.",answers:["hospital"]},
+     {clue:"You wear it on your head.",answers:["hat"]}],
+  I:[{clue:"Frozen water.",answers:["ice"]},
+     {clue:"A sweet dessert made from milk and sugar.",answers:["ice cream"]},
+     {clue:"A small creature with six legs.",answers:["insect"]}],
+  J:[{clue:"You wear it over your shirt when it's cold.",answers:["jacket"]},
+     {clue:"A sweet spread you put on bread.",answers:["jam"]},
+     {clue:"A drink made from fruit.",answers:["juice"]}],
+  K:[{clue:"A room where you cook.",answers:["kitchen"]},
+     {clue:"You use it to open a door.",answers:["key"]},
+     {clue:"A toy that flies on a string in the wind.",answers:["kite"]}],
+  L:[{clue:"A light you put on a table.",answers:["lamp"]},
+     {clue:"A yellow sour fruit.",answers:["lemon"]},
+     {clue:"A place with many books to read or borrow.",answers:["library"]}],
+  M:[{clue:"A white drink from cows.",answers:["milk"]},
+     {clue:"You look at yourself in this.",answers:["mirror"]},
+     {clue:"A place where you see paintings and old objects.",answers:["museum"]}],
+  N:[{clue:"A part of your face you smell with.",answers:["nose"]},
+     {clue:"The time when it is dark outside.",answers:["night"]},
+     {clue:"A book you use for school notes.",answers:["notebook"]}],
+  O:[{clue:"A round fruit and also a color.",answers:["orange"]},
+     {clue:"A hot cooker you bake in.",answers:["oven"]},
+     {clue:"A place where people work at desks.",answers:["office"]}],
+  P:[{clue:"You write with it.",answers:["pen","pencil"]},
+     {clue:"A popular Italian food with cheese and tomato.",answers:["pizza"]},
+     {clue:"A place with grass and trees for everyone.",answers:["park"]}],
+  Q:[{clue:"This is what usually comes before an answer :).",answers:["question"]},
+     {clue:"A person that is not very loud.",answers:["quiet"]},
+     {clue:"The woman who rules a country.",answers:["queen"]}],
+  R:[{clue:"Water that falls from the sky.",answers:["rain"]},
+     {clue:"A room in a house where you relax.",answers:["room"]},
+     {clue:"A long, thin tool for measuring in class.",answers:["ruler"]}],
+  S:[{clue:"You wear these on your feet indoors.",answers:["slippers"]},
+     {clue:"A place where children learn.",answers:["school"]},
+     {clue:"A long seat for two or more people.",answers:["sofa"]}],
+  T:[{clue:"A piece of furniture you eat at.",answers:["table"]},
+     {clue:"A hot drink made with leaves and water.",answers:["tea"]},
+     {clue:"A vehicle that runs on tracks.",answers:["train"]}],
+  U:[{clue:"You use it when it rains.",answers:["umbrella"]},
+     {clue:"Your parent's brother.",answers:["uncle"]},
+     {clue:"Clothes students wear at some schools.",answers:["uniform"]}],
+  V:[{clue:"A big car used for carrying things or people.",answers:["van"]},
+     {clue:"A place in the countryside where people live.",answers:["village"]},
+     {clue:"A small stringed musical instrument.",answers:["violin"]}],
+  W:[{clue:"What you drink every day.",answers:["water"]},
+     {clue:"You look at this on your wrist to see the time.",answers:["watch"]},
+     {clue:"You open this to let in fresh air.",answers:["window"]}],
+  Y:[{clue:"The color of the sun or a lemon.",answers:["yellow"]},
+     {clue:"A milk snack you can eat with a spoon.",answers:["yogurt","yoghurt"]},
+     {clue:"An outdoor area around a house.",answers:["yard"]}],
+  Z:[{clue:"A black-and-white striped animal.",answers:["zebra"]},
+     {clue:"A place where you can see many animals.",answers:["zoo"]},
+     {clue:"You open and close a jacket with this.",answers:["zip","zipper"]}]
+};
+const LETTERS="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").filter(l=>l!=="X");
+
+/* ====== ÁLLAPOT ====== */
+const state={active:null,remainingMs:5*60*1000,timerId:null,solved:new Set(),passed:new Set(),currentData:null,score:0,started:false};
+
+/* ====== DOM ====== */
+const ring=$('ring'), clue=$('clue'), answer=$('answer'), submitBtn=$('submit'), passBtn=$('pass'), resetBtn=$('reset'), feedback=$('feedback');
+const solvedEl=$('solved'), passedEl=$('passed'), leftEl=$('left'), timerEl=$('timer'), scoreEl=$('score');
+function $(id){return document.getElementById(id)}
+
+/* ====== GYŰRŰ ====== */
+function buildRing(){
+  ring.innerHTML=""; const N=LETTERS.length;
+  const size=ring.clientWidth||ring.getBoundingClientRect().width; const r=(size/2)-60;
+  LETTERS.forEach((L,i)=>{
+    const angle=(i/N)*2*Math.PI-Math.PI/2; const x=Math.cos(angle)*r+size/2; const y=Math.sin(angle)*r+size/2;
+    const el=document.createElement('div'); el.className='letter'; el.style.left=(x-29)+'px'; el.style.top=(y-29)+'px';
+    el.textContent=L; el.dataset.letter=L; el.addEventListener('click',()=>onLetterClick(L)); ring.appendChild(el);
+  });
+  refreshLetterStyles();
+}
+window.addEventListener('resize',buildRing);
+
+/* ====== TIMER (folyamatos az első kattintástól) ====== */
+function renderTime(ms){const t=Math.max(0,Math.round(ms/1000)); const m=String(Math.floor(t/60)).padStart(2,'0'); const s=String(t%60).padStart(2,'0'); timerEl.textContent=`${m}:${s}`}
+function startTickingOnce(){
+  if(state.started) return; state.started=true;
+  const start=performance.now(); const startRemaining=state.remainingMs;
+  function tick(now){
+    const elapsed=now-start; state.remainingMs=Math.max(0,startRemaining-elapsed);
+    renderTime(state.remainingMs);
+    if(state.remainingMs<=0){ endGame(false); return; }
+    state.timerId=requestAnimationFrame(tick);
+  }
+  state.timerId=requestAnimationFrame(tick);
+}
+
+/* ====== JÁTÉK ====== */
+function onLetterClick(L){
+  if(state.solved.has(L)) return;                // megoldott: lezárt
+  if(state.active && state.active!==L) return;   // egyszerre egy aktív
+  state.active=L;
+
+  // véletlen variáció
+  const vars=CLUES[L]||[{clue:"(Nincs kérdés ehhez a betűhöz.)",answers:[]}];
+  state.currentData=vars[Math.floor(Math.random()*vars.length)];
+
+  refreshLetterStyles();
+  clue.innerHTML=`<span class="big-letter">${L}</span>${state.currentData.clue}`;
+  feedback.textContent=""; answer.value=""; answer.disabled=false; submitBtn.disabled=false; passBtn.disabled=false; answer.focus();
+
+  startTickingOnce(); // csak első kattintáskor indul
+}
+
+function submitCurrent(){
+  const L=state.active; if(!L||!state.currentData) return;
+  const guess=answer.value.trim().toLowerCase(); if(!guess) return;
+  const ok=(state.currentData.answers||[]).some(a=>a.toLowerCase()===guess);
+  if(ok){
+    state.solved.add(L); state.passed.delete(L); // ha korábban passzolt, vegyük ki
+    state.score+=10; scoreEl.textContent=state.score;
+
+    // animáció és hang
+    const bonus = document.getElementById('bonus');
+    if (bonus){
+      bonus.classList.add('show');
+      setTimeout(()=>bonus.classList.remove('show'), 600);
+    }
+    const ding = document.getElementById('ding');
+    if (ding){ try { ding.currentTime = 0; ding.play(); } catch(e){} }
+
+    feedback.textContent="Helyes! +10 pont"; feedback.className="feedback ok";
+    finishLetter();
+  }else{
+    feedback.textContent="Nem ez. Próbáld újra vagy Passz."; feedback.className="feedback bad";
+  }
+}
+function passCurrent(){
+  const L=state.active; if(!L) return;
+  state.passed.add(L); // csak jelöljük, de HAGYJUK kattinthatónak
+  feedback.textContent="Passz — később visszatérhetsz rá."; feedback.className="feedback muted";
+  finishLetter(/*keepTimer=*/true);
+}
+
+function finishLetter(){
+  state.active=null; state.currentData=null;
+  refreshLetterStyles(); updateCounters();
+
+  answer.value=""; answer.disabled=true; submitBtn.disabled=true; passBtn.disabled=true;
+
+  // győzelem csak akkor, ha MINDEN betű megoldva
+  if(state.solved.size===LETTERS.length){ endGame(true); }
+  else clue.innerHTML=`<span class="muted">Válassz új betűt! Az idő közben fut.</span>`;
+}
+
+function endGame(allDone){
+  // ne futtassuk tovább a frame loopot
+  if(state.timerId){ cancelAnimationFrame(state.timerId); state.timerId=null; }
+  answer.disabled=true; submitBtn.disabled=true; passBtn.disabled=true;
+  if(!allDone && state.remainingMs<=0){
+    clue.innerHTML=`Lejárt az idő. Megoldva: <b>${state.solved.size}</b>, passz: <b>${state.passed.size}</b>. Összpont: <b>${state.score}</b>`;
+  }else{
+    clue.innerHTML=`Kész! Megoldva: <b>${state.solved.size}</b>, passz: <b>${state.passed.size}</b>. Hátralévő idő: <b>${timerEl.textContent}</b>. Összpont: <b>${state.score}</b>`;
+  }
+}
+
+function updateCounters(){
+  solvedEl.textContent=state.solved.size;
+  passedEl.textContent=state.passed.size;
+  leftEl.textContent=LETTERS.length - state.solved.size; // csak a megoldatlanok
+}
+
+function refreshLetterStyles(){
+  document.querySelectorAll('.letter').forEach(el=>{
+    const L=el.dataset.letter;
+    el.classList.remove('active','done','passed');
+    if(state.active===L) el.classList.add('active');
+    else if(state.solved.has(L)) el.classList.add('done');       // zöld és lezárt
+    else if(state.passed.has(L)) el.classList.add('passed');     // jelölt, de továbbra is kattintható
+  });
+}
+
+/* ====== RESET ====== */
+function resetAll(){
+  if(state.timerId){ cancelAnimationFrame(state.timerId); state.timerId=null; }
+  state.active=null; state.currentData=null; state.started=false;
+  state.remainingMs=5*60*1000; state.solved.clear(); state.passed.clear(); state.score=0;
+  scoreEl.textContent='0'; renderTime(state.remainingMs); updateCounters();
+  feedback.textContent=""; clue.innerHTML=`<span class="muted">Kattints egy betűre! Az 5 perc az első kattintástól folyamatosan ketyeg.</span>`;
+  answer.value=""; answer.disabled=true; submitBtn.disabled=true; passBtn.disabled=true; refreshLetterStyles();
+}
+
+/* ====== ESEMÉNYEK ====== */
+submitBtn.addEventListener('click',submitCurrent);
+passBtn.addEventListener('click',passCurrent);
+resetBtn.addEventListener('click',resetAll);
+answer.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); submitCurrent(); }});
+
+/* ====== INDÍTÁS ====== */
+buildRing(); renderTime(state.remainingMs); updateCounters();
+</script>
+</body>
+</html>

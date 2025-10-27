@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Awareness Game</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ================================================================== */
+        /* 1. ROOT VARIABLES (Updated from Image) */
+        /* ================================================================== */
+        :root {
+            /* Colors (New Palette) */
+            --primary-300: #F4E9DB; /* Light beige (buttons) */
+            --primary-500: #E88C3A; /* Orange (social gauge, debt bar) */
+            --primary-700: #B45309; /* Dark orange (primary button, text) */
+            
+            --secondary-300: #D9F2F1; /* Light teal (icon bg) */
+            --secondary-500: #4EB5B2; /* Teal (well-being gauge, money bar) */
+            --secondary-700: #0F766E; /* Dark teal (icon) */
+            
+            --accent-300: #F49DB8; /* (Unused) */
+            --accent-500: #E8467B; /* (Unused) */
+            --accent-700: #A61E4D; /* (Unused) */
+            
+            --bg: #FAF7F5; /* New background cream */
+            --surface: #FFFFFF;
+            --surface-alt: #F5F7FA;
+            --border: #EBE5E0; /* New lighter border */
+            
+            --text: #1F2937;
+            --text-2: #4B5563;
+            --text-muted: #B45309; /* Using dark orange for muted text */
+            --text-inverse: #FFFFFF;
+            
+            --success: #2F9E44;
+            --warning: #F59F00;
+            --error: #D94747; /* Red for 'Don't pay' button */
+            --info: #2563EB; /* (Unused) */
+
+            /* Typography */
+            --font-main: "Inter", system-ui, sans-serif;
+            --font-alt: "Nunito", sans-serif;
+            --fs-body: 16px;
+            --fs-sm: 14px;
+            --fs-lg: 18px;
+            --fs-xl: 20px;
+            --fs-h2: 24px;
+            --fs-h1: 32px;
+            --fw-normal: 400;
+            --fw-bold: 600;
+
+            /* Spacing & Radius */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-6: 24px;
+            --radius-card: 16px;
+            --radius-pill: 9999px;
+            --radius-btn: 8px;
+
+            /* Shadow */
+            --shadow-card: 0 4px 14px rgba(17, 24, 39, 0.08);
+
+            /* Transitions */
+            --transition: 180ms ease;
+            --transition-long: 500ms ease;
+        }
+
+        /* ================================================================== */
+        /* 2. GLOBAL & UTILITY STYLES */
+        /* ================================================================== */
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-main);
+            font-size: var(--fs-body);
+            font-weight: var(--fw-normal);
+            color: var(--text);
+            background-color: var(--bg);
+            line-height: 1.6;
+            position: relative; /* For background shapes */
+            overflow-x: hidden; /* For background shapes */
+        }
+
+        /* Decorative Background Shapes */
+        body::before, body::after {
+            content: '';
+            position: absolute;
+            width: 70vw;
+            height: 70vw;
+            max-width: 800px;
+            max-height: 800px;
+            opacity: 0.2;
+            z-index: -1;
+        }
+
+        body::before {
+            background-color: var(--secondary-500);
+            top: 0;
+            right: -20vw;
+            transform: rotate(45deg);
+        }
+        
+        body::after {
+            background-color: var(--primary-500);
+            top: -10vw;
+            right: -10vw;
+            transform: rotate(60deg);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--space-4);
+            position: relative; /* To be on top of bg shapes */
+            z-index: 1;
+        }
+
+        h1, h2 {
+            font-family: var(--font-alt);
+            font-weight: var(--fw-bold);
+            color: var(--text-2);
+            margin-bottom: var(--space-3);
+        }
+        h1 { font-size: var(--fs-h1); }
+        h2 { font-size: var(--fs-h2); }
+        p { margin-bottom: var(--space-4); }
+
+        /* ================================================================== */
+        /* 3. COMPONENTS (Updated from Image) */
+        /* ================================================================== */
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
+            padding: var(--space-6);
+        }
+
+        .btn {
+            font-family: var(--font-main);
+            font-size: var(--fs-body);
+            font-weight: var(--fw-bold);
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-btn);
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .btn:focus-visible {
+            outline: 3px solid var(--secondary-300);
+            outline-offset: 2px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-700);
+            color: var(--text-inverse);
+            border-color: var(--primary-700);
+        }
+        .btn-primary:hover {
+            filter: brightness(110%);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface);
+            color: var(--primary-700);
+            border-color: var(--primary-300);
+        }
+        .btn-secondary:hover {
+            background-color: var(--primary-300);
+        }
+
+        .btn-accent {
+            background-color: var(--surface);
+            color: var(--error);
+            border-color: var(--error);
+            display: flex; /* For 'x' icon */
+            justify-content: center; /* <<< FIX: Was space-between */
+            align-items: center;
+        }
+        .btn-accent:hover {
+            background-color: rgba(217, 71, 71, 0.05);
+        }
+        .btn-accent::after {
+            content: '×';
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1;
+            margin-left: var(--space-2);
+        }
+
+        .input {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            font-size: var(--fs-body);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-btn);
+            transition: var(--transition);
+        }
+        .input:focus {
+            border-color: var(--secondary-500);
+            box-shadow: 0 0 0 2px var(--secondary-500); /* Focus Ring */
+            outline: none;
+        }
+
+        /* ================================================================== */
+        /* 4. LOGIN SCREEN (Updated) */
+        /* ================================================================== */
+        
+        #login-screen {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            padding: var(--space-6) 0; /* Add padding for long content on mobile */
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 550px; /* Increased max-width for new content */
+            text-align: center;
+        }
+        .login-card h1 {
+            color: var(--primary-700);
+            margin-bottom: var(--space-4);
+        }
+        
+        /* New Styles for Summary & Persona */
+        .login-card h2 {
+            font-family: var(--font-alt);
+            font-weight: var(--fw-bold);
+            color: var(--primary-700);
+            margin-top: var(--space-6);
+            margin-bottom: var(--space-3);
+            text-align: left;
+            font-size: var(--fs-xl);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: var(--space-2);
+        }
+
+        .login-card .summary-text {
+            text-align: left;
+            font-size: var(--fs-body);
+            color: var(--text-2);
+            margin-bottom: var(--space-4);
+            line-height: 1.7;
+        }
+
+        .persona-choices {
+            display: flex;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+        
+        .btn-persona {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-4);
+            border: 2px solid var(--primary-300);
+            background-color: var(--surface);
+            color: var(--primary-700);
+            border-radius: var(--radius-btn);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-persona svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: var(--space-2);
+            fill: var(--primary-700);
+            transition: var(--transition);
+        }
+
+        .btn-persona span {
+            font-size: var(--fs-lg);
+            font-weight: var(--fw-bold);
+        }
+
+        .btn-persona.active {
+            background-color: var(--primary-300);
+            border-color: var(--primary-700);
+            box-shadow: 0 4px 10px rgba(180, 83, 9, 0.1);
+        }
+        .btn-persona.active svg {
+            fill: var(--primary-700);
+        }
+
+        .btn-persona:not(.active):hover {
+            background-color: var(--bg);
+            border-color: var(--primary-500);
+        }
+        
+        .login-card label {
+            display: block; 
+            text-align: left; 
+            font-weight: 600; 
+            margin-bottom: 8px;
+            color: var(--text-2);
+        }
+        
+        .start-button-container {
+            margin-top: var(--space-6);
+            display: grid;
+        }
+
+        .start-button-container .btn-primary {
+            font-size: var(--fs-lg);
+            padding: var(--space-4);
+        }
+
+        /* ================================================================== */
+        /* 5. MAIN GAME UI (Updated from Image) */
+        /* ================================================================== */
+
+        .game-header {
+            padding: var(--space-4) 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            /* border-bottom: 1px solid var(--border); */ /* Removed border */
+            margin-bottom: var(--space-6);
+        }
+        
+        #game-date {
+            font-family: var(--font-alt);
+            font-size: var(--fs-h2);
+            font-weight: var(--fw-bold);
+            color: var(--primary-700);
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: var(--space-3);
+        }
+        /* Override for header buttons */
+        .header-buttons .btn-secondary {
+            background-color: var(--primary-300);
+            color: var(--primary-700);
+            border-color: var(--primary-300);
+        }
+        .header-buttons .btn-secondary:hover {
+            filter: brightness(105%);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: var(--space-6);
+            margin-bottom: var(--space-6);
+            align-items: end; /* Aligns all items to bottom */
+        }
+
+        .stat-label {
+            text-align: center;
+            font-size: var(--fs-lg);
+            font-weight: var(--fw-bold);
+            font-family: var(--font-alt);
+            color: var(--text-2);
+            margin-top: var(--space-3);
+        }
+
+        /* --- NEW Segmented Bars (Money & Debt) --- */
+        .bar-label-top {
+            text-align: center;
+            font-size: var(--fs-lg);
+            font-weight: var(--fw-bold);
+            color: var(--text-2);
+            margin-bottom: var(--space-2);
+            font-family: var(--font-alt);
+        }
+
+        .bar-container-segmented {
+            display: flex;
+            flex-direction: column-reverse; /* Stacks from bottom */
+            gap: 4px;
+            width: 80px; /* "twice the width in the app as in the pic" */
+            margin: 0 auto; /* Center the bar */
+            height: 300px; /* Fixed height for 20 segments */
+            padding: var(--space-2);
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-btn);
+        }
+
+        .bar-segment {
+            height: 12px;
+            width: 100%;
+            background-color: var(--border);
+            border-radius: 4px;
+            transition: background-color var(--transition-long);
+        }
+
+        .bar-segment.filled-money {
+            background-color: var(--secondary-500);
+        }
+        
+        .bar-segment.filled-debt {
+            background-color: var(--primary-500);
+        }
+        
+        /* --- Circular Gauges (Social & Well-being) --- */
+        .gauge-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative; /* For icon wrapper */
+        }
+
+        /* NEW Gauge Icon */
+        .gauge-icon-wrapper {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            margin-bottom: -22px; /* Pulls icon down over gauge */
+            position: relative;
+            z-index: 10;
+            border: 4px solid var(--bg);
+        }
+        .gauge-icon-wrapper svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        #social-gauge-wrapper {
+            background-color: var(--primary-300);
+        }
+        #social-gauge-wrapper svg {
+            fill: var(--primary-700);
+        }
+        #wellbeing-gauge-wrapper {
+            background-color: var(--secondary-300);
+        }
+        #wellbeing-gauge-wrapper svg {
+            fill: var(--secondary-700);
+        }
+
+
+        .gauge-circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background-color: var(--surface-alt);
+            --p: 50; /* Percent */
+            transition: background-image var(--transition-long);
+        }
+        
+        .gauge-circle::before {
+            content: '';
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background-color: var(--surface);
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .gauge-percent {
+            position: absolute;
+            font-size: var(--fs-h1);
+            font-weight: var(--fw-bold);
+            font-family: var(--font-alt);
+            transition: color var(--transition-long);
+        }
+        
+        #social-gauge { 
+            background-image: conic-gradient(var(--primary-500) calc(var(--p-social, 50) * 1%), var(--border) 0); 
+        }
+        #social-gauge .gauge-percent { color: var(--primary-500); } /* Updated color */
+
+        #wellbeing-gauge { 
+            background-image: conic-gradient(var(--secondary-500) calc(var(--p-wellbeing, 50) * 1%), var(--border) 0); 
+        }
+        #wellbeing-gauge .gauge-percent { color: var(--secondary-500); } /* Updated color */
+
+
+        /* --- Event Panel --- */
+        #event-panel {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #event-card {
+            min-height: 150px;
+            text-align: center;
+        }
+        
+        #event-title {
+            font-size: var(--fs-lg);
+            font-weight: var(--fw-bold);
+            color: var(--text-2);
+            margin-bottom: var(--space-4);
+        }
+
+        #event-message {
+            font-size: var(--fs-xl);
+            font-family: var(--font-alt);
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        #event-choices {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+
+        /* ================================================================== */
+        /* 6. MODAL STYLES */
+        /* ================================================================== */
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(31, 41, 55, 0.7); /* --text with alpha */
+            display: grid;
+            place-items: center;
+            z-index: 100;
+        }
+
+        .modal-card {
+            width: 100%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+        
+        .modal-body {
+            overflow-y: auto;
+            padding-right: var(--space-2); /* for scrollbar */
+        }
+        
+        .btn-modal-close {
+            font-size: var(--fs-h2);
+            font-weight: var(--fw-bold);
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .log-item:last-child {
+            border-bottom: none;
+        }
+        .log-item-info {
+            font-size: var(--fs-lg);
+        }
+        .log-item-info strong {
+            color: var(--text-2);
+        }
+        .log-item-info span {
+            color: var(--error);
+            font-weight: var(--fw-bold);
+        }
+        .log-item-actions .btn {
+            padding: var(--space-2) var(--space-3);
+        }
+    
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="card login-card">
+            <h1>Welcome to the Game!</h1>
+            
+            <h2>Your Situation</h2>
+            <p class="summary-text">
+                You are a family of four living in a rented flat in Budapest's 14th district. You have two children, aged 14 and 18 (one in high school, one starting university).
+                <br><br>
+                One parent works as a bank clerk, and the other is an office worker. Your goal is to manage the family's monthly finances, make difficult choices, and keep your Money, Social, and Well-being stats above zero.
+                <br><br>
+                Good luck!
+            </p>
+
+            <h2>Choose Your Persona</h2>
+            <div class="persona-choices">
+                <button id="persona-male" class="btn-persona active">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4" /></svg>
+                    <span>Male</span>
+                </button>
+                <button id="persona-female" class="btn-persona">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4" /></svg>
+                    <span>Female</span>
+                </button>
+            </div>
+            
+            <label for="nickname">Enter a family name:</label>
+            <input type="text" id="nickname" class="input" placeholder="e.g., 'The Nagy Family'">
+
+            <div class="start-button-container">
+                <button id="start-game" class="btn btn-primary">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        
+        <header class="game-header container">
+            <div id="game-date">Year 1, January</div>
+            <div class="header-buttons">
+                <button id="btn-log" class="btn btn-secondary">Events Log</button>
+                <button id="btn-debt" class="btn btn-secondary">Debt History</button>
+            </div>
+        </header>
+
+        <main class="container">
+            
+            <section class="stats-grid">
+                
+                <!-- HTML Updated for Money Bar -->
+                <div>
+                    <div id="money-label" class="bar-label-top">0 Ft</div>
+                    <div id="money-bar-container" class="bar-container-segmented">
+                        <!-- JS will populate segments -->
+                    </div>
+                    <div class="stat-label">Money</div>
+                </div>
+                
+                <!-- HTML Updated for Social Gauge -->
+                <div class="gauge-container">
+                    <div id="social-gauge-wrapper" class="gauge-icon-wrapper">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M14.6 8.36H9.4V6.5h5.2v1.86ZM21.5 12.27v4.46c0 .73-.1 1.44-.31 2.11-.21.68-.52 1.3-.92 1.88-.4.58-.88 1.07-1.44 1.47-.56.4-1.18.7-1.85.91-.67.2-1.37.3-2.1.3s-1.43-.1-2.1-.3c-.67-.2-1.29-.5-1.85-.91-.56-.4-1.04-.89-1.44-1.47-.4-.58-.71-1.2-.92-1.88-.21-.67-.31-1.38-.31-2.11v-4.46c0-.73.1-1.44.31-2.11.21-.68.52-1.3.92-1.88.4-.58.88-1.07 1.44-1.47.56-.4 1.18-.7 1.85-.91.67-.2 1.37-.3 2.1-.3s1.43.1 2.1.3c.67.2 1.29.5 1.85.91.56.4 1.04.89 1.44 1.47.4.58.71 1.2.92 1.88.21.67.31 1.38.31 2.11Zm-1.86 4.46c0-.44-.04-.88-.13-1.31-.09-.43-.23-.84-.42-1.23-.19-.39-.42-.76-.71-1.1-.29-.34-.63-.65-.99-.93-.3-.23-.62-.43-.96-.59-.34-.16-.7-.29-1.07-.38-.37-.09-.75-.14-1.13-.14s-.76.05-1.13.14c-.37.09-.72.22-1.07.38-.34.16-.66.36-.96.59-.36.28-.7.59-1 .93-.29.34-.52.71-.71 1.1-.19.39-.33.8-.42 1.23-.09.43-.13.87-.13 1.31v4.4c0 .44.04.88.13 1.31.09.43.23.84.42 1.23.19.39.42.76.71 1.1.29.34.63.65.99.93.3.23.62.43.96.59.34.16.7.29 1.07.38.37.09.75.14 1.13.14s.76-.05 1.13-.14c.37-.09.72-.22 1.07-.38.34-.16.66.36.96.59.36.28.7.59 1 .93.29.34.52.71.71 1.1.19.39.33.8.42 1.23.09.43.13.87.13 1.31v-4.4Z"/>
+                        </svg>
+                    </div>
+                    <div id="social-gauge" class="gauge-circle"> 
+                        <div id="social-percent" class="gauge-percent">50%</div>
+                    </div>
+                    <div class="stat-label">Social</div>
+                </div>
+                
+                <!-- HTML Updated for Well-being Gauge -->
+                <div class="gauge-container">
+                    <div id="wellbeing-gauge-wrapper" class="gauge-icon-wrapper">
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12.38 21.5c-1.3-.23-2.53-.69-3.68-1.37-1.15-.68-2.14-1.55-2.98-2.61-.7-1.05-1.22-2.22-1.54-3.5-.32-1.28-.48-2.6-.48-3.95 0-1.28.15-2.52.44-3.71.3-1.2.78-2.31 1.44-3.34.66-1.03 1.48-1.92 2.45-2.67.97-.75 2.05-1.33 3.25-1.74.6-.2 1.21-.34 1.84-.41.63-.07 1.27-.07 1.91 0 .64.07 1.25.21 1.84.41 1.2.41 2.28.99 3.25 1.74.97.75 1.79 1.64 2.45 2.67.66 1.03 1.15 2.14 1.44 3.34.3 1.19.44 2.43.44 3.71 0 1.35-.16 2.67-.48 3.95-.32 1.28-.84 2.45-1.54 3.5-1.01 1.28-2.28 2.26-3.79 2.94-1.02.47-2.07.8-3.15.99-.44.07-.88.11-1.32.11-.47 0-.93-.05-1.4-.14Zm-1.12-4.11c.36.16.73.28 1.12.38.39.09.78.14 1.18.14.38 0 .76-.04 1.13-.11.37-.08.73-.2 1.08-.36.68-.32 1.3-.74 1.84-1.27.54-.53.98-1.13 1.32-1.81.34-.68.58-1.4.71-2.18.13-.77.2-1.56.2-2.37s-.07-1.6-.2-2.37c-.13-.77-.37-1.5-.71-2.18-.34-.68-.78-1.28-1.32-1.81-.54-.53-1.16-.95-1.84-1.27-.35-.16-.71-.28-1.08-.36-.37-.07-.75-.11-1.13-.11-.4 0-.79.05-1.18.14-.39.1-.76.22-1.12.38-.9.4-1.68.99-2.32 1.75-.64.76-1.13 1.65-1.47 2.66-.34 1.01-.51 2.08-.51 3.21 0 1.13.17 2.2.51 3.21.34 1.01.83 1.9 1.47 2.66.64.76 1.42 1.35 2.32 1.75Z"/>
+                        </svg>
+                    </div>
+                    <div id="wellbeing-gauge" class="gauge-circle"> 
+                        <div id="wellbeing-percent" class="gauge-percent">50%</div>
+                    </div>
+                    <div class="stat-label">Well-being</div>
+                </div>
+
+                <!-- HTML Updated for Debt Bar -->
+                <div>
+                    <div id="debt-label" class="bar-label-top">0 Ft</div>
+                    <div id="debt-bar-container" class="bar-container-segmented">
+                         <!-- JS will populate segments -->
+                    </div>
+                    <div class="stat-label">Debt</div>
+                </div>
+
+            </section>
+
+            <section id="event-panel">
+                <div class="card" id="event-card">
+                    <div id="event-title">Event Title Goes Here</div>
+                    <div id="event-message">
+                        This is the message field for events. A description of a choice or a bill will appear here for the player to act on.
+                    </div>
+                </div>
+                <div id="event-choices">
+                    </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals (HTML unchanged) -->
+    <div id="log-modal" class="modal-overlay hidden">
+        <div class="card modal-card">
+            <div class="modal-header">
+                <h2>Deferred Events Log</h2>
+                <button id="btn-log-close" class="btn-modal-close">&times;</button>
+            </div>
+            <div id="log-modal-body" class="modal-body">
+                </div>
+        </div>
+    </div>
+
+    <div id="debt-modal" class="modal-overlay hidden">
+        <div class="card modal-card">
+            <div class="modal-header">
+                <h2>Obligatory Debt History</h2>
+                <button id="btn-debt-close" class="btn-modal-close">&times;</button>
+            </div>
+            <div id="debt-modal-body" class="modal-body">
+                </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // ==================================================================
+        // 1. DOM ELEMENTS (Updated for new UI)
+        // ==================================================================
+        const loginScreen = document.getElementById('login-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const startGameBtn = document.getElementById('start-game');
+        const nicknameInput = document.getElementById('nickname');
+        const personaMaleBtn = document.getElementById('persona-male');
+        const personaFemaleBtn = document.getElementById('persona-female');
+
+        const gameDate = document.getElementById('game-date');
+        const moneyLabel = document.getElementById('money-label');
+        const moneyBarContainer = document.getElementById('money-bar-container'); // Changed
+        const debtLabel = document.getElementById('debt-label');
+        const debtBarContainer = document.getElementById('debt-bar-container'); // Changed
+        
+        const socialPercent = document.getElementById('social-percent');
+        const socialGauge = document.getElementById('social-gauge');
+        const wellbeingPercent = document.getElementById('wellbeing-percent');
+        const wellbeingGauge = document.getElementById('wellbeing-gauge');
+
+        const eventTitle = document.getElementById('event-title');
+        const eventMessage = document.getElementById('event-message');
+        const eventChoices = document.getElementById('event-choices');
+
+        const logModal = document.getElementById('log-modal');
+        const debtModal = document.getElementById('debt-modal');
+        const btnLog = document.getElementById('btn-log');
+        const btnDebt = document.getElementById('btn-debt');
+        const btnLogClose = document.getElementById('btn-log-close');
+        const btnDebtClose = document.getElementById('btn-debt-close');
+        const logModalBody = document.getElementById('log-modal-body');
+        const debtModalBody = document.getElementById('debt-modal-body');
+
+        // ==================================================================
+        // 2. GAME STATE (Unchanged)
+        // ==================================================================
+        let gameState = {
+            nickname: "",
+            money: 0,
+            debt: 0,
+            social: 50,
+            well_being: 50,
+            currentYear: 1,
+            currentMonth: 0, // 0 = January, 1 = February
+            debtHistory: [], // { event, amount, month }
+            snoozedEvents: [], // { event }
+            monthlyEventQueue: [],
+            monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+            salary: 1126600,
+            maxMoney: 1500000, 
+            maxDebt: 1000000,
+            cheapFoodStreak: 0,
+            consecutiveDebtMonths: 0, // REPLACED the old flag
+            carSold: false,
+            recurringCosts: [] 
+        };
+
+        // ==================================================================
+        // 3. THE EVENT DATABASE (Unchanged)
+        // ==================================================================
+        const allEvents = {
+            // === OBLIGATORY (Stats Doubled) ===
+            obligatory: [
+                { id: "insurance", title: "Home Insurance", message: "The monthly premium for your home contents insurance is due.", type: "obligatory", amount: 4000, dayOfMonth: 1,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 0, well_being: 10 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: 0, well_being: -2 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: 0, well_being: -8 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "bkk_pass", title: "Monthly Transport Passes", message: "It's the start of the month. Time to buy passes for work and school.", type: "obligatory", amount: 26000, dayOfMonth: 1,
+                    choices: [
+                        { id: "pay", text: "Buy passes", effects: { money_multiplier: -1, social: 8, well_being: 8 }, action: null },
+                        { id: "later", text: "Wait a few days", effects: { money_multiplier: 0, social: -6, well_being: -10 }, action: "defer" },
+                        { id: "deny", text: "Don't buy (use tickets)", effects: { money_multiplier: 0, social: -16, well_being: -20 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "fuel", title: "Monthly Fuel", message: "You need gas for the car for basic commuting and shopping.", type: "obligatory", amount: 35000, dayOfMonth: 2,
+                    choices: [
+                        { id: "pay", text: "Buy Fuel", effects: { money_multiplier: -1, social: 2, well_being: 4 }, action: null },
+                        { id: "later", text: "Wait (Run on fumes)", effects: { money_multiplier: 0, social: -4, well_being: -8 }, action: "defer" },
+                        { id: "deny", text: "Don't buy (Car is parked)", effects: { money_multiplier: 0, social: -10, well_being: -16 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "rent", title: "Rent Payment", message: "The landlord called - it's time to pay the rent. This is your biggest single expense.", type: "obligatory", amount: 220000, dayOfMonth: 5,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 10, well_being: 20 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -6, well_being: -10 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -20, well_being: -30 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "common_cost", title: "Common Cost", message: "The bill for the building's common costs has arrived (trash, elevator, cleaning).", type: "obligatory", amount: 21000, dayOfMonth: 10,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 4, well_being: 4 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -6, well_being: -6 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -16, well_being: -16 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "menza", title: "School Lunches", message: "The school needs the payment for both children's monthly lunches.", type: "obligatory", amount: 25000, dayOfMonth: 10,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 10, well_being: 6 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -10, well_being: -10 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -30, well_being: -20 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "car_insurance", title: "Car Insurance (KGFB)", message: "The monthly portion of the car's obligatory insurance is due.", type: "obligatory", amount: 5000, dayOfMonth: 12,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 0, well_being: 6 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -2, well_being: -4 }, action: "defer" },
+                        { id: "deny", text: "Don't pay (Drive uninsured)", effects: { money_multiplier: 0, social: -20, well_being: -20 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "car_tax", title: "Vehicle Tax", message: "The monthly-averaged vehicle tax ('súlyadó') needs to be set aside.", type: "obligatory", amount: 2000, dayOfMonth: 12,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 0, well_being: 2 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -2, well_being: -2 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -10, well_being: -10 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "water", title: "Water Bill", message: "The water utility bill for this month is due.", type: "obligatory", amount: 3000, dayOfMonth: 15,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 2, well_being: 6 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -2, well_being: -6 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -8, well_being: -16 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "internet", title: "Internet Bill", message: "The internet bill is due. The kids can't study without it.", type: "obligatory", amount: 8000, dayOfMonth: 15,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 6, well_being: 8 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -4, well_being: -8 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -20, well_being: -20 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "electricity", title: "Electricity Bill", message: "The electricity bill is here. A family of four uses a lot of power.", type: "obligatory", amount: 22000, dayOfMonth: 18,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 2, well_being: 6 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -2, well_being: -10 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -10, well_being: -20 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "gas", title: "Gas Bill", message: "The gas bill (heating, hot water, cooking) has arrived.", type: "obligatory", amount: 25000, dayOfMonth: 20,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 2, well_being: 10 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -4, well_being: -12 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -12, well_being: -30 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "mobile", title: "Mobile Phone Bills", message: "The bill for the family's mobile phone plan has arrived.", type: "obligatory", amount: 18000, dayOfMonth: 22,
+                    choices: [
+                        { id: "pay", text: "Pay now", effects: { money_multiplier: -1, social: 6, well_being: 4 }, action: null },
+                        { id: "later", text: "Pay later", effects: { money_multiplier: 0, social: -6, well_being: -6 }, action: "defer" },
+                        { id: "deny", text: "Don't pay", effects: { money_multiplier: 0, social: -20, well_being: -16 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "bank_fees", title: "Bank Account Fees", message: "The bank charged its monthly maintenance fees for both your accounts.", type: "obligatory", amount: 5000, dayOfMonth: 28,
+                    choices: [
+                        { id: "pay", text: "Acknowledge", effects: { money_multiplier: -1, social: 0, well_being: 0 }, action: null },
+                        { id: "later", text: "Dispute (Pay later)", effects: { money_multiplier: 0, social: -2, well_being: -4 }, action: "defer" },
+                        { id: "deny", text: "Close account (Not paid)", effects: { money_multiplier: 0, social: -8, well_being: -10 }, action: "add_to_debt" }
+                    ]
+                }
+            ],
+            // === SPECIAL (Costs Doubled, Stats Doubled) ===
+            special: [
+                {
+                    id: "groceries", title: "Monthly Groceries", message: "Time for the big monthly grocery run. What's the plan for the family's food?", type: "choice", dayOfMonth: 8,
+                    choices: [
+                        { id: "quality", text: "Buy good quality, healthy food (560,000 Ft)", effects: { money: -560000, social: 10, well_being: 20 }, action: "quality_food" },
+                        { id: "cheap", text: "Buy cheap, processed food (336,000 Ft)", effects: { money: -336000, social: -12, well_being: -30 }, action: "cheap_food" }
+                    ]
+                }
+            ],
+            // === OPTIONAL (Stats Doubled) ===
+            optional: [
+                { id: "opt_pizza", title: "Pizza Night", message: "Everyone's tired. Should we just order pizza for the family tonight?", type: "optional", amount: 15000, dayOfMonth: 12, effects_yes: { social: 10, well_being: 12 }, effects_no: { social: 0, well_being: 0 } },
+                { id: "opt_cinema", title: "Cinema Trip", message: "There's a new movie everyone wants to see. Go to the cinema this weekend?", type: "optional", amount: 15000, dayOfMonth: 19, effects_yes: { social: 12, well_being: 10 }, effects_no: { social: 0, well_being: 0 } },
+                { id: "opt_grandparents", title: "Visit Grandparents", message: "The grandparents invited you all for Sunday lunch. It's a 2-hour drive.", type: "optional", amount: 12000, dayOfMonth: 13, effects_yes: { social: 20, well_being: 10 }, effects_no: { social: -6, well_being: 0 } },
+                { id: "opt_restaurant", title: "Restaurant Meal", message: "Let's go out for a nice family meal, no cooking or cleaning!", type: "optional", amount: 20000, dayOfMonth: 26, effects_yes: { social: 14, well_being: 14 }, effects_no: { social: 0, well_being: 0 } },
+                { id: "opt_datenight", title: "Parents' Date Night", message: "You and your partner haven't been out alone in ages. Hire a babysitter and go to a nice dinner?", type: "optional", amount: 15000, dayOfMonth: 27, effects_yes: { social: 10, well_being: 20 }, effects_no: { social: 0, well_being: -2 } },
+                { id: "opt_fieldtrip", title: "School Field Trip", message: "The 14-year-old's class is planning a 3-day field trip. The fee is due.", type: "optional", amount: 25000, dayOfMonth: 9, nag: true, effects_yes: { social: 12, well_being: 10 }, effects_no: { social: -8, well_being: -4 } },
+                { id: "opt_uniprep", title: "University Prep Course", message: "The 18-year-old found a weekend prep course for their university entrance exams.", type: "optional", amount: 30000, dayOfMonth: 11, nag: true, effects_yes: { social: -4, well_being: 10 }, effects_no: { social: 0, well_being: -6 } },
+                { id: "opt_bdaygift", title: "Friend's Birthday Gift", message: "The 14-year-old is invited to a friend's birthday party and needs to buy a gift.", type: "optional", amount: 15000, dayOfMonth: 16, effects_yes: { social: 8, well_being: 4 }, effects_no: { social: -6, well_being: 0 } },
+                { id: "opt_videogame", title: "New Video Game", message: "The kids have been saving up but are asking for help to buy a new, popular video game.", type: "optional", amount: 20000, dayOfMonth: 21, nag: true, effects_yes: { social: -4, well_being: 10 }, effects_no: { social: 0, well_being: -4 } },
+                { id: "opt_pocketmoney", title: "Increase Pocket Money", message: "The kids are complaining their pocket money isn't enough.", type: "optional", amount: 20000, dayOfMonth: 3, recurring: true, effects_yes: { social: 10, well_being: 6 }, effects_no: { social: -4, well_being: -4 } },
+                { id: "opt_runningshoes", title: "New Running Shoes", message: "Your old running shoes are falling apart. Time for a new pair?", type: "optional", amount: 35000, dayOfMonth: 17, nag: true, effects_yes: { social: 0, well_being: 16 }, effects_no: { social: 0, well_being: -4 } },
+                { id: "opt_gym", title: "Gym Membership", message: "A new gym opened nearby. Should one of you sign up for a monthly pass?", type: "optional", amount: 20000, dayOfMonth: 6, recurring: true, effects_yes: { social: 0, well_being: 14 }, effects_no: { social: 0, well_being: 0 } },
+                { id: "opt_streaming", title: "New Streaming Service", message: "Your favourite series has moved to a new streaming service.", type: "optional", amount: 4000, dayOfMonth: 7, recurring: true, effects_yes: { social: 4, well_being: 6 }, effects_no: { social: 0, well_being: -2 } },
+                { id: "opt_clothes", title: "New Clothes Shopping", message: "The new season's clothes are in stores. Time for a small shopping trip?", type: "optional", amount: 40000, dayOfMonth: 20, effects_yes: { social: 4, well_being: 12 }, effects_no: { social: 0, well_being: -2 } },
+                { id: "opt_book", title: "Buy a New Book", message: "You see a new book by your favorite author.", type: "optional", amount: 6000, dayOfMonth: 14, effects_yes: { social: 0, well_being: 8 }, effects_no: { social: 0, well_being: 0 } },
+                { id: "opt_washingmachine", title: "Washing Machine Broke", message: "The washing machine is making a terrible noise and won't spin. A repairman will cost a lot.", type: "optional", amount: 50000, dayOfMonth: 18, effects_yes: { social: 4, well_being: 10 }, effects_no: { social: -16, well_being: -30 } },
+                { id: "opt_microwave", title: "Microwave Died", message: "The microwave just sparked and died. Buy a new one?", type: "optional", amount: 30000, dayOfMonth: 23, effects_yes: { social: 2, well_being: 8 }, effects_no: { social: -6, well_being: -12 } },
+                { id: "opt_balaton", title: "Weekend Family Trip", message: "A long weekend is coming up. Book a cheap apartment at Lake Balaton?", type: "optional", amount: 120000, dayOfMonth: 24, effects_yes: { social: 40, well_being: 40 }, effects_no: { social: -10, well_being: -10 } },
+                { id: "opt_charity", title: "Charity Donation", message: "A local charity is collecting for the animal shelter. Want to donate?", type: "optional", amount: 5000, dayOfMonth: 25, effects_yes: { social: 10, well_being: 6 }, effects_no: { social: 0, well_being: 0 } },
+                { id: "opt_physiotherapy", title: "Physiotherapy", message: "Your back has been hurting from sitting at the office. Your doctor recommends physiotherapy.", type: "optional", amount: 30000, dayOfMonth: 16, effects_yes: { social: 0, well_being: 20 }, effects_no: { social: 0, well_being: -6 } }
+            ],
+            // === OPPORTUNITY (Stats Doubled + 5 New Events) ===
+            opportunity: [
+                { id: "job_neighbor", title: "Neighbor's Job Offer", message: "Your neighbor offered your older child 20,000 Ft to do some hard yard work all Saturday.", type: "opportunity", dayOfMonth: 13,
+                    choices: [
+                        { id: "yes", text: "Take the job (+20,000 Ft)", effects: { money: 20000, social: -16, well_being: -10 } },
+                        { id: "no", text: "Decline (Keep the weekend free)", effects: { money: 0, social: 4, well_being: 6 } }
+                    ]
+                },
+                { id: "job_freelance_parent", title: "Freelance Work", message: "A former colleague offered one of you (the parents) a small freelance project. It's 3 long nights of work after the kids are asleep.", type: "opportunity", dayOfMonth: 19,
+                    choices: [
+                        { id: "yes", text: "Take the project (+45,000 Ft)", effects: { money: 45000, social: -20, well_being: -20 } },
+                        { id: "no", text: "Decline (Protect your health)", effects: { money: 0, social: 0, well_being: 0 } }
+                    ]
+                },
+                { id: "job_overtime", title: "Mandatory Overtime", message: "Your boss announced a critical project. You'll have to work two full weekends this month. You will get paid well for it.", type: "opportunity", dayOfMonth: 6,
+                    choices: [
+                        { id: "yes", text: "Do the overtime (+75,000 Ft)", effects: { money: 75000, social: -30, well_being: -30 } },
+                        { id: "no", text: "Refuse the overtime", effects: { money: 0, social: 0, well_being: 0 } }
+                    ]
+                },
+                { id: "job_sell_car", title: "Sell the Car?", message: "You're desperate for cash. You could sell the family car. You'd get a one-time cash boost, but would have to rely on public transport, which is harder with kids.", type: "opportunity", dayOfMonth: 4,
+                    choices: [
+                        { id: "yes", text: "Sell the car (+500,000 Ft)", effects: { money: 500000, social: -50, well_being: -40 }, action: "sell_car" },
+                        { id: "no", text: "Keep the car", effects: { money: 0, social: 0, well_being: 0 } }
+                    ]
+                },
+                // --- NEW MONEY EVENTS ---
+                { id: "new_tax_refund", title: "Tax Refund!", message: "Good news! You overpaid on your taxes last year. The tax office (NAV) has sent you a refund.", type: "opportunity", dayOfMonth: 11,
+                    choices: [
+                        { id: "yes", text: "Receive Refund (+65,000 Ft)", effects: { money: 65000, social: 5, well_being: 10 } }
+                    ]
+                },
+                { id: "new_sell_junk", title: "Sell Old Junk", message: "You spend a Saturday cleaning the storage room and find old furniture and electronics. You could sell it all online.", type: "opportunity", dayOfMonth: 22,
+                    choices: [
+                        { id: "yes", text: "Sell it online (+30,000 Ft)", effects: { money: 30000, social: -2, well_being: -5 } }, // Takes effort
+                        { id: "no", text: "Don't bother", effects: { money: 0, social: 0, well_being: 0 } }
+                    ]
+                },
+                { id: "new_babysitting", title: "Babysitting Gig", message: "Your neighbor needs a babysitter for a whole weekend. It's a lot of work, but they pay well.", type: "opportunity", dayOfMonth: 12,
+                    choices: [
+                        { id: "yes", text: "Take the gig (+25,000 Ft)", effects: { money: 25000, social: -10, well_being: -10 } }, // No relax time
+                        { id: "no", text: "Refuse", effects: { money: 0, social: 0, well_being: 0 } }
+                    ]
+                },
+                { id: "new_bonus", title: "Work Bonus", message: "You (the bank clerk) hit your targets this month and got a small, unexpected performance bonus.", type: "opportunity", dayOfMonth: 28,
+                    choices: [
+                        { id: "yes", text: "Awesome! (+50,000 Ft)", effects: { money: 50000, social: 5, well_being: 10 } }
+                    ]
+                },
+                { id: "new_translation", title: "Translation Job", message: "You (the office worker) are asked to do a quick translation project for another department. It will take one long night.", type: "opportunity", dayOfMonth: 16,
+                    choices: [
+                        { id: "yes", text: "Take the job (+35,000 Ft)", effects: { money: 35000, social: -8, well_being: -8 } },
+                        { id: "no", text: "Decline", effects: { money: 0, social: 0, well_being: 0 } }
+                    ]
+                }
+            ],
+            // === SHOCK (Costs reduced by 25%, Stats Doubled) ===
+            shock: [
+                { id: "shock_car_repair", title: "Car Broke Down", message: "The car's engine is smoking... The mechanic says the transmission repair is urgent and will cost 300,000 Ft.", type: "shock", amount: 300000, dayOfMonth: 15,
+                    choices: [
+                        { id: "pay", text: "Pay the mechanic (300,000 Ft)", effects: { money_multiplier: -1, social: -6, well_being: -16 }, action: null },
+                        { id: "defer", text: "Add to Debt (Fix it later)", effects: { money_multiplier: 0, social: -30, well_being: -40 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_pipe_burst", title: "Pipe Burst!", message: "You come home to a flooded bathroom! The emergency plumber's fee is 225,000 Ft.", type: "shock", amount: 225000, dayOfMonth: 17,
+                    choices: [
+                        { id: "pay", text: "Pay the plumber (225,000 Ft)", effects: { money_multiplier: -1, social: -4, well_being: -20 }, action: null },
+                        { id: "defer", text: "Add to Debt (Use buckets)", effects: { money_multiplier: 0, social: -40, well_being: -50 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_fridge_died", title: "Refrigerator Died", message: "The refrigerator has died. All your food is spoiling. You need a new one immediately.", type: "shock", amount: 270000, dayOfMonth: 21,
+                    choices: [
+                        { id: "pay", text: "Buy a new one (270,000 Ft)", effects: { money_multiplier: -1, social: -4, well_being: -10 }, action: null },
+                        { id: "defer", text: "Add to Debt (Use coolers)", effects: { money_multiplier: 0, social: -30, well_being: -40 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_boiler", title: "Boiler Broke Down", message: "It's the middle of winter and the hot water boiler ('cirkó') just died. An emergency replacement costs 525,000 Ft.", type: "shock", amount: 525000, dayOfMonth: 10,
+                    choices: [
+                        { id: "pay", text: "Replace it now (525,000 Ft)", effects: { money_multiplier: -1, social: -10, well_being: -30 }, action: null },
+                        { id: "defer", text: "Add to Debt (Boil water)", effects: { money_multiplier: 0, social: -50, well_being: -60 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_laptop_broke", title: "Laptop Died", message: "The 18-year-old's laptop just died, right before their exams. They need a new one for school.", type: "shock", amount: 375000, dayOfMonth: 14,
+                    choices: [
+                        { id: "pay", text: "Buy new laptop (375,000 Ft)", effects: { money_multiplier: -1, social: 6, well_being: -10 }, action: null },
+                        { id: "defer", text: "Add to Debt (Use library)", effects: { money_multiplier: 0, social: -20, well_being: -30 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_dental", title: "Urgent Dental Work", message: "The 14-year-old has a severe toothache and needs an urgent root canal not fully covered by insurance.", type: "shock", amount: 180000, dayOfMonth: 22,
+                    choices: [
+                        { id: "pay", text: "Pay the dentist (180,000 Ft)", effects: { money_multiplier: -1, social: 0, well_being: -10 }, action: null },
+                        { id: "defer", text: "Add to Debt (Use painkillers)", effects: { money_multiplier: 0, social: -20, well_being: -40 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_tax_bill", title: "Unexpected Tax Bill", message: "A letter from the tax office (NAV) arrived. A miscalculation from last year means you owe 140,000 Ft immediately.", type: "shock", amount: 140000, dayOfMonth: 19,
+                    choices: [
+                        { id: "pay", text: "Pay the bill (140,000 Ft)", effects: { money_multiplier: -1, social: -4, well_being: -16 }, action: null },
+                        { id: "defer", text: "Add to Debt (Request plan)", effects: { money_multiplier: 0, social: -10, well_being: -24 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_speeding_ticket", title: "Speeding Fine", message: "You were caught by a speed camera. A 110,000 Ft fine has arrived in the mail.", type: "shock", amount: 110000, dayOfMonth: 9,
+                    choices: [
+                        { id: "pay", text: "Pay the fine (110,000 Ft)", effects: { money_multiplier: -1, social: -6, well_being: -10 }, action: null },
+                        { id: "defer", text: "Add to Debt (Ignore it)", effects: { money_multiplier: 0, social: -16, well_being: -20 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_switchboard", title: "Electrical Panel Fried", message: "Half the flat's power is out. The electrician says the main switchboard is fried and must be replaced.", type: "shock", amount: 240000, dayOfMonth: 24,
+                    choices: [
+                        { id: "pay", text: "Replace it now (240,000 Ft)", effects: { money_multiplier: -1, social: -4, well_being: -16 }, action: null },
+                        { id: "defer", text: "Add to Debt (Use extension cords)", effects: { money_multiplier: 0, social: -30, well_being: -30 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_school_uniforms", title: "Mandatory Uniforms", message: "Both kids had a growth spurt and their mandatory school uniforms are now too small. You have to buy new ones.", type: "shock", amount: 80000, dayOfMonth: 7,
+                    choices: [
+                        { id: "pay", text: "Buy new uniforms (80,000 Ft)", effects: { money_multiplier: -1, social: 6, well_being: 4 }, action: null },
+                        { id: "defer", text: "Add to Debt (Get by)", effects: { money_multiplier: 0, social: -16, well_being: -10 }, action: "add_to_debt" }
+                    ]
+                },
+                { id: "shock_sickness", title: "Sickness", message: "The poor diet has taken its toll. The kids are sick and you missed work (Medical bills & lost pay).", type: "shock", amount: 110000, dayOfMonth: 23,
+                    choices: [
+                        { id: "pay", text: "Pay the bills (110,000 Ft)", effects: { money_multiplier: -1, social: -20, well_being: -30 }, action: null },
+                        { id: "defer", text: "Add to Debt", effects: { money_multiplier: 0, social: -30, well_being: -40 }, action: "add_to_debt" }
+                    ]
+                },
+                 { id: "shock_broken_arm", title: "Broken Arm", message: "Your younger child fell during sports and has a broken arm. The co-pay for the cast and hospital visit is due.", type: "shock", amount: 70000, dayOfMonth: 25,
+                    choices: [
+                        { id: "pay", text: "Pay the bill (70,000 Ft)", effects: { money_multiplier: -1, social: -4, well_being: -16 }, action: null },
+                        { id: "defer", text: "Add to Debt (Ask for a plan)", effects: { money_multiplier: 0, social: -10, well_being: -24 }, action: "add_to_debt" }
+                    ]
+                }
+            ]
+        };
+
+        // ==================================================================
+        // 4. GAME ENGINE FUNCTIONS (Unchanged)
+        // ==================================================================
+
+        function init() {
+            gameState.nickname = nicknameInput.value || "Player 1";
+            loginScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            startMonth();
+        }
+
+        /**
+         * Starts a new month
+         * === CONTAINS THE 6-MONTH BANKRUPTCY LOGIC ===
+         */
+        function startMonth() {
+            
+            // *** BANKRUPTCY FIX (Step 1): Check for Game Over ***
+            if (gameState.consecutiveDebtMonths >= 6) {
+                return gameOver("You failed to pay off your debts for 6 consecutive months and have gone bankrupt!");
+            }
+
+            // 1. Add Salary
+            gameState.money += gameState.salary;
+            
+            // 2. Add recurring costs
+            for (const cost of gameState.recurringCosts) {
+                if (gameState.money >= cost.amount) {
+                    gameState.money -= cost.amount;
+                } else {
+                    addEventToDebt(cost, cost.amount, "add_to_debt");
+                }
+            }
+
+            // 3. Apply 10% interest and update debt counter
+            let debtWarningMessage = "";
+            if (gameState.debtHistory.length > 0) {
+                gameState.consecutiveDebtMonths++; // Increment debt counter
+                let interest = 0;
+                gameState.debtHistory.forEach(item => {
+                    let itemInterest = Math.round(item.amount * 0.10);
+                    item.amount += itemInterest;
+                    interest += itemInterest;
+                });
+                
+                // Create the new warning message
+                debtWarningMessage = `Your unpaid debts increased by ${formatCurrency(interest)} (10% fee).
+                \nYou have been in debt for ${gameState.consecutiveDebtMonths} consecutive month(s). 
+                \nIf you reach 6 months, you will go bankrupt!`;
+
+            } else {
+                gameState.consecutiveDebtMonths = 0; // Reset counter if debt is 0
+            }
+
+            // 4. Build the event queue for the month
+            buildMonthlyQueue();
+
+            // 5. Start processing events
+            if (debtWarningMessage) {
+                displayMessage("Debt Warning", debtWarningMessage, [{text: "Continue"}], () => processNextEvent());
+            } else {
+                processNextEvent();
+            }
+            updateUI();
+        }
+
+        function buildMonthlyQueue() {
+            gameState.monthlyEventQueue = [];
+            
+            let obligatory = JSON.parse(JSON.stringify(allEvents.obligatory));
+            if (gameState.carSold) {
+                obligatory = obligatory.filter(event => !event.id.includes('car_') && !event.id.includes('fuel'));
+            }
+            gameState.monthlyEventQueue.push(...obligatory);
+
+            gameState.monthlyEventQueue.push(...JSON.parse(JSON.stringify(allEvents.special)));
+            
+            gameState.monthlyEventQueue.push(...gameState.snoozedEvents.map(item => item.event));
+            gameState.snoozedEvents = []; 
+
+            if (gameState.currentMonth === 0) {
+                gameState.monthlyEventQueue.push(allEvents.optional.find(e => e.id === 'opt_pizza'));
+                gameState.monthlyEventQueue.push(allEvents.optional.find(e => e.id === 'opt_book'));
+            } else {
+                let optionalPool = [...allEvents.optional];
+                for (let i = 0; i < 4; i++) {
+                    if (optionalPool.length === 0) break;
+                    let randIndex = Math.floor(Math.random() * optionalPool.length);
+                    gameState.monthlyEventQueue.push(optionalPool.splice(randIndex, 1)[0]);
+                }
+            }
+
+            // Add 2-3 random opportunities
+            let opportunityPool = [...allEvents.opportunity];
+            if (gameState.carSold) {
+                opportunityPool = opportunityPool.filter(event => event.id !== 'job_sell_car');
+            }
+            for (let i = 0; i < 3; i++) {
+                 if (opportunityPool.length === 0) break;
+                 let oppRandIndex = Math.floor(Math.random() * opportunityPool.length);
+                 gameState.monthlyEventQueue.push(opportunityPool.splice(oppRandIndex, 1)[0]);
+            }
+
+            // Add a SHOCK event (but not in Month 1)
+            if (gameState.currentMonth > 0) {
+                let shockPool = [...allEvents.shock];
+                let healthShockProbability = 0.6; // 60%
+                
+                if (gameState.cheapFoodStreak >= 2 && Math.random() < healthShockProbability) {
+                    let healthShocks = ['shock_sickness', 'shock_dental', 'shock_broken_arm'];
+                    let randHealthShock = healthShocks[Math.floor(Math.random() * healthShocks.length)];
+                    gameState.monthlyEventQueue.push(shockPool.find(e => e.id === randHealthShock));
+                } else {
+                    let nonHealthShocks = shockPool.filter(e => !['shock_sickness', 'shock_dental', 'shock_broken_arm'].includes(e.id));
+                    if (nonHealthShocks.length > 0) {
+                         let randShock = nonHealthShocks[Math.floor(Math.random() * nonHealthShocks.length)];
+                         gameState.monthlyEventQueue.push(randShock);
+                    }
+                }
+            }
+
+            gameState.monthlyEventQueue.sort((a, b) => a.dayOfMonth - b.dayOfMonth);
+        }
+
+        function processNextEvent() {
+            if (gameState.monthlyEventQueue.length === 0) {
+                endMonth();
+                return;
+            }
+
+            const event = gameState.monthlyEventQueue.shift();
+            if (event) {
+                displayEvent(event);
+            } else {
+                processNextEvent();
+            }
+        }
+
+        /**
+         * === CONTAINS THE NEW TITLE/COST LOGIC ===
+         */
+        function displayEvent(event) {
+            let monthName = gameState.monthNames[gameState.currentMonth];
+            gameDate.textContent = `Year ${gameState.currentYear}, ${monthName} ${event.dayOfMonth}`;
+            
+            // --- NEW LOGIC TO ADD COST TO TITLE ---
+            let titleText = event.title;
+            if (event.amount && event.amount > 0) {
+                // For obligatory, optional, shock
+                titleText += ` (${formatCurrency(event.amount)})`;
+            } else if (event.type === 'opportunity' && event.choices[0].effects.money > 0) {
+                // For single-choice "get money" events (like Tax Refund)
+                if (event.choices.length === 1) {
+                     titleText += ` (+${formatCurrency(event.choices[0].effects.money)})`;
+                }
+                // For multi-choice opportunities, the buttons already show the amounts
+            }
+            eventTitle.textContent = titleText;
+            // --- END NEW LOGIC ---
+
+            eventMessage.innerHTML = event.message.replace(/\n/g, '<br>'); // Use .innerHTML to render <br>
+            eventChoices.innerHTML = "";
+            
+            if (event.type === 'optional') {
+                const btnYes = document.createElement('button');
+                btnYes.className = 'btn btn-primary';
+                btnYes.textContent = `Yes (${formatCurrency(event.amount)})`;
+                btnYes.onclick = () => handleOptionalChoice(event, true);
+                eventChoices.appendChild(btnYes);
+
+                const btnNo = document.createElement('button');
+                btnNo.className = 'btn btn-accent';
+                btnNo.textContent = `No`;
+                btnNo.onclick = () => handleOptionalChoice(event, false);
+                eventChoices.appendChild(btnNo);
+
+            } else {
+                // Handle single-choice events (like tax refund)
+                if (event.choices.length === 1) {
+                     const choice = event.choices[0];
+                     const btn = document.createElement('button');
+                     btn.className = 'btn btn-primary';
+                     btn.textContent = choice.text;
+                     btn.onclick = () => handleChoice(choice, event);
+                     eventChoices.appendChild(btn);
+                } else {
+                // Handle standard multi-choice events
+                    event.choices.forEach(choice => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn btn-primary';
+                        if (choice.id.includes('later')) btn.className = 'btn btn-secondary';
+                        if (choice.id.includes('deny') || choice.id.includes('no')) btn.className = 'btn btn-accent';
+
+                        btn.textContent = choice.text;
+                        btn.onclick = () => handleChoice(choice, event);
+                        eventChoices.appendChild(btn);
+                    });
+                }
+            }
+        }
+        
+        function handleOptionalChoice(event, didAccept) {
+            if (didAccept) {
+                if (gameState.money >= event.amount) {
+                    gameState.money -= event.amount;
+                    applyEffects(event.effects_yes);
+
+                    if (event.recurring) {
+                        gameState.recurringCosts.push({ id: event.id, title: event.title, amount: event.amount });
+                    }
+                } else {
+                    displayMessage("Not Enough Money", "You don't have enough money for this.", [{text: "Continue"}], () => processNextEvent());
+                    return;
+                }
+            } else {
+                applyEffects(event.effects_no);
+                if (event.nag) {
+                    gameState.snoozedEvents.push({ event });
+                }
+            }
+            
+            updateUI();
+            if (checkLossConditions()) return;
+            processNextEvent();
+        }
+
+        function handleChoice(choice, event) {
+            if (choice.effects.money_multiplier) {
+                let cost = event.amount * choice.effects.money_multiplier;
+                gameState.money += cost;
+            }
+            if (choice.effects.money) {
+                gameState.money += choice.effects.money;
+            }
+
+            applyEffects(choice.effects);
+            
+            if (choice.action === 'defer' || choice.action === 'add_to_debt') {
+                addEventToDebt(event, event.amount, choice.action);
+            }
+            if (choice.action === 'cheap_food') {
+                gameState.cheapFoodStreak++;
+            }
+            if (choice.action === 'quality_food') {
+                gameState.cheapFoodStreak = 0;
+            }
+            if (choice.action === 'sell_car') {
+                gameState.carSold = true;
+                gameState.recurringCosts = gameState.recurringCosts.filter(cost => !cost.id.includes('car_'));
+            }
+
+            updateUI();
+            
+            if (checkLossConditions()) return;
+            
+            processNextEvent();
+        }
+        
+        function endMonth() {
+            gameState.currentMonth++;
+            if (gameState.currentMonth > 11) {
+                gameState.currentMonth = 0;
+                gameState.currentYear++;
+            }
+            
+            let lastMonthName = gameState.monthNames[gameState.currentMonth === 0 ? 11 : gameState.currentMonth - 1];
+            
+            displayMessage("End of Month", `You've reached the end of ${lastMonthName}. Get ready for next month...`, [{text: "Start Next Month"}], () => startMonth());
+        }
+
+        // ==================================================================
+        // 5. UI & STATE UPDATE FUNCTIONS (Updated for new UI)
+        // ==================================================================
+
+        function applyEffects(effects) {
+            if (effects.social) {
+                gameState.social = clamp(gameState.social + effects.social, 0, 100);
+            }
+            if (effects.well_being) {
+                gameState.well_being = clamp(gameState.well_being + effects.well_being, 0, 100);
+            }
+        }
+
+        function updateUI() {
+            // Update Text Labels
+            moneyLabel.textContent = formatCurrency(gameState.money);
+            
+            let totalDebt = gameState.debtHistory.reduce((sum, item) => sum + item.amount, 0);
+            gameState.debt = totalDebt;
+            debtLabel.textContent = formatCurrency(totalDebt);
+            
+            // Calculate Percentages
+            let moneyPercent = clamp((gameState.money / gameState.maxMoney) * 100, 0, 100);
+            let debtPercent = clamp((totalDebt / gameState.maxDebt) * 100, 0, 100);
+
+            // --- NEW: Populate Segmented Bars ---
+            const TOTAL_SEGMENTS = 20;
+            
+            // Update Money Bar
+            const moneySegments = Math.round((moneyPercent / 100) * TOTAL_SEGMENTS);
+            moneyBarContainer.innerHTML = ''; // Clear old segments
+            for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'bar-segment';
+                if (i < moneySegments) {
+                    segment.classList.add('filled-money');
+                }
+                moneyBarContainer.appendChild(segment);
+            }
+
+            // Update Debt Bar
+            const debtSegments = Math.round((debtPercent / 100) * TOTAL_SEGMENTS);
+            debtBarContainer.innerHTML = ''; // Clear old segments
+            for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+                const segment = document.createElement('div');
+                segment.className = 'bar-segment';
+                if (i < debtSegments) {
+                    segment.classList.add('filled-debt');
+                }
+                debtBarContainer.appendChild(segment);
+            }
+            // --- END NEW LOGIC ---
+
+            // Update Gauges
+            socialPercent.textContent = `${gameState.social}%`;
+            socialGauge.style.setProperty('--p-social', gameState.social);
+            
+            wellbeingPercent.textContent = `${gameState.well_being}%`;
+            wellbeingGauge.style.setProperty('--p-wellbeing', gameState.well_being);
+        }
+
+        function checkLossConditions() {
+            if (gameState.social <= 0) {
+                gameOver("Your social relationships have collapsed. You lost the game.");
+                return true;
+            }
+            if (gameState.well_being <= 0) {
+                gameOver("Your personal well-being has reached zero. Your health and family life collapsed. You lost the game.");
+                return true;
+            }
+            return false;
+        }
+
+        function gameOver(message) {
+            displayMessage("Game Over", message, [], () => {}); 
+            eventChoices.innerHTML = ""; 
+        }
+
+        function displayMessage(title, message, choices, callback) {
+            eventTitle.textContent = title;
+            eventMessage.innerHTML = message.replace(/\n/g, '<br>'); // Use .innerHTML to render <br>
+            eventChoices.innerHTML = "";
+            
+            if (choices.length === 0) return; 
+
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary';
+            btn.textContent = choices[0].text;
+            btn.onclick = callback;
+            eventChoices.appendChild(btn);
+        }
+
+        // ==================================================================
+        // 6. MODAL & DEBT FUNCTIONS (Unchanged)
+        // ==================================================================
+
+        function addEventToDebt(event, amount, action) {
+            let existingDebt = gameState.debtHistory.find(item => item.event.id === event.id);
+            if (existingDebt) {
+                existingDebt.amount += amount;
+            } else {
+                gameState.debtHistory.push({
+                    event: event,
+                    amount: amount
+                });
+            }
+        }
+
+        function openModal(modal) {
+            if (modal === 'debt') {
+                populateDebtModal();
+                debtModal.classList.remove('hidden');
+            } else if (modal === 'log') {
+                populateLogModal();
+                logModal.classList.remove('hidden');
+            }
+        }
+
+        function closeModal(modal) {
+            if (modal === 'debt') {
+                debtModal.classList.add('hidden');
+            } else if (modal === 'log') {
+                logModal.classList.add('hidden');
+            }
+        }
+
+        function populateDebtModal() {
+            debtModalBody.innerHTML = "";
+            if (gameState.debtHistory.length === 0) {
+                debtModalBody.innerHTML = "<p>You have no obligatory debts. Good job!</p>";
+                return;
+            }
+            
+            gameState.debtHistory.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = 'log-item';
+                el.innerHTML = `
+                    <div class="log-item-info">
+                        <strong>${item.event.title}:</strong> 
+                        <span>${formatCurrency(item.amount)}</span>
+                    </div>
+                    <div class="log-item-actions">
+                        <button class="btn btn-primary btn-pay-debt" data-index="${index}">Pay Now</button>
+                    </div>
+                `;
+                debtModalBody.appendChild(el);
+            });
+
+            document.querySelectorAll('.btn-pay-debt').forEach(btn => {
+                btn.onclick = (e) => {
+                    let index = e.target.dataset.index;
+                    payDebtItem(index);
+                };
+            });
+        }
+        
+        function payDebtItem(index) {
+            const item = gameState.debtHistory[index];
+            if (gameState.money >= item.amount) {
+                gameState.money -= item.amount;
+                gameState.debtHistory.splice(index, 1); 
+                updateUI();
+                populateDebtModal();
+            } else {
+                // Replaced alert with a modal-like message
+                displayMessage("Not Enough Money", "You don't have enough money to pay this debt!", [{text: "Continue"}], () => processNextEvent());
+            }
+        }
+        
+        function populateLogModal() {
+            logModalBody.innerHTML = "";
+            let allSnoozed = [...gameState.snoozedEvents]; 
+            
+            gameState.recurringCosts.forEach(cost => {
+                allSnoozed.push({
+                    event: { id: cost.id, title: `Cancel: ${cost.title}`, amount: 0, recurring: true, effects_no: { social: 0, well_being: 0 } }
+                });
+            });
+
+            if (allSnoozed.length === 0) {
+                logModalBody.innerHTML = "<p>You have no deferred optional events.</p>";
+                return;
+            }
+
+            allSnoozed.forEach((item, index) => {
+                const el = document.createElement('div');
+                el.className = 'log-item';
+                let text = item.event.recurring ? `Cancel` : `Accept (${formatCurrency(item.event.amount)})`;
+                el.innerHTML = `
+                    <div class="log-item-info">
+                        <strong>${item.event.title}</strong>
+                    </div>
+                    <div class="log-item-actions">
+                        <button class="btn ${item.event.recurring ? 'btn-accent' : 'btn-primary'} btn-accept-log" data-index="${index}">
+                            ${text}
+                        </button>
+                    </div>
+                `;
+                logModalBody.appendChild(el);
+            });
+            
+            document.querySelectorAll('.btn-accept-log').forEach(btn => {
+                btn.onclick = (e) => {
+                    let index = e.target.dataset.index;
+                    acceptLogItem(index);
+                };
+            });
+        }
+        
+        function acceptLogItem(index) {
+             let allSnoozed = [
+                ...gameState.snoozedEvents, 
+                ...gameState.recurringCosts.map(cost => ({
+                    event: { id: cost.id, title: `Cancel: ${cost.title}`, amount: 0, recurring: true, effects_no: { social: 0, well_being: 0 } }
+                }))
+            ];
+
+            const item = allSnoozed[index];
+            
+            if (item.event.recurring) {
+                gameState.recurringCosts = gameState.recurringCosts.filter(cost => cost.id !== item.event.id);
+                gameState.snoozedEvents = gameState.snoozedEvents.filter(e => e.event.id !== item.event.id);
+            } else {
+                if (gameState.money >= item.event.amount) {
+                    gameState.money -= item.event.amount;
+                    applyEffects(item.event.effects_yes || {});
+                    if (item.event.recurring) {
+                        gameState.recurringCosts.push({ id: item.event.id, title: item.event.title, amount: item.event.amount });
+                    }
+                    gameState.snoozedEvents = gameState.snoozedEvents.filter(e => e.event.id !== item.event.id);
+                } else {
+                     // Replaced alert with a modal-like message
+                    displayMessage("Not Enough Money", "You don't have enough money for this!", [{text: "Continue"}], () => {
+                        // We are in a modal, so just re-populate it
+                        populateLogModal();
+                    });
+                }
+            }
+            updateUI();
+            populateLogModal(); 
+        }
+
+        // ==================================================================
+        // 7. HELPER FUNCTIONS (Unchanged)
+        // ==================================================================
+        
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('hu-HU', { style: 'currency', currency: 'HUF', maximumFractionDigits: 0 }).format(value);
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(value, max));
+        }
+
+        // ==================================================================
+        // 8. INITIALIZATION (Unchanged)
+        // ==================================================================
+        
+        startGameBtn.onclick = init;
+
+        // New listeners for persona buttons
+        personaMaleBtn.onclick = () => {
+            personaMaleBtn.classList.add('active');
+            personaFemaleBtn.classList.remove('active');
+        };
+        personaFemaleBtn.onclick = () => {
+            personaFemaleBtn.classList.add('active');
+            personaMaleBtn.classList.remove('active');
+        };
+
+        btnLog.onclick = () => openModal('log');
+        btnDebt.onclick = () => openModal('debt');
+        btnLogClose.onclick = () => closeModal('log');
+        btnDebtClose.onclick = () => closeModal('debt');
+        
+        logModal.onclick = (e) => {
+            if (e.target === logModal) closeModal('log');
+        };
+        debtModal.onclick = (e) => {
+            if (e.target === debtModal) closeModal('debt');
+        };
+
+    });
+    </script>
+
+</body>
+</html>
+
+
+

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Living Room Designer — SVG Drag & Drop</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --ink:#0b1220; --muted:#5b6478; --accent:#5865f2;
+    --wall:#e9edf5; --floor:#f2efe9; --grid:#9aa5b133;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--ink); background:var(--bg); display:flex; flex-direction:column; gap:14px;
+  }
+
+  header{
+    display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    padding:14px 18px; background:linear-gradient(#fff,#f7f8fc); border-bottom:1px solid #e6e8ef;
+  }
+  .title{font-weight:800; letter-spacing:.2px}
+  .controls{display:flex; flex-wrap:wrap; gap:8px}
+  button, label{
+    border:1px solid #d7dbe6; background:#fff; padding:8px 12px; border-radius:12px; font-weight:700;
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  }
+  button:hover{background:#f3f5fa}
+  .primary{background:var(--accent); color:#fff; border-color:transparent}
+  .primary:hover{filter:brightness(.98)}
+  input[type="checkbox"]{transform:scale(1.1)}
+  main{padding:0 18px 18px}
+
+  .wrap{display:grid; gap:16px; grid-template-columns:1fr 320px}
+  @media (max-width:1000px){.wrap{grid-template-columns:1fr}}
+
+  /* Canvas panel */
+  .canvas{
+    background:var(--panel); border:1px solid #e6e8ef; border-radius:18px; overflow:hidden;
+    box-shadow:0 18px 35px rgba(16,23,40,.05);
+  }
+
+  /* Sidebar */
+  aside{
+    background:#fff; border:1px solid #e6e8ef; border-radius:18px; padding:14px;
+    box-shadow:0 18px 35px rgba(16,23,40,.05);
+  }
+  aside h2{margin:0 0 8px; font-size:18px}
+  .hint{color:var(--muted); font-size:14px; line-height:1.55}
+  .hr{height:1px; background:#e6e8ef; margin:14px 0}
+  .legend{display:flex; gap:8px; flex-wrap:wrap}
+  .pill{display:inline-flex; gap:8px; align-items:center; padding:5px 10px; border:1px solid #d7dbe6; border-radius:999px; background:#f7f8fc; font-size:12px; font-weight:800}
+  .dot{width:10px; height:10px; border-radius:50%}
+
+  /* Drag feel */
+  .draggable{cursor:grab; touch-action:none}
+  .dragging{filter:drop-shadow(0 10px 18px rgba(0,0,0,.25)); cursor:grabbing}
+  .label{font: 700 12px/1.1 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial; fill:#172036}
+
+  /* Optional grid on floor */
+  .with-grid #floor{
+    fill:
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0, rgba(0,0,0,0) 60%),
+      var(--floor);
+  }
+  .with-grid #floorPattern{opacity:.22}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">🏠 Living Room Designer — SVG Edition</div>
+  <div class="controls">
+    <label><input id="gridToggle" type="checkbox"> Snap to grid (20px)</label>
+    <button id="shuffleBtn">Shuffle</button>
+    <button id="resetBtn">Reset</button>
+    <button id="saveBtn" class="primary">Save</button>
+    <button id="loadBtn">Load</button>
+    <button id="clearBtn">Clear Save</button>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <!-- SVG CANVAS -->
+    <div class="canvas">
+      <svg id="scene" viewBox="0 0 1000 620" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" aria-label="Living room top view">
+        <!-- defs -->
+        <defs>
+          <!-- subtle floor grid -->
+          <pattern id="grid20" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#9aa5b1" stroke-width="1" opacity=".25"/>
+          </pattern>
+          <!-- soft shadow -->
+          <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0b1220" flood-opacity=".25"/>
+          </filter>
+        </defs>
+
+        <!-- ROOM: walls, floor, window, door -->
+        <g id="room">
+          <!-- outer wall -->
+          <rect x="20" y="20" width="960" height="580" rx="18" fill="none" stroke="#c9cfe0" stroke-width="28"/>
+          <!-- inner wall lip -->
+          <rect x="34" y="34" width="932" height="552" rx="14" fill="var(--wall)" stroke="#d9deea" stroke-width="2"/>
+          <!-- floor -->
+          <rect id="floor" x="60" y="60" width="880" height="500" rx="8" fill="var(--floor)"/>
+          <rect id="floorPattern" x="60" y="60" width="880" height="500" fill="url(#grid20)" opacity="0"/>
+
+          <!-- window (top right) -->
+          <rect x="720" y="34" width="180" height="14" rx="3" fill="#cfe8ff" stroke="#8bb8e8"/>
+          <!-- door (bottom left opening) -->
+          <path d="M 120 586 a80 80 0 0 0 80 -80" fill="none" stroke="#c9cfe0" stroke-width="14"/>
+          <rect x="60" y="560" width="120" height="20" fill="#f3f5fa" stroke="#c9cfe0"/>
+        </g>
+
+        <!-- FURNITURE (cartoonish) -->
+        <g id="items" filter="url(#softShadow)">
+          <!-- Sofa -->
+          <g class="draggable" data-id="sofa" transform="translate(120,120)">
+            <rect x="0" y="0" rx="10" ry="10" width="240" height="80" fill="#ffd68a" stroke="#d7a649"/>
+            <rect x="10" y="10" rx="8" ry="8" width="100" height="60" fill="#ffecbb" stroke="#d7a649" />
+            <rect x="130" y="10" rx="8" ry="8" width="100" height="60" fill="#ffecbb" stroke="#d7a649" />
+            <text class="label" x="120" y="-6" text-anchor="middle">sofa</text>
+          </g>
+
+          <!-- Armchair -->
+          <g class="draggable" data-id="armchair" transform="translate(420,120)">
+            <rect x="0" y="0" rx="12" ry="12" width="110" height="90" fill="#fca5a5" stroke="#c26161"/>
+            <rect x="10" y="12" rx="10" ry="10" width="90" height="66" fill="#ffd1d1" stroke="#c26161"/>
+            <text class="label" x="55" y="-6" text-anchor="middle">armchair</text>
+          </g>
+
+          <!-- Coffee table -->
+          <g class="draggable" data-id="coffeeTable" transform="translate(320,240)">
+            <rect x="0" y="0" rx="10" ry="10" width="140" height="70" fill="#a7f3d0" stroke="#48a07d"/>
+            <rect x="14" y="12" rx="8" ry="8" width="112" height="46" fill="#d8fbe9" stroke="#48a07d"/>
+            <text class="label" x="70" y="-6" text-anchor="middle">coffee table</text>
+          </g>
+
+          <!-- TV stand -->
+          <g class="draggable" data-id="tvStand" transform="translate(640,90)">
+            <rect x="0" y="0" rx="8" ry="8" width="200" height="60" fill="#bfdbfe" stroke="#6a96d8"/>
+            <rect x="20" y="10" width="60" height="40" rx="4" fill="#d7e7ff" stroke="#6a96d8"/>
+            <rect x="120" y="10" width="60" height="40" rx="4" fill="#d7e7ff" stroke="#6a96d8"/>
+            <text class="label" x="100" y="-6" text-anchor="middle">TV stand</text>
+          </g>
+
+          <!-- Bookshelf -->
+          <g class="draggable" data-id="bookshelf" transform="translate(120,320)">
+            <rect x="0" y="0" width="90" height="190" rx="8" fill="#ddd6fe" stroke="#8b7bd6"/>
+            <g stroke="#8b7bd6"><line x1="10" y1="50" x2="80" y2="50"/><line x1="10" y1="95" x2="80" y2="95"/><line x1="10" y1="140" x2="80" y2="140"/></g>
+            <text class="label" x="45" y="-6" text-anchor="middle">bookshelf</text>
+          </g>
+
+          <!-- Table -->
+          <g class="draggable" data-id="table" transform="translate(560,260)">
+            <rect x="0" y="0" width="160" height="90" rx="10" fill="#fef3c7" stroke="#cfa75b"/>
+            <circle cx="45" cy="45" r="6" fill="#cfa75b"/><circle cx="115" cy="45" r="6" fill="#cfa75b"/>
+            <text class="label" x="80" y="-6" text-anchor="middle">table</text>
+          </g>
+
+          <!-- Rug -->
+          <g class="draggable" data-id="rug" transform="translate(300,360)">
+            <rect x="0" y="0" width="280" height="130" rx="20" fill="#bae6fd" stroke="#6aa7d8" />
+            <rect x="20" y="18" width="240" height="94" rx="16" fill="#e3f4ff" stroke="#6aa7d8"/>
+            <text class="label" x="140" y="-6" text-anchor="middle">rug</text>
+          </g>
+
+          <!-- Plant -->
+          <g class="draggable" data-id="plant" transform="translate(240,120)">
+            <ellipse cx="35" cy="55" rx="30" ry="14" fill="#9de0c6" stroke="#4c9c7f"/>
+            <circle cx="20" cy="20" r="14" fill="#baf2d9" stroke="#4c9c7f"/>
+            <circle cx="50" cy="14" r="12" fill="#baf2d9" stroke="#4c9c7f"/>
+            <circle cx="60" cy="36" r="12" fill="#baf2d9" stroke="#4c9c7f"/>
+            <text class="label" x="35" y="-6" text-anchor="middle">plant</text>
+          </g>
+
+          <!-- Lamp -->
+          <g class="draggable" data-id="lamp" transform="translate(780,300)">
+            <rect x="24" y="20" width="12" height="44" fill="#888ea1"/>
+            <polygon points="10,20 50,20 40,0 20,0" fill="#fbcfe8" stroke="#c67aa6"/>
+            <circle cx="30" cy="68" r="10" fill="#d1d5e3"/>
+            <text class="label" x="30" y="-6" text-anchor="middle">lamp</text>
+          </g>
+
+          <!-- Floor lamp -->
+          <g class="draggable" data-id="floorLamp" transform="translate(820,420)">
+            <rect x="28" y="20" width="6" height="80" fill="#888ea1"/>
+            <polygon points="10,20 50,20 44,0 16,0" fill="#fee2e2" stroke="#c87a7a"/>
+            <rect x="20" y="100" width="24" height="10" fill="#888ea1"/>
+            <text class="label" x="30" y="-6" text-anchor="middle">floor lamp</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Sidebar -->
+    <aside>
+      <h2>Instructions</h2>
+      <p class="hint">
+        Drag furniture to arrange the room. Items stay inside the inner floor area.
+        Turn on <b>Snap to grid</b> for neat alignment.
+      </p>
+      <div class="hr"></div>
+      <h2>Legend</h2>
+      <div id="legend" class="legend"></div>
+      <div class="hr"></div>
+      <p class="hint">Tip: use <b>Shuffle</b> for random starting positions; <b>Save/Load</b> uses local storage on this device.</p>
+    </aside>
+  </div>
+</main>
+
+<script>
+(() => {
+  const svg      = document.getElementById('scene');
+  const itemsG   = document.getElementById('items');
+  const gridTgl  = document.getElementById('gridToggle');
+  const shuffleB = document.getElementById('shuffleBtn');
+  const resetB   = document.getElementById('resetBtn');
+  const saveB    = document.getElementById('saveBtn');
+  const loadB    = document.getElementById('loadBtn');
+  const clearB   = document.getElementById('clearBtn');
+  const legend   = document.getElementById('legend');
+  const STORAGE  = 'svg-living-room-v1';
+
+  // Floor bounds (must match the floor rect in SVG)
+  const FLOOR = { x:60, y:60, w:880, h:500 };
+
+  // Legend chips from items
+  const items = Array.from(itemsG.querySelectorAll('.draggable'));
+  items.forEach(node=>{
+    const name = node.dataset.id;
+    const chip = document.createElement('span');
+    chip.className = 'pill';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    // sample color from first child fill
+    const firstShape = node.querySelector('*');
+    const fill = firstShape?.getAttribute('fill') || '#ddd';
+    dot.style.background = fill;
+    chip.appendChild(dot);
+    chip.appendChild(document.createTextNode(' '+name));
+    legend.appendChild(chip);
+  });
+
+  // Snap/grid toggle: only visuals (we snap in code)
+  function updateGrid(){
+    const floorPattern = svg.getElementById ? svg.getElementById('floorPattern') : document.getElementById('floorPattern');
+    // lighter grid via opacity toggle
+    floorPattern.setAttribute('opacity', gridTgl.checked ? '1' : '0');
+  }
+  gridTgl.addEventListener('change', updateGrid);
+  updateGrid();
+
+  // Helpers to work in SVG coordinates
+  function svgPoint(evt) {
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX; pt.y = evt.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function clamp(value,min,max){ return Math.max(min, Math.min(max, value)); }
+  function snap(v, step=20){ return Math.round(v/step)*step; }
+
+  // Compute draggable bbox size (in local coords)
+  function sizeOf(node){
+    const b = node.getBBox();
+    return { w:b.width, h:b.height };
+  }
+
+  // Drag state
+  let dragging = null;
+  let grab = { dx:0, dy:0 };
+
+  function onPointerDown(e){
+    const g = e.target.closest('.draggable');
+    if(!g) return;
+    e.preventDefault();
+    dragging = g;
+    dragging.classList.add('dragging');
+    dragging.setPointerCapture?.(e.pointerId || 1);
+
+    // Current translate
+    const m = dragging.transform.baseVal.consolidate()?.matrix;
+    const tx = m ? m.e : 0, ty = m ? m.f : 0;
+
+    const p = svgPoint(e);
+    grab.dx = p.x - tx;
+    grab.dy = p.y - ty;
+  }
+  function onPointerMove(e){
+    if(!dragging) return;
+    e.preventDefault();
+    const {w,h} = sizeOf(dragging);
+    const p = svgPoint(e);
+    let nx = p.x - grab.dx, ny = p.y - grab.dy;
+
+    // Keep inside floor
+    nx = clamp(nx, FLOOR.x, FLOOR.x + FLOOR.w - w);
+    ny = clamp(ny, FLOOR.y, FLOOR.y + FLOOR.h - h);
+
+    // Snap if enabled
+    if (gridTgl.checked) { nx = snap(nx); ny = snap(ny); }
+
+    dragging.setAttribute('transform', `translate(${nx},${ny})`);
+  }
+  function onPointerUp(e){
+    if(!dragging) return;
+    if (gridTgl.checked){
+      // final snap
+      const m = dragging.transform.baseVal.consolidate().matrix;
+      const nx = snap(m.e), ny = snap(m.f);
+      dragging.setAttribute('transform', `translate(${nx},${ny})`);
+    }
+    dragging.classList.remove('dragging');
+    dragging.releasePointerCapture?.(e.pointerId || 1);
+    dragging = null;
+  }
+
+  svg.addEventListener('pointerdown', onPointerDown);
+  svg.addEventListener('pointermove', onPointerMove);
+  svg.addEventListener('pointerup', onPointerUp);
+  svg.addEventListener('pointercancel', onPointerUp);
+
+  // Initial positions for reset
+  const initial = items.map(g=>{
+    const m = g.transform.baseVal.consolidate()?.matrix;
+    return { id:g.dataset.id, x:m?m.e:0, y:m?m.f:0 };
+  });
+
+  function reset(){
+    items.forEach((g,i)=>{
+      const p = initial[i];
+      g.setAttribute('transform', `translate(${p.x},${p.y})`);
+    });
+  }
+
+  function shuffle(){
+    items.forEach(g=>{
+      const {w,h} = sizeOf(g);
+      let x = FLOOR.x + Math.random()*(FLOOR.w - w);
+      let y = FLOOR.y + Math.random()*(FLOOR.h - h);
+      if (gridTgl.checked){ x = snap(x); y = snap(y); }
+      g.setAttribute('transform', `translate(${x},${y})`);
+    });
+  }
+
+  function save(){
+    const data = items.map(g=>{
+      const m = g.transform.baseVal.consolidate()?.matrix;
+      return { id:g.dataset.id, x:m?m.e:0, y:m?m.f:0 };
+    });
+    localStorage.setItem(STORAGE, JSON.stringify(data));
+    toast('Layout saved.');
+  }
+  function load(){
+    const raw = localStorage.getItem(STORAGE);
+    if(!raw){ toast('No saved layout found.'); return; }
+    try{
+      const data = JSON.parse(raw);
+      data.forEach(p=>{
+        const g = items.find(n=>n.dataset.id===p.id);
+        if (g) g.setAttribute('transform', `translate(${p.x},${p.y})`);
+      });
+      toast('Layout loaded.');
+    }catch{ toast('Could not load.'); }
+  }
+  function clearSave(){ localStorage.removeItem(STORAGE); toast('Saved layout cleared.'); }
+
+  // Buttons
+  shuffleB.addEventListener('click', shuffle);
+  resetB.addEventListener('click', reset);
+  saveB.addEventListener('click', save);
+  loadB.addEventListener('click', load);
+  clearB.addEventListener('click', clearSave);
+
+  // Tiny toast
+  let t;
+  function toast(msg){
+    if(!t){
+      t=document.createElement('div');
+      Object.assign(t.style,{position:'fixed',left:'50%',bottom:'20px',transform:'translateX(-50%)',background:'#0b1220',color:'#fff',padding:'10px 14px',borderRadius:'12px',fontWeight:'800',boxShadow:'0 8px 24px rgba(2,6,23,.35)',zIndex:9999});
+      document.body.appendChild(t);
+    }
+    t.textContent=msg; t.style.opacity='1';
+    clearTimeout(toast._t); toast._t=setTimeout(()=>t.style.opacity='0',1200);
+  }
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

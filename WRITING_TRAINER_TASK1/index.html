@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B1 Exam Writing Practice</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Font: Inter (preferred from brief) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables from dizajn_brief.txt */
+        :root {
+            --primary-300: #F9C97A; --primary-500: #F4A329; --primary-700: #B45309;
+            --secondary-300: #7EDAD6; --secondary-500: #2BB6B4; --secondary-700: #0F766E;
+            --accent-300: #F49DB8; --accent-500: #E8467B; --accent-700: #A61E4D;
+            --bg: #FFF7F2; --surface: #FFFFFF; --surface-alt: #F5F7FA; --border: #E6E9EF;
+            --text: #1F2937; --text-2: #4B5563; --text-muted: #6B7280; --text-inverse: #FFFFFF;
+            --success: #2F9E44; --warning: #F59F00; --error: #D92D20; --info: #2563EB;
+
+            /* Custom colors for feedback to match aesthetic */
+            --feedback-success-bg: #E1F8F6; /* Lightened secondary-300 for success background */
+            --feedback-error-bg: #FFE4E6; /* Lightened accent-300 for error background */
+            --feedback-missed-bg: #FFF5E0; /* Lightened primary-300 for warning/missed background */
+        }
+
+        /* Custom Styles based on the Brief */
+        body {
+            font-family: "Inter", "Nunito", system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            font-size: 16px; /* body 16px */
+            line-height: 1.6;
+        }
+
+        h1 { font-size: 32px; font-weight: 600; } /* h1 32px */
+        h2 { font-size: 24px; font-weight: 600; } /* h2 24px */
+
+        .card-shadow {
+            box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08); /* Card shadow */
+        }
+
+        .primary-btn {
+            background-color: var(--primary-700);
+            color: var(--text-inverse);
+            transition: all 180ms ease;
+        }
+        .primary-btn:hover {
+            filter: brightness(0.95);
+        }
+
+        .secondary-btn {
+            background-color: transparent;
+            color: var(--primary-700);
+            border: 1px solid var(--primary-300);
+            transition: all 180ms ease;
+        }
+        .secondary-btn:hover {
+            background-color: rgba(249, 201, 122, 0.24); /* Using primary-300/24% */
+        }
+
+        .focus-ring:focus {
+            outline: 2px solid var(--secondary-500);
+            outline-offset: 2px;
+        }
+
+        .text-area-input {
+            border: 1px solid var(--border);
+            transition: border-color 180ms ease;
+        }
+        .text-area-input:focus {
+            border-color: var(--secondary-500);
+        }
+
+        /* Custom Tailwind Configuration to use CSS variables */
+        .tailwind-config-script {
+            display: none;
+        }
+    </style>
+    <script class="tailwind-config-script">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'var-bg': 'var(--bg)',
+                        'var-surface': 'var(--surface)',
+                        'var-surface-alt': 'var(--surface-alt)',
+                        'var-border': 'var(--border)',
+                        'var-text': 'var(--text)',
+                        'var-text-2': 'var(--text-2)',
+                        'var-primary-700': 'var(--primary-700)',
+                        'var-secondary-500': 'var(--secondary-500)',
+                        'var-success': 'var(--success)',
+                        'var-warning': 'var(--warning)',
+                        'var-error': 'var(--error)',
+                        'var-accent-500': 'var(--accent-500)',
+                    },
+                    borderRadius: {
+                        'xl': '16px', /* Card radius */
+                        'full': '9999px', /* Pill radius */
+                    },
+                    spacing: {
+                        '1': '4px', '2': '8px', '3': '12px', '4': '16px', '6': '24px'
+                    },
+                    boxShadow: {
+                        'xl': '0 4px 14px rgba(17, 24, 39, 0.08)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen p-4 sm:p-6 lg:p-8">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <header class="text-center pb-4 pt-2">
+            <h1>B1 Functional Writing Exam Trainer</h1>
+            <p class="text-var-text-2 mt-1">Practice writing tasks with guided structure and language scaffolding.</p>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <main id="app-container" class="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+            
+            <!-- Column 1: Task Selector -->
+            <div id="task-selector-column" class="lg:col-span-1">
+                <div class="bg-var-surface card-shadow rounded-xl p-4 sticky top-6">
+                    <h2 class="text-lg font-semibold text-var-text mb-4">Select Task</h2>
+                    <div id="task-list" class="space-y-2 max-h-[70vh] overflow-y-auto">
+                        <!-- Task buttons rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Main Working Area (Checklist / Writing) -->
+            <div id="main-content-column" class="lg:col-span-2 space-y-4">
+                <div id="welcome-card" class="bg-var-surface card-shadow rounded-xl p-6 text-center">
+                    <h2 class="text-xl text-var-secondary-500">Welcome!</h2>
+                    <p class="text-var-text-2 mt-2">Choose a task from the list on the left to begin your practice session.</p>
+                </div>
+
+                <!-- Stage 1: Task Analysis / Checklist -->
+                <div id="stage-1-card" class="bg-var-surface card-shadow rounded-xl p-6 hidden">
+                    <h2 class="text-xl text-var-text mb-4">Stage 1: Identify the Requirements</h2>
+                    <div class="p-4 rounded-xl bg-var-surface-alt border border-var-border mb-4">
+                        <p class="text-var-text-2 font-semibold text-sm uppercase mb-1">Prompt:</p>
+                        <p id="prompt-display" class="whitespace-pre-wrap"></p>
+                    </div>
+
+                    <p class="font-semibold text-sm uppercase text-var-text-2 mb-3">Choose the mandatory points (click to select):</p>
+                    <div id="checklist-options" class="space-y-2">
+                        <!-- Checklist options rendered here -->
+                    </div>
+
+                    <button id="check-checklist-btn" class="primary-btn w-full mt-6 py-3 rounded-full font-semibold focus-ring" onclick="validateChecklist()">
+                        Check Requirements
+                    </button>
+                    <div id="checklist-feedback" class="mt-4 text-center font-semibold hidden"></div>
+                    <!-- NEW: Button to reveal answers and continue -->
+                    <button id="show-answers-btn" class="secondary-btn w-full mt-3 py-3 rounded-full font-semibold focus-ring hidden" onclick="showCorrectAnswers()">
+                        Show Answers & Continue to Writing
+                    </button>
+                </div>
+
+                <!-- Stage 3: Writing Production -->
+                <div id="stage-3-card" class="bg-var-surface card-shadow rounded-xl p-6 hidden space-y-4">
+                    <h2 class="text-xl text-var-secondary-500 mb-2">Stage 3: Write Your Email</h2>
+                    
+                    <!-- Word Counter and Meter -->
+                    <div class="flex items-center justify-between text-sm text-var-text-2">
+                        <div class="flex items-center space-x-4">
+                            <span id="register-display" class="font-semibold px-3 py-1 rounded-full text-var-text-inverse" style="background-color: var(--accent-500);"></span>
+                            <span id="word-count-display">Words: 0 / 150</span>
+                        </div>
+                        <button id="download-btn" class="secondary-btn px-4 py-2 rounded-full font-semibold focus-ring text-sm" onclick="downloadDraft()">
+                            Download Draft (.txt)
+                        </button>
+                    </div>
+                    
+                    <!-- Word Limit Bar -->
+                    <div id="word-meter-container" class="w-full h-2 rounded-full overflow-hidden bg-var-surface-alt border border-var-border">
+                        <div id="word-meter-bar" class="h-full transition-all duration-300" style="width: 0%; background-color: var(--success);"></div>
+                    </div>
+                    
+                    <!-- Text Area -->
+                    <textarea id="writing-area" class="text-area-input w-full min-h-[300px] p-4 rounded-xl resize-y focus-ring" oninput="updateWordCount()"></textarea>
+
+                    <!-- Visible Requirements from Stage 1 -->
+                    <div class="p-4 rounded-xl bg-var-surface-alt border border-var-border">
+                        <p class="text-var-text-2 font-semibold text-sm uppercase mb-2">Mandatory Checklist:</p>
+                        <ul id="required-points-summary" class="list-disc pl-5 text-var-text-2 space-y-1"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Scaffolding Helper (Language/Markers) -->
+            <div id="scaffolding-column" class="lg:col-span-1 space-y-4 hidden">
+                <div class="bg-var-surface card-shadow rounded-xl p-4 sticky top-6">
+                    <h2 class="text-lg font-semibold text-var-secondary-500 mb-4">Stage 2: Language Helper</h2>
+                    
+                    <!-- Register Selection -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-var-text-2 mb-1">Current Register:</label>
+                        <select id="register-selector" class="w-full p-2 border border-var-border rounded-xl text-area-input focus-ring" onchange="updateScaffolding(this.value)">
+                            <option value="informal">Informal (Friends)</option>
+                            <option value="formal">Formal (Teachers/Recruiters)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Language Functions -->
+                    <h3 class="text-md font-semibold text-var-text mt-6 mb-2">Functional Expressions</h3>
+                    <div id="functional-expressions" class="space-y-3 max-h-48 overflow-y-auto pr-2">
+                        <!-- Functional buttons rendered here -->
+                    </div>
+
+                    <!-- Discourse Markers -->
+                    <h3 class="text-md font-semibold text-var-text mt-6 mb-2">Discourse Markers</h3>
+                    <div id="discourse-markers" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2">
+                        <!-- Marker pills rendered here -->
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // --- 1. DATA SOURCES ---
+
+        // A. Exam Tasks Database (Bolds removed from prompts)
+        const EXAM_TASKS = [
+    {
+        "id": "task-holy-island",
+        "name": "Email: Invitation to Holy Island",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Brian,\n\n",
+        "prompt": "Your friend, Brian, invited you to Holy Island. Write an email (max 150 words) to Brian to thank him for the invitation and inquire about the following: getting to the island, accommodation and costs, and sights/activities on the island.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Thank Brian for the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Ask if he can buy you a ticket to the island.", "isCorrect": false },
+                { "id": 3, "text": "Ask about the history of the island.", "isCorrect": false },
+                { "id": 4, "text": "Ask how you will travel to the island (transport).", "isCorrect": true },
+                { "id": 5, "text": "Ask about the cost and where you will stay (accommodation).", "isCorrect": true },
+                { "id": 6, "text": "Complain that the journey will be too long.", "isCorrect": false },
+                { "id": 7, "text": "Inquire about things to see and activities you can do.", "isCorrect": true },
+                { "id": 8, "text": "Explain why you hate tidal islands.", "isCorrect": false },
+                { "id": 9, "text": "Tell him you are too busy to visit.", "isCorrect": false },
+                { "id": 10, "text": "Ask if he likes living in Durham.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-music-lessons",
+        "name": "Email: Music Lessons Inquiry",
+        "wordLimit": 150,
+        "register": "Formal (Mr Spencer)",
+        "starter": "Dear Mr Spencer,\n\n",
+        "prompt": "You want to take music lessons. Write an email (max 150 words) to Mr Spencer to introduce yourself, tell him about your previous studies, specify what you want to learn/level, and enquire about the time and place of lessons.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself and explain that you are writing about the advertisement.", "isCorrect": true },
+                { "id": 2, "text": "Ask about his music degree.", "isCorrect": false },
+                { "id": 3, "text": "Tell him about your previous music studies, if you have any.", "isCorrect": true },
+                { "id": 4, "text": "Complain about the high price of the lessons.", "isCorrect": false },
+                { "id": 5, "text": "Specify the instrument you want to learn and your current level.", "isCorrect": true },
+                { "id": 6, "text": "Ask about the time and location of the lessons.", "isCorrect": true },
+                { "id": 7, "text": "Ask which style of music he prefers to teach.", "isCorrect": false },
+                { "id": 8, "text": "Suggest a friend who also needs lessons.", "isCorrect": false },
+                { "id": 9, "text": "Ask if you can try a lesson for free.", "isCorrect": false },
+                { "id": 10, "text": "Tell him you prefer pop music lessons only.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-fringe-festival",
+        "name": "Email: Edinburgh Fringe Festival",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Rob,\n\n",
+        "prompt": "Your friend Rob invited you to take part in the Fringe Festival as a street performer. Write an email (max 150 words) to Rob to tell him how you feel about these festivals, ask what performance he has in mind, and tell him what you would like to perform.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Tell Rob how you feel about this sort of festival.", "isCorrect": true },
+                { "id": 2, "text": "Ask about the weather in Edinburgh in August.", "isCorrect": false },
+                { "id": 3, "text": "Ask him what kind of performance he thinks you should do.", "isCorrect": true },
+                { "id": 4, "text": "Ask about accommodation costs in Edinburgh.", "isCorrect": false },
+                { "id": 5, "text": "Tell him if and what you would like to perform.", "isCorrect": true },
+                { "id": 6, "text": "Ask if he is performing too.", "isCorrect": false },
+                { "id": 7, "text": "Ask about the total length of the festival.", "isCorrect": false },
+                { "id": 8, "text": "Tell him you are a dancer and want a limited space.", "isCorrect": false },
+                { "id": 9, "text": "Ask if you need to buy a ticket.", "isCorrect": false },
+                { "id": 10, "text": "Thank him for the idea and say you accept the invitation.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-scottish-trekking",
+        "name": "Email: Scottish Highlands Trekking",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Ian,\n\n",
+        "prompt": "Your friend Ian invited you on a weekend trekking expedition. Write an email (max 150 words) to Ian to tell him about your trekking experience, and ask about accommodation/costs and weather/necessary equipment.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Tell Ian if you have any previous trekking experience.", "isCorrect": true },
+                { "id": 2, "text": "Ask about the exact history of Rob Roy McGregor.", "isCorrect": false },
+                { "id": 3, "text": "Ask about the route and how long the walk is each day.", "isCorrect": false },
+                { "id": 4, "text": "Ask about where you will sleep and the cost of the trip.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the expected weather conditions.", "isCorrect": true },
+                { "id": 6, "text": "Ask if he can drive you there from Stirling.", "isCorrect": false },
+                { "id": 7, "text": "Ask about any necessary equipment you need to bring.", "isCorrect": true },
+                { "id": 8, "text": "Say you cannot come because you are busy that weekend.", "isCorrect": false },
+                { "id": 9, "text": "Thank him for the invitation.", "isCorrect": true },
+                { "id": 10, "text": "Ask if there are any rivers in the Highlands.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-newcastle-tours",
+        "name": "Email: Choosing a Newcastle Tour",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Liam,\n\n",
+        "prompt": "Your friend Liam sent you guided tour options and asked you to choose one. Write an email (max 150 words) to Liam to say which tour interests you and why, and ask about the length, start time, and cost of that tour.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say which tour you are most interested in.", "isCorrect": true },
+                { "id": 2, "text": "Ask why he didn't suggest more options.", "isCorrect": false },
+                { "id": 3, "text": "Explain why you chose that specific tour.", "isCorrect": true },
+                { "id": 4, "text": "Ask about the total length/duration of your chosen tour.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the history of Newcastle.", "isCorrect": false },
+                { "id": 6, "text": "Ask about the time your chosen tour starts.", "isCorrect": true },
+                { "id": 7, "text": "Ask how much the tour costs.", "isCorrect": true },
+                { "id": 8, "text": "Ask if you can pay for the tour later.", "isCorrect": false },
+                { "id": 9, "text": "Suggest that you go alone.", "isCorrect": false },
+                { "id": 10, "text": "Ask if he has been on this tour before.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-royal-observatory",
+        "name": "Email: An Evening with the Stars",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Chris,\n\n",
+        "prompt": "Your friend Chris invited you to a programme at the Royal Observatory. Write an email (max 150 words) to Chris to accept the invitation, say why you are interested, and choose the time you prefer and say why.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Ask about the weather conditions that night.", "isCorrect": false },
+                { "id": 3, "text": "Say why you are interested in the event (e.g., the telescope, the view).", "isCorrect": true },
+                { "id": 4, "text": "Ask if he likes astronomy.", "isCorrect": false },
+                { "id": 5, "text": "Choose which of the available times you prefer.", "isCorrect": true },
+                { "id": 6, "text": "Explain why you chose that specific time.", "isCorrect": true },
+                { "id": 7, "text": "Ask if there are any other activities in Greenwich that day.", "isCorrect": false },
+                { "id": 8, "text": "Suggest going to a pub afterward.", "isCorrect": false },
+                { "id": 9, "text": "Ask who else is coming.", "isCorrect": false },
+                { "id": 10, "text": "Ask what kind of food will be available.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-kitchen-hand-job",
+        "name": "Email: Job Application (Kitchen Hand)",
+        "wordLimit": 150,
+        "register": "Formal (Mr Hill)",
+        "starter": "Dear Mr Hill,\n\n",
+        "prompt": "You are applying for a Kitchen Hand job. Write an email (max 150 words) to Mr Hill to apply for the job, say which task you would prefer, ask about training, and say when and for how many hours a week you would like to work.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Apply for the job (state your interest).", "isCorrect": true },
+                { "id": 2, "text": "Complain about the low hourly wage.", "isCorrect": false },
+                { "id": 3, "text": "Say which task you would like to do (e.g., washing dishes, decorating desserts).", "isCorrect": true },
+                { "id": 4, "text": "Ask about any necessary training.", "isCorrect": true },
+                { "id": 5, "text": "Tell him why you need the money.", "isCorrect": false },
+                { "id": 6, "text": "Say when you would like to work (days/nights/weekends).", "isCorrect": true },
+                { "id": 7, "text": "Ask about the possibility of a permanent job.", "isCorrect": false },
+                { "id": 8, "text": "Specify the number of hours a week you want to work.", "isCorrect": true },
+                { "id": 9, "text": "Ask for the address of the hotel.", "isCorrect": false },
+                { "id": 10, "text": "Tell him about your favorite chef.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-bike-for-sale",
+        "name": "Email: Bike for Sale Inquiry",
+        "wordLimit": 150,
+        "register": "Informal (Steve Logue)",
+        "starter": "Hi Steve,\n\n",
+        "prompt": "You are interested in buying a second-hand bike. Write an email (max 150 words) to Steve to explain why you are writing, ask about the price and request more information, and enquire about seeing and trying out the bike.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Explain why you are writing (interested in the bike ad).", "isCorrect": true },
+                { "id": 2, "text": "Ask if he likes cycling.", "isCorrect": false },
+                { "id": 3, "text": "Ask about the price of the bike.", "isCorrect": true },
+                { "id": 4, "text": "Ask for more information about the bike.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the price of the helmet and the lock separately.", "isCorrect": false },
+                { "id": 6, "text": "Ask about seeing and trying out the bike.", "isCorrect": true },
+                { "id": 7, "text": "Ask where he bought the bike.", "isCorrect": false },
+                { "id": 8, "text": "Offer to pay immediately.", "isCorrect": false },
+                { "id": 9, "text": "Tell him what you plan to use the bike for.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the bike is still for sale.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-dell-laptop",
+        "name": "Email: Negotiating Laptop Price",
+        "wordLimit": 150,
+        "register": "Informal (Ann Holland)",
+        "starter": "Hi Ann,\n\n",
+        "prompt": "You are interested in a used laptop. Write an email (max 150 words) to Ann Holland to say you are interested, ask if you can get it cheaper (giving two reasons why), and ask about delivery and payment.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say you are interested in buying the laptop.", "isCorrect": true },
+                { "id": 2, "text": "Tell her why the laptop would be a perfect present.", "isCorrect": false },
+                { "id": 3, "text": "Ask if you could get it cheaper.", "isCorrect": true },
+                { "id": 4, "text": "Give at least two reasons why the price should be lower (e.g., no power cord, used item).", "isCorrect": true },
+                { "id": 5, "text": "Ask about delivery and payment options.", "isCorrect": true },
+                { "id": 6, "text": "Ask how old the laptop is.", "isCorrect": false },
+                { "id": 7, "text": "Ask if she liked the present when she first got it.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the operating system.", "isCorrect": false },
+                { "id": 9, "text": "Ask if the screen is still working well.", "isCorrect": true },
+                { "id": 10, "text": "Ask for photos of the laptop.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-driving-lessons",
+        "name": "Email: Driving Lessons Inquiry",
+        "wordLimit": 150,
+        "register": "Formal (Mr Gabaine)",
+        "starter": "Dear Mr Gabaine,\n\n",
+        "prompt": "You want to take driving lessons. Write an email (max 150 words) to Mr Gabaine to explain why you want lessons, tell him how much driving experience you have, and ask him when the courses begin.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Explain why you would like to take the lessons (e.g., to drive in England).", "isCorrect": true },
+                { "id": 2, "text": "Ask if he is a professional and friendly instructor.", "isCorrect": false },
+                { "id": 3, "text": "Tell him how much driving experience you have.", "isCorrect": true },
+                { "id": 4, "text": "Ask about the price per hour.", "isCorrect": false },
+                { "id": 5, "text": "Ask him when the courses begin.", "isCorrect": true },
+                { "id": 6, "text": "Ask if you need to buy a car.", "isCorrect": false },
+                { "id": 7, "text": "Tell him you are a false beginner.", "isCorrect": true },
+                { "id": 8, "text": "Ask for the exact address of the school.", "isCorrect": false },
+                { "id": 9, "text": "Tell him that the university homepage is confusing.", "isCorrect": false },
+                { "id": 10, "text": "Ask if he offers lessons for drivers with an overseas licence.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-mosi-museum",
+        "name": "Email: Museum of Science and Industry",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Stan,\n\n",
+        "prompt": "Your friend Stan suggested visiting the Museum of Science and Industry. Write an email (max 150 words) to Stan to thank him and say why you like the suggestion, and ask about the other exhibitions, opening hours, and entrance fees.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Thank your friend for the suggestion.", "isCorrect": true },
+                { "id": 2, "text": "Say why you like the idea (e.g., interest in industry/cotton mill).", "isCorrect": true },
+                { "id": 3, "text": "Ask about the other exhibitions in the museum.", "isCorrect": true },
+                { "id": 4, "text": "Ask if he has visited the museum recently.", "isCorrect": false },
+                { "id": 5, "text": "Ask about the museum’s opening hours.", "isCorrect": true },
+                { "id": 6, "text": "Ask what time the Cotton Mill show starts.", "isCorrect": false },
+                { "id": 7, "text": "Ask how much the entrance fee is.", "isCorrect": true },
+                { "id": 8, "text": "Suggest visiting the museum with him.", "isCorrect": false },
+                { "id": 9, "text": "Ask about the exact location of the museum.", "isCorrect": false },
+                { "id": 10, "text": "Tell him you have a lot of free time that day.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-curious-incident-play",
+        "name": "Email: Accepting Play Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Mark,\n\n",
+        "prompt": "Your friend Mark invited you to see a play. Write an email (max 150 words) to Mark to accept the invitation, say why you are interested, ask two questions about the play, and ask about the place and time of the performance.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Say why you are interested (e.g., winner of 7 Olivier Awards).", "isCorrect": true },
+                { "id": 3, "text": "Ask two questions about the play (e.g., plot, actors).", "isCorrect": true },
+                { "id": 4, "text": "Ask about the place and time of the performance.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the other plays running that week.", "isCorrect": false },
+                { "id": 6, "text": "Ask if he likes the lead actor.", "isCorrect": false },
+                { "id": 7, "text": "Ask if you can bring a friend.", "isCorrect": false },
+                { "id": 8, "text": "Suggest having dinner before the show.", "isCorrect": true },
+                { "id": 9, "text": "Tell him you are sad that you missed the 2013 awards.", "isCorrect": false },
+                { "id": 10, "text": "Ask what kind of clothes you should wear.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-nice-guys-film",
+        "name": "Email: Accepting Film Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Nick,\n\n",
+        "prompt": "Your friend Nick invited you to see a film. Write an email (max 150 words) to Nick to accept the invitation and ask for information about the film details, the meeting time/place, and ways of getting there.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Ask about the film details (e.g., genre, actors).", "isCorrect": true },
+                { "id": 3, "text": "Ask about the exact time and place you will meet.", "isCorrect": true },
+                { "id": 4, "text": "Ask about the best ways of getting to the cinema (transport).", "isCorrect": true },
+                { "id": 5, "text": "Ask if he has seen the film already.", "isCorrect": false },
+                { "id": 6, "text": "Ask who the other friends are.", "isCorrect": false },
+                { "id": 7, "text": "Complain that the cinema is too far away.", "isCorrect": false },
+                { "id": 8, "text": "Tell him you already bought the tickets.", "isCorrect": false },
+                { "id": 9, "text": "Ask if the tickets are expensive.", "isCorrect": false },
+                { "id": 10, "text": "Say that the film sounds like a big hit.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-blue-cross-volunteer",
+        "name": "Email: Volunteer Application (Blue Cross)",
+        "wordLimit": 150,
+        "register": "Formal (Ms Bennett)",
+        "starter": "Dear Ms Bennett,\n\n",
+        "prompt": "You want to volunteer at the Blue Cross Animal Charity. Write an email (max 150 words) to Ms Bennett to offer to be a volunteer, and say why you find the job attractive, what makes you an ideal candidate, and which task you would be happy to do.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Offer to be a volunteer.", "isCorrect": true },
+                { "id": 2, "text": "Ask for the charity's financial reports.", "isCorrect": false },
+                { "id": 3, "text": "Say why you find the job attractive (e.g., fond of animals, enjoy local shows).", "isCorrect": true },
+                { "id": 4, "text": "Say what makes you an ideal candidate (e.g., communication skills, friendly).", "isCorrect": true },
+                { "id": 5, "text": "Ask if you will be paid.", "isCorrect": false },
+                { "id": 6, "text": "Say which of the tasks you would be happy to do and why.", "isCorrect": true },
+                { "id": 7, "text": "Ask about the type of pets at the centre.", "isCorrect": false },
+                { "id": 8, "text": "Ask if you need previous experience.", "isCorrect": false },
+                { "id": 9, "text": "Ask how long you need to volunteer for.", "isCorrect": true },
+                { "id": 10, "text": "Tell her you don't like interacting with people.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-cycle-exhibition",
+        "name": "Email: Accepting Cycle Exhibition Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Josh,\n\n",
+        "prompt": "Your friend Josh invited you to a cycle exhibition. Write an email (max 150 words) to Josh to accept the invitation, say why you are interested, and ask about the location, opening hours, and entrance fees.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Say why you are interested in the exhibition.", "isCorrect": true },
+                { "id": 3, "text": "Ask if he likes the high-performance bikes.", "isCorrect": false },
+                { "id": 4, "text": "Ask about the location of the museum.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the opening hours.", "isCorrect": true },
+                { "id": 6, "text": "Ask how much the entrance fee is.", "isCorrect": true },
+                { "id": 7, "text": "Ask if the exhibition has cargo bikes.", "isCorrect": false },
+                { "id": 8, "text": "Tell him you want to buy a new bike.", "isCorrect": false },
+                { "id": 9, "text": "Suggest having coffee beforehand.", "isCorrect": true },
+                { "id": 10, "text": "Ask if the bikes are available to ride.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-barista-course",
+        "name": "Email: Barista Course Inquiry",
+        "wordLimit": 150,
+        "register": "Formal (Ms Fielding)",
+        "starter": "Dear Ms Fielding,\n\n",
+        "prompt": "You want to do a barista course. Write an email (max 150 words) to Ms Fielding to introduce yourself and say why you want the course, say which day(s) would suit you best, and ask about the length and course fees.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself and say why you want to do the course.", "isCorrect": true },
+                { "id": 2, "text": "Ask for directions to Rainhill Village.", "isCorrect": false },
+                { "id": 3, "text": "Say which day(s) would suit you best (Sunday/midweek evening).", "isCorrect": true },
+                { "id": 4, "text": "Ask about the length of the course.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the course fees.", "isCorrect": true },
+                { "id": 6, "text": "Say you love coffee.", "isCorrect": true },
+                { "id": 7, "text": "Ask about the type of espresso machine they use.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the qualifications of the teachers.", "isCorrect": false },
+                { "id": 9, "text": "Ask if you can bring a friend.", "isCorrect": false },
+                { "id": 10, "text": "Ask if they teach about making shocking latte or cappuccino.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-yoga-course",
+        "name": "Email: Yoga Course Application",
+        "wordLimit": 150,
+        "register": "Formal (Kushal)",
+        "starter": "Dear Kushal,\n\n",
+        "prompt": "You want to do a yoga course. Write an email (max 150 words) to Kushal to apply, tell him which course you are interested in, tell him about your yoga experience, and ask about the course fees and the price of the required book.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Apply for the course.", "isCorrect": true },
+                { "id": 2, "text": "Tell him which of the three course levels you are interested in.", "isCorrect": true },
+                { "id": 3, "text": "Tell him about your yoga experience, if any.", "isCorrect": true },
+                { "id": 4, "text": "Ask about the course fees.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the price of the book 'Heart of Yoga'.", "isCorrect": true },
+                { "id": 6, "text": "Ask if the course video is longer than 2 hours.", "isCorrect": false },
+                { "id": 7, "text": "Ask about the city where the course is held.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the mobile app features.", "isCorrect": false },
+                { "id": 9, "text": "Ask if you will receive a certificate.", "isCorrect": false },
+                { "id": 10, "text": "Tell him your special needs.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-dog-walking",
+        "name": "Message: Dog Walking Job Inquiry",
+        "wordLimit": 150,
+        "register": "Informal (Internet Forum)",
+        "starter": "I’ve read your message and...\n\n",
+        "prompt": "You saw an ad for dog walking. Write a message (max 150 words) to introduce yourself, ask about the dogs, ask about the exact time/length of the walks, and ask how much you would be paid.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself.", "isCorrect": true },
+                { "id": 2, "text": "Ask about the type, size, or breed of the dogs.", "isCorrect": true },
+                { "id": 3, "text": "Ask about the exact time and length of the walks.", "isCorrect": true },
+                { "id": 4, "text": "Ask how much you would be paid.", "isCorrect": true },
+                { "id": 5, "text": "Ask if the dogs are friendly.", "isCorrect": true },
+                { "id": 6, "text": "Tell them you love dogs.", "isCorrect": true },
+                { "id": 7, "text": "Ask if you can bring your own dog.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the weather conditions during the walks.", "isCorrect": false },
+                { "id": 9, "text": "Tell them where you live.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the job is temporary or permanent.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-youth-club",
+        "name": "Letter: Youth Club Activities Inquiry",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Dear Mark,\n\n",
+        "prompt": "Your friend Mark asked if you are interested in any Youth Club programmes. Write a letter (max 150 words) to Mark to ask him to explain any unknown activities, choose two activities and explain why you are interested.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Ask Mark to explain any of the activities you don’t know (e.g., indoor-archery).", "isCorrect": true },
+                { "id": 2, "text": "Choose two activities you are interested in doing.", "isCorrect": true },
+                { "id": 3, "text": "Explain why you are interested in those two activities.", "isCorrect": true },
+                { "id": 4, "text": "Ask if the Youth Club is conveniently located.", "isCorrect": false },
+                { "id": 5, "text": "Ask about the cost of the activities.", "isCorrect": true },
+                { "id": 6, "text": "Ask about the other members of the club.", "isCorrect": false },
+                { "id": 7, "text": "Ask if he likes the club.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the weekend trips away.", "isCorrect": true },
+                { "id": 9, "text": "Say you look forward to joining him.", "isCorrect": true },
+                { "id": 10, "text": "Tell him you already know how to play snooker.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-housewarming-apology",
+        "name": "Letter: Declining Housewarming Party",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Dear Katie,\n\n",
+        "prompt": "You cannot go to Katie's housewarming party. Write a letter (max 150 words) to Katie to apologise, say why you cannot go, and ask two things about the new house.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Apologise for not being able to go.", "isCorrect": true },
+                { "id": 2, "text": "Say why you cannot go (e.g., prior engagement).", "isCorrect": true },
+                { "id": 3, "text": "Ask two things about the new house.", "isCorrect": true },
+                { "id": 4, "text": "Ask if you can bring your friend to the party.", "isCorrect": false },
+                { "id": 5, "text": "Say thank you for the invitation.", "isCorrect": true },
+                { "id": 6, "text": "Ask about the exact address of the house.", "isCorrect": false },
+                { "id": 7, "text": "Ask about the date and time of the party.", "isCorrect": false },
+                { "id": 8, "text": "Suggest visiting her new house another time.", "isCorrect": true },
+                { "id": 9, "text": "Ask about Sarah and Stan.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the house is big.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-phantom-opera",
+        "name": "Email: Accepting Phantom of the Opera Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Dimitri,\n\n",
+        "prompt": "Your friend Dimitri invited you to see 'The Phantom of the Opera'. Write an email (max 150 words) to Dimitri to accept the invitation, say why you are interested, and make a suggestion about when and where to meet.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Say why you are interested (e.g., winner of awards, famous musical).", "isCorrect": true },
+                { "id": 3, "text": "Make a suggestion about when and where to meet on Saturday.", "isCorrect": true },
+                { "id": 4, "text": "Ask about the actors in the musical.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the length of the musical.", "isCorrect": true },
+                { "id": 6, "text": "Ask about the price of the tickets.", "isCorrect": false },
+                { "id": 7, "text": "Say you prefer a different musical.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the original novel by Gaston Leroux.", "isCorrect": false },
+                { "id": 9, "text": "Tell him you are studying opera.", "isCorrect": false },
+                { "id": 10, "text": "Thank him for the invitation.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-camp-counselor",
+        "name": "Letter: Summer Camp Counselor Application",
+        "wordLimit": 150,
+        "register": "Formal (Gena Wells)",
+        "starter": "Dear Ms Wells,\n\n",
+        "prompt": "You are applying for a Summer Camp Counselor job. Write a letter (max 150 words) to introduce yourself and say why you want the job, say if you want a Specialist or General job (and why), and say which dates/part of the USA would suit you.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself and say why you want the job.", "isCorrect": true },
+                { "id": 2, "text": "Say if you want a Specialist or General job.", "isCorrect": true },
+                { "id": 3, "text": "Give your reasons for the choice of Specialist or General job.", "isCorrect": true },
+                { "id": 4, "text": "Say which dates (6-week period) would suit you.", "isCorrect": true },
+                { "id": 5, "text": "Say which part of the USA you would like to go to.", "isCorrect": true },
+                { "id": 6, "text": "Ask if you need to be outgoing, patient, and energetic.", "isCorrect": false },
+                { "id": 7, "text": "Ask about the salary.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the top 1000 children's camps.", "isCorrect": false },
+                { "id": 9, "text": "Ask about the age group you will work with.", "isCorrect": true },
+                { "id": 10, "text": "Ask if the job includes travel experience.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-zoo-tycoon-game",
+        "name": "Email: Zoo Tycoon Game Inquiry",
+        "wordLimit": 150,
+        "register": "Informal (Jerry)",
+        "starter": "Hi Jerry,\n\n",
+        "prompt": "You are interested in buying a computer game. Write an email (max 150 words) to Jerry to explain why you are interested and ask about the level of English needed, the price, and how the game will be delivered.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Explain why you are interested (e.g., sounds like the perfect present).", "isCorrect": true },
+                { "id": 2, "text": "Ask about the level of English the game requires.", "isCorrect": true },
+                { "id": 3, "text": "Ask about the price of the game.", "isCorrect": true },
+                { "id": 4, "text": "Ask how the game will be delivered.", "isCorrect": true },
+                { "id": 5, "text": "Ask why the game is fun.", "isCorrect": false },
+                { "id": 6, "text": "Ask if the game teaches you about animals in the wild.", "isCorrect": false },
+                { "id": 7, "text": "Ask if you can pay after delivery.", "isCorrect": true },
+                { "id": 8, "text": "Ask if the game is for a computer.", "isCorrect": false },
+                { "id": 9, "text": "Ask if the game is easy to install.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the delivery time is always 2/3 days.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-scottish-ballet",
+        "name": "Email: Declining Scottish Ballet Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi José,\n\n",
+        "prompt": "You are busy on Saturday and cannot accept José's invitation to the ballet. Write an email (max 150 words) to José to say thank you, apologise and give the reason why you can't go, and suggest going out together some other time.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say thank you for the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Apologise for not being able to go.", "isCorrect": true },
+                { "id": 3, "text": "Give the reason why you can’t go.", "isCorrect": true },
+                { "id": 4, "text": "Ask about the Sadler's Wells Theatre.", "isCorrect": false },
+                { "id": 5, "text": "Suggest going out together some other time.", "isCorrect": true },
+                { "id": 6, "text": "Say that you are sad to miss the show.", "isCorrect": true },
+                { "id": 7, "text": "Ask about the ticket price.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the history of the Scottish Ballet.", "isCorrect": false },
+                { "id": 9, "text": "Ask what time the performance starts.", "isCorrect": false },
+                { "id": 10, "text": "Say you love Cinderella.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-cookout",
+        "name": "Email: Accepting Cookout Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Jack,\n\n",
+        "prompt": "Write an email (max 150 words) to Jack to politely accept the invitation and ask how to get there, if you can bring a friend, and if you are supposed to bring anything.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Politically accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Ask how to get to the Rex Residence (transport).", "isCorrect": true },
+                { "id": 3, "text": "Ask if you can bring your boyfriend/girlfriend.", "isCorrect": true },
+                { "id": 4, "text": "Ask if you should bring anything (e.g., a dish).", "isCorrect": true },
+                { "id": 5, "text": "Ask if his parents will be at the party.", "isCorrect": false },
+                { "id": 6, "text": "Ask about the swimming pool.", "isCorrect": true },
+                { "id": 7, "text": "Ask if the party will start on time.", "isCorrect": false },
+                { "id": 8, "text": "Say you are looking forward to using the grill.", "isCorrect": false },
+                { "id": 9, "text": "Ask if the party is a surprise.", "isCorrect": false },
+                { "id": 10, "text": "Ask what time the party finishes.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-babysitter-job",
+        "name": "Email: Babysitter Job Application",
+        "wordLimit": 150,
+        "register": "Informal (Christine)",
+        "starter": "Hi Christine,\n\n",
+        "prompt": "You are applying for a babysitting job. Write an email (max 150 words) to Christine to introduce yourself and say why you want the job and ask about accommodation, free time, and payment.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself and say why you want the job.", "isCorrect": true },
+                { "id": 2, "text": "Ask about accommodation (e.g., if you will live with them).", "isCorrect": true },
+                { "id": 3, "text": "Ask about free time (e.g., evenings, weekends).", "isCorrect": true },
+                { "id": 4, "text": "Ask about payment/salary.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the baby's feeding schedule.", "isCorrect": false },
+                { "id": 6, "text": "Ask if the hours are flexible.", "isCorrect": true },
+                { "id": 7, "text": "Ask about her other children.", "isCorrect": false },
+                { "id": 8, "text": "Say you love 11-month-old babies.", "isCorrect": true },
+                { "id": 9, "text": "Ask for the exact address of the home.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the job is permanent.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-elisa-blues-restaurant",
+        "name": "Email: Restaurant Inquiry (Elisa Blues)",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Sinead,\n\n",
+        "prompt": "Your friend Sinead suggested a restaurant. Write an email (max 150 words) to Sinead to say thank you and say what you like about the restaurant and ask about how to get there, the prices, and any special dishes.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Say thank you for the advertisement/suggestion.", "isCorrect": true },
+                { "id": 2, "text": "Say what you like about this restaurant (e.g., informal atmosphere, friendly Irish welcome).", "isCorrect": true },
+                { "id": 3, "text": "Ask how to get there (transport).", "isCorrect": true },
+                { "id": 4, "text": "Ask about the prices (cost).", "isCorrect": true },
+                { "id": 5, "text": "Ask about any special dishes to try.", "isCorrect": true },
+                { "id": 6, "text": "Ask if it is a family-run business.", "isCorrect": false },
+                { "id": 7, "text": "Ask if you need to book a table.", "isCorrect": true },
+                { "id": 8, "text": "Ask if the restaurant is busy on weekends.", "isCorrect": false },
+                { "id": 9, "text": "Tell her your favorite type of food.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the restaurant is easy to find.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-walking-with-beasts",
+        "name": "Email: Accepting Walking with Beasts Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Brian,\n\n",
+        "prompt": "Your friend Brian invited you to a 'Walking with Beasts' exhibition. Write an email (max 150 words) to accept the invitation, say why you are interested, and ask about the length of the programme, entrance fees, and when/where to meet.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Say why you are interested (e.g., life-sized models, ancient animals).", "isCorrect": true },
+                { "id": 3, "text": "Ask about the length of the program.", "isCorrect": true },
+                { "id": 4, "text": "Ask about entrance fees.", "isCorrect": true },
+                { "id": 5, "text": "Ask when and where you should meet.", "isCorrect": true },
+                { "id": 6, "text": "Ask about the location of the museum.", "isCorrect": false },
+                { "id": 7, "text": "Ask about the age of the woolly mammoth model.", "isCorrect": false },
+                { "id": 8, "text": "Ask if the exhibition is interesting.", "isCorrect": false },
+                { "id": 9, "text": "Ask what other exhibitions the museum has.", "isCorrect": false },
+                { "id": 10, "text": "Ask if the exhibition has real bones.", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-tv-ad-casting",
+        "name": "Email: TV Ad Casting Application",
+        "wordLimit": 150,
+        "register": "Formal (Casting Director)",
+        "starter": "Dear Sir/ Madam,\n\n",
+        "prompt": "You are applying for a TV ad casting call. Write an email (max 150 words) to introduce yourself and describe your level of English, say why you are interested in the job, and ask for more details about the task and the working hours.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself.", "isCorrect": true },
+                { "id": 2, "text": "Describe your level of English.", "isCorrect": true },
+                { "id": 3, "text": "Say why you are interested in the job.", "isCorrect": true },
+                { "id": 4, "text": "Ask for more details about the task (e.g., what the ad is about).", "isCorrect": true },
+                { "id": 5, "text": "Ask about the working hours/schedule.", "isCorrect": true },
+                { "id": 6, "text": "Ask about the type of clothes you should wear.", "isCorrect": false },
+                { "id": 7, "text": "Ask if the production company is international.", "isCorrect": false },
+                { "id": 8, "text": "Ask about the exact location in central London.", "isCorrect": false },
+                { "id": 9, "text": "Ask about the payment details.", "isCorrect": false },
+                { "id": 10, "text": "Say which date you are available (22nd, 23rd, or 24th June).", "isCorrect": true }
+            ]
+        }
+    },
+    {
+        "id": "task-wildlife-photographer",
+        "name": "Email: Inviting Friend to Exhibition",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hello Jane,\n\n",
+        "prompt": "You want to see the 'Wildlife Photographer of the Year' exhibition and want your friend Jane to go with you. Write an email (max 150 words) to invite her to go next Friday, say why you are interested, say why it's a good Friday night programme, and suggest where and when you can meet.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Invite Jane to go with you next Friday.", "isCorrect": true },
+                { "id": 2, "text": "Say why you are interested in the exhibition.", "isCorrect": true },
+                { "id": 3, "text": "Say why you think it will be a good program for Friday night.", "isCorrect": true },
+                { "id": 4, "text": "Suggest where and when you can meet.", "isCorrect": true },
+                { "id": 5, "text": "Ask if she likes jazz, world, or Latin music.", "isCorrect": false },
+                { "id": 6, "text": "Ask if the champagne is included in the entrance fee.", "isCorrect": false },
+                { "id": 7, "text": "Ask about the closing date of the exhibition.", "isCorrect": false },
+                { "id": 8, "text": "Ask if she prefers cocktails or champagne.", "isCorrect": false },
+                { "id": 9, "text": "Say that you love the Natural History Museum.", "isCorrect": true },
+                { "id": 10, "text": "Ask if she has Mexican food often.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-flat-for-rent",
+        "name": "Email: Flat for Rent Inquiry",
+        "wordLimit": 150,
+        "register": "Informal (Andy)",
+        "starter": "Hi, Andy,\n\n",
+        "prompt": "You are interested in a flat for rent. Write an email (max 150 words) to Andy to introduce yourself, ask about the rent, and ask about sharing housework.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Introduce yourself.", "isCorrect": true },
+                { "id": 2, "text": "Ask about the monthly rent.", "isCorrect": true },
+                { "id": 3, "text": "Ask if bills (power, phone, internet) are included in the rent.", "isCorrect": false },
+                { "id": 4, "text": "Ask about sharing housework.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the other flatmates.", "isCorrect": true },
+                { "id": 6, "text": "Ask if the flat gets the morning sun.", "isCorrect": false },
+                { "id": 7, "text": "Ask if the puppy and cat are friendly.", "isCorrect": true },
+                { "id": 8, "text": "Say you can cook.", "isCorrect": false },
+                { "id": 9, "text": "Ask how far the pub is.", "isCorrect": false },
+                { "id": 10, "text": "Ask how long they plan to stay in the flat.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-juans-birthday",
+        "name": "Email: Accepting Juan's Birthday Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Maria,\n\n",
+        "prompt": "You received an invitation to Juan's surprise birthday party. Write an email (max 150 words) to Maria to accept the invitation and ask where the party will be, if you should bring music, and if you can bring a friend.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Ask exactly where the party will be.", "isCorrect": true },
+                { "id": 3, "text": "Ask if you should bring any music.", "isCorrect": true },
+                { "id": 4, "text": "Ask if you can bring a friend.", "isCorrect": true },
+                { "id": 5, "text": "Ask how old Juan will be (21).", "isCorrect": false },
+                { "id": 6, "text": "Ask about the other students who will be there.", "isCorrect": false },
+                { "id": 7, "text": "Ask what kind of gift Juan would like.", "isCorrect": true },
+                { "id": 8, "text": "Ask if you need to wear a sombrero.", "isCorrect": false },
+                { "id": 9, "text": "Ask if the party will be a surprise.", "isCorrect": false },
+                { "id": 10, "text": "Ask what time the party finishes.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-wedding-anniversary",
+        "name": "Email: Accepting Wedding Anniversary Invitation",
+        "wordLimit": 150,
+        "register": "Informal (Friend)",
+        "starter": "Hi Andrew,\n\n",
+        "prompt": "Your friend Andrew invited you to his parents' 25th Wedding Anniversary. Write an email (max 150 words) to accept the invitation, ask him about what to wear, and say what you intend to bring as a present and ask his opinion about it.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Accept the invitation.", "isCorrect": true },
+                { "id": 2, "text": "Ask him about what to wear (dress code).", "isCorrect": true },
+                { "id": 3, "text": "Say what you intend to bring as a present.", "isCorrect": true },
+                { "id": 4, "text": "Ask his opinion about your choice of present.", "isCorrect": true },
+                { "id": 5, "text": "Ask about the exact address of the party.", "isCorrect": false },
+                { "id": 6, "text": "Ask if his parents like the idea of a pool party.", "isCorrect": false },
+                { "id": 7, "text": "Say you are looking forward to the barbecue and pool party.", "isCorrect": true },
+                { "id": 8, "text": "Ask if the party is formal or informal.", "isCorrect": true },
+                { "id": 9, "text": "Ask if the wedding was 25 years ago.", "isCorrect": false },
+                { "id": 10, "text": "Ask about the other guests.", "isCorrect": false }
+            ]
+        }
+    },
+    {
+        "id": "task-baggins-book-bazaar",
+        "name": "Email: Asking Teacher for Book Advice",
+        "wordLimit": 150,
+        "register": "Formal (Mr Hughes)",
+        "starter": "Dear Mr Hughes,\n\n",
+        "prompt": "You found a cheap second-hand bookshop and want your English teacher's advice. Write an email (max 150 words) to Mr Hughes to explain why you are writing, tell him what kinds of books you are interested in, and ask his advice about what to buy.",
+        "checklist": {
+            "options": [
+                { "id": 1, "text": "Explain why you are writing to him (found a bookshop, need advice).", "isCorrect": true },
+                { "id": 2, "text": "Tell him what kinds of books you are interested in.", "isCorrect": true },
+                { "id": 3, "text": "Ask his advice about what to buy.", "isCorrect": true },
+                { "id": 4, "text": "Ask if he likes reading.", "isCorrect": false },
+                { "id": 5, "text": "Ask about the history of the bookshop.", "isCorrect": false },
+                { "id": 6, "text": "Tell him you are on a two-week holiday.", "isCorrect": true },
+                { "id": 7, "text": "Ask if the books are very cheap.", "isCorrect": false },
+                { "id": 8, "text": "Ask if he knows the owner of the shop.", "isCorrect": false },
+                { "id": 9, "text": "Say that you are looking for books to improve your English.", "isCorrect": true },
+                { "id": 10, "text": "Ask about the opening hours of the shop.", "isCorrect": false }
+            ]
+        }
+    }
+];
+
+        // B. Language Functions Database (Formal arrays added where missing)
+        const LANGUAGE_FUNCTIONS_DB = [
+            {
+                "function": "Greeting & Self-Introduction",
+                "purpose": "To start the email and introduce yourself if necessary.",
+                "informal": [
+                    "Hi [Name],",
+                    "Hello [Name],",
+                    "Dear [Name],",
+                    "I'm [Your Name], a student at [School]."
+                ],
+                "formal": [
+                    "Dear Mr/Ms [Surname],",
+                    "Dear Sir/Madam,",
+                    "I am writing to introduce myself.",
+                    "My name is [Your Name] and I am a student at..."
+                ]
+            },
+            {
+                "function": "Stating Purpose & Gratitude",
+                "purpose": "To clearly state the reason for writing and express thanks.",
+                "informal": [
+                    "I'm writing because I wanted to ask about...",
+                    "Thanks so much for the invitation!",
+                    "I got your email/message and wanted to say thanks.",
+                    "I'm sending this email about the [Topic]."
+                ],
+                "formal": [
+                    "I am writing to inquire about the advertisement for...",
+                    "Thank you for your email regarding the [Topic].",
+                    "I am writing with reference to your invitation/ad.",
+                    "I would like to know more details concerning..."
+                ]
+            },
+            {
+                "function": "Accepting / Declining / Apologizing",
+                "purpose": "To accept or politely refuse an invitation/offer.",
+                "informal": [
+                    "I'd love to come! Count me in.",
+                    "That sounds fantastic, I can definitely make it.",
+                    "I'm so sorry, but I can't make it because...",
+                    "I wish I could, but I'm busy that day."
+                ],
+                "formal": [
+                    "I am pleased to accept your invitation.",
+                    "I confirm that I will be attending.",
+                    "I regret to inform you that I will be unable to attend.",
+                    "I must apologize, but I have a prior commitment."
+                ]
+            },
+            {
+                "function": "Making Inquiries (Questions)",
+                "purpose": "To ask for specific information about logistics, price, or details.",
+                "informal": [
+                    "Can you tell me how to get there?",
+                    "How much does it cost?",
+                    "What time should we meet?",
+                    "When does the course begin?"
+                ],
+                "formal": [
+                    "Could you please provide details regarding the fees/costs?",
+                    "I would appreciate it if you could confirm the exact time and location.",
+                    "Could you elaborate on the required equipment/training?",
+                    "What is the total duration of the course/tour?"
+                ]
+            },
+            {
+                "function": "Expressing Preference / Interest",
+                "purpose": "To state a choice, express enthusiasm, or justify an opinion.",
+                "informal": [
+                    "I’d love the [Activity] because it sounds fun.",
+                    "I'm really interested in the [Exhibit]!",
+                    "I think the best time to go is [Time].",
+                    "My favourite tour is the [Tour Name] because..."
+                ],
+                "formal": [ // ADDED FORMAL ARRAY
+                    "I am particularly interested in the [Option] due to...",
+                    "I find the proposed program highly attractive.",
+                    "I believe the most suitable choice is the [Choice].",
+                    "I would prefer the [Choice] as it is more relevant to my studies."
+                ]
+            },
+            {
+                "function": "Sharing Experience / Skills",
+                "purpose": "To provide information about personal background or qualifications.",
+                "informal": [
+                    "I haven’t done this before, but I’m excited to try.",
+                    "I’m a beginner, but I learn quickly.",
+                    "I took lessons for [Time] when I was younger.",
+                    "I have a little trekking experience from last year."
+                ],
+                "formal": [
+                    "I have two years of relevant experience in [Field].",
+                    "I am currently studying at [University] in [City].",
+                    "My level of English is [Level].",
+                    "I have limited experience, but I am eager to learn."
+                ]
+            },
+            {
+                "function": "Applying for a Job / Offering Help",
+                "purpose": "To formally express intent to apply or offer assistance.",
+                "informal": [
+                    "I’d love to help out at the party!",
+                    "I'm happy to bring some music/food.",
+                    "I'm ready to start the course whenever.",
+                    "I think I would be particularly happy to [Task]."
+                ],
+                "formal": [
+                    "I am writing to apply for the position of [Job Title].",
+                    "I would be happy to assist with setting up/taking down stalls.",
+                    "I consider myself to be a dedicated and reliable individual.",
+                    "Please consider my application for this role."
+                ]
+            },
+            {
+                "function": "Negotiating / Asking for Advice",
+                "purpose": "To seek guidance or suggest a change in terms/price.",
+                "informal": [
+                    "What books do you advise me to buy?",
+                    "Do you think you could sell it for a bit less?",
+                    "Could I possibly get a discount since [Reason]?",
+                    "Which of the activities do you recommend?"
+                ],
+                "formal": [
+                    "I would appreciate any advice you can offer on [Topic].",
+                    "Could we potentially negotiate the price?",
+                    "Are there any special considerations for this item?",
+                    "What is your professional recommendation regarding the course?"
+                ]
+            },
+            {
+                "function": "Making Suggestions (Alternative Plans)",
+                "purpose": "To suggest a different time or place to meet, often after declining.",
+                "informal": [
+                    "Maybe we can go another time soon?",
+                    "How about next [Day] instead?",
+                    "Let’s try to go out another evening/day.",
+                    "We could meet at [Location] at [Time]."
+                ],
+                "formal": [
+                    "I would be happy to reschedule our meeting/outing.",
+                    "Perhaps we could arrange an alternative date?",
+                    "I suggest we meet on [Day] instead.",
+                    "Please let me know if another time works for you."
+                ]
+            },
+            {
+                "function": "Sign-Off / Closing Remarks",
+                "purpose": "To end the email politely and prompt a reply.",
+                "informal": [
+                    "See you soon,",
+                    "Best wishes,",
+                    "Talk soon,",
+                    "Bye for now,"
+                ],
+                "formal": [
+                    "I look forward to hearing from you at your earliest convenience.",
+                    "Yours sincerely,",
+                    "Best regards,",
+                    "Thank you for your time and consideration."
+                ]
+            }
+        ];
+        
+        // C. Discourse Markers Database (Finalized from previous steps)
+        const DISCOURSE_MARKERS_DB = {
+            "informal": {
+                "Sequencing & Listing": [
+                    "First of all,", "To start with,", "Next,", "After that,", "Then,", "Finally,", "In the end"
+                ],
+                "Adding & Developing": [
+                    "Also,", "Plus,", "And also,", "As well as that,", "A quick thing about that,", "Another thing is,", "To be honest,"
+                ],
+                "Contrasting & Shifting Topic": [
+                    "But,", "Though,", "Still,", "Even so,", "Mind you,", "Anyway,", "On the other hand,"
+                ],
+                "Cause & Result": [
+                    "So,", "Because,", "That's why,", "As a result,", "It means that,"
+                ],
+                "Emphasis & Clarity": [
+                    "Actually,", "In fact,", "You know,", "I mean,", "Seriously,", "Look,", "The thing is,"
+                ],
+                "Time & Reference": [
+                    "Soon,", "Later,", "Meanwhile,", "Before,", "After,", "Speaking of that,", "Regarding,"
+                ],
+                "Concluding & Summarizing": [
+                    "All in all,", "To sum up,", "Anyway,", "That’s about it,", "So yeah,"
+                ],
+                "General Conversation": [
+                    "Okay,", "Right,", "Sure,", "Great,", "Sounds good,", "I guess,", "Like,", "Hang on,", "Cool,", "Done."
+                ]
+            },
+            "formal": {
+                "Sequencing & Listing": [
+                    "First,", "Secondly,", "Thirdly,", "Next,", "Finally,", "Last but not least,", "To begin with,", "Initially,"
+                ],
+                "Adding & Developing": [
+                    "Furthermore,", "Moreover,", "In addition,", "Additionally,", "As well as this,", "Also,", "Equally important,", "Similarly,"
+                ],
+                "Contrasting & Conceding": [
+                    "However,", "Nevertheless,", "On the other hand,", "Conversely,", "Though,", "Although,", "Despite this,", "Even though,"
+                ],
+                "Cause & Result": [
+                    "Therefore,", "Consequently,", "As a result,", "Due to this,", "Hence,", "Accordingly,", "For this reason,", "Thus,"
+                ],
+                "Emphasis & Specific Focus": [
+                    "Indeed,", "Notably,", "Specifically,", "In particular,", "Above all,", "Crucially,", "It is clear that,", "Undoubtedly,"
+                ],
+                "Referring & Introducing a Point": [
+                    "Regarding this point,", "With reference to,", "Concerning,", "In terms of,", "Prior to this,", "Following that,"
+                ],
+                "Conditions & Stance": [
+                    "Provided that,", "Unless,", "It is evident that,", "Given the circumstances,"
+                ],
+                "Concluding & Summarizing": [
+                    "In conclusion,", "To summarize,", "To sum up,", "Overall,", "In short,", "On the whole,", "Ultimately,", "In brief,"
+                ]
+            }
+        };
+
+
+        // --- 2. GLOBAL STATE & ELEMENTS ---
+
+        let currentTask = null;
+        let selectedChecklistIds = [];
+        const MAX_WORD_LIMIT = 150; 
+
+        // Get elements for easy access
+        const taskListEl = document.getElementById('task-list');
+        const welcomeCard = document.getElementById('welcome-card');
+        const stage1Card = document.getElementById('stage-1-card');
+        const stage3Card = document.getElementById('stage-3-card');
+        const scaffoldingColumn = document.getElementById('scaffolding-column');
+        const promptDisplay = document.getElementById('prompt-display');
+        const checklistOptionsEl = document.getElementById('checklist-options');
+        const checklistFeedbackEl = document.getElementById('checklist-feedback');
+        const writingArea = document.getElementById('writing-area');
+        const requiredPointsSummaryEl = document.getElementById('required-points-summary');
+        const wordCountDisplay = document.getElementById('word-count-display');
+        const wordMeterBar = document.getElementById('word-meter-bar');
+        const registerDisplay = document.getElementById('register-display');
+        const registerSelector = document.getElementById('register-selector');
+        const functionalExpressionsEl = document.getElementById('functional-expressions');
+        const discourseMarkersEl = document.getElementById('discourse-markers');
+        const checkChecklistBtn = document.getElementById('check-checklist-btn');
+        const showAnswersBtn = document.getElementById('show-answers-btn'); // New element reference
+
+        // --- 3. CORE FUNCTIONS ---
+
+        /**
+         * Renders the list of tasks in the left sidebar.
+         */
+        function renderTaskList() {
+            taskListEl.innerHTML = '';
+            EXAM_TASKS.forEach(task => {
+                const button = document.createElement('button');
+                button.className = 'secondary-btn w-full text-left p-3 rounded-xl font-medium focus-ring';
+                button.textContent = task.name;
+                button.onclick = () => selectTask(task.id);
+                taskListEl.appendChild(button);
+            });
+        }
+
+        /**
+         * Selects a task, displays Stage 1, and prepares the UI.
+         * @param {string} taskId - The ID of the selected task.
+         */
+        function selectTask(taskId) {
+            currentTask = EXAM_TASKS.find(t => t.id === taskId);
+            if (!currentTask) return;
+
+            // Reset state
+            selectedChecklistIds = [];
+            
+            // Uncheck all boxes visually for the new task
+            document.querySelectorAll('#checklist-options input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            // UI state management
+            welcomeCard.classList.add('hidden');
+            stage3Card.classList.add('hidden');
+            scaffoldingColumn.classList.add('hidden');
+            stage1Card.classList.remove('hidden');
+
+            // Render Stage 1 content
+            renderChecklist();
+
+            // Clear feedback
+            checklistFeedbackEl.classList.add('hidden');
+            checklistFeedbackEl.textContent = '';
+            checkChecklistBtn.classList.remove('hidden');
+            checkChecklistBtn.disabled = false;
+            showAnswersBtn.classList.add('hidden');
+        }
+
+        /**
+         * Renders the checklist options for the current task.
+         */
+        function renderChecklist() {
+            promptDisplay.textContent = currentTask.prompt;
+            checklistOptionsEl.innerHTML = '';
+
+            currentTask.checklist.options.forEach(option => {
+                const div = document.createElement('div');
+                div.id = `checklist-item-${option.id}`; // Add ID for easy targeting
+                // Use a label wrapping the checkbox and text for better clickability
+                div.className = 'flex items-start p-3 rounded-xl cursor-pointer border border-var-border transition-colors hover:bg-var-surface-alt bg-var-surface';
+                div.innerHTML = `
+                    <input type="checkbox" id="option-${option.id}" data-id="${option.id}" class="mt-1 h-5 w-5 rounded focus-ring" style="color: var(--primary-700); border-color: var(--primary-300);" onchange="handleChecklistChange(${option.id})">
+                    <label for="option-${option.id}" class="ml-3 text-sm font-medium text-var-text cursor-pointer">${option.text}</label>
+                `;
+                checklistOptionsEl.appendChild(div);
+            });
+            resetChecklistColors();
+        }
+
+        /**
+         * Handles checkbox changes and updates the selectedChecklistIds array.
+         * Note: selectedChecklistIds is rebuilt in validateChecklist for accuracy, this function only updates the global state for responsiveness.
+         * @param {number} optionId - The ID of the changed option.
+         */
+        function handleChecklistChange(optionId) {
+            // This function is kept simple since validation rebuilds the array, but is necessary for internal state tracking
+            const checkbox = document.getElementById(`option-${optionId}`);
+            if (checkbox.checked) {
+                if (!selectedChecklistIds.includes(optionId)) selectedChecklistIds.push(optionId);
+            } else {
+                const index = selectedChecklistIds.indexOf(optionId);
+                if (index > -1) {
+                    selectedChecklistIds.splice(index, 1);
+                }
+            }
+            // Clear feedback on change
+            checklistFeedbackEl.classList.add('hidden');
+            showAnswersBtn.classList.add('hidden');
+        }
+
+        /**
+         * Resets the visual styling of all checklist items to default.
+         */
+        function resetChecklistColors() {
+            document.querySelectorAll('#checklist-options > div').forEach(div => {
+                div.style.borderColor = 'var(--border)';
+                div.style.backgroundColor = 'var(--surface)';
+            });
+        }
+
+        /**
+         * Validates the student's selected checklist items against the correct answers and provides visual feedback.
+         */
+        function validateChecklist() {
+            checkChecklistBtn.disabled = true;
+            resetChecklistColors(); 
+            selectedChecklistIds = []; // Rebuild selection array
+
+            const allOptions = currentTask.checklist.options;
+            const correctIds = allOptions.filter(opt => opt.isCorrect).map(opt => opt.id);
+            
+            // Rebuild selectedChecklistIds based on current checked state
+            const checkboxes = document.querySelectorAll('#checklist-options input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedChecklistIds.push(parseInt(checkbox.dataset.id));
+                }
+            });
+
+            // Check if all correct IDs are present in selectedChecklistIds
+            const allCorrectPresent = correctIds.every(id => selectedChecklistIds.includes(id));
+            
+            // Check if no incorrect IDs are present
+            const incorrectSelected = selectedChecklistIds.filter(id => !correctIds.includes(id));
+            const noIncorrectSelected = incorrectSelected.length === 0;
+
+            checklistFeedbackEl.classList.remove('hidden');
+
+            if (allCorrectPresent && noIncorrectSelected) {
+                // SUCCESS: Proceed to the next stage
+                checklistFeedbackEl.style.color = 'var(--success)';
+                checklistFeedbackEl.textContent = 'Success! All mandatory points identified. Proceeding to the writing stage...';
+                
+                // Final success visual
+                correctIds.forEach(id => {
+                    const div = document.getElementById(`checklist-item-${id}`);
+                    div.style.borderColor = 'var(--success)';
+                    div.style.backgroundColor = 'var(--feedback-success-bg)';
+                });
+
+                setTimeout(startWritingStage, 1000);
+            } else {
+                // FAILURE: Provide visual feedback (green/red/orange) and prompt retry/show answers
+                checklistFeedbackEl.style.color = 'var(--error)';
+                checklistFeedbackEl.textContent = 'Incorrect selection. Review the color-coded feedback and try again, or show answers.';
+                checkChecklistBtn.disabled = false;
+                showAnswersBtn.classList.remove('hidden');
+
+                // Apply visual feedback based on selected/correct status
+                allOptions.forEach(option => {
+                    const isChecked = selectedChecklistIds.includes(option.id);
+                    const div = document.getElementById(`checklist-item-${option.id}`);
+                    
+                    if (isChecked) {
+                        if (option.isCorrect) {
+                            // Correctly selected (Partial Success - Green border)
+                            div.style.borderColor = 'var(--success)';
+                            div.style.backgroundColor = 'var(--feedback-success-bg)'; 
+                        } else {
+                            // Incorrectly selected (Error - Red border)
+                            div.style.borderColor = 'var(--error)';
+                            div.style.backgroundColor = 'var(--feedback-error-bg)'; 
+                        }
+                    } else if (option.isCorrect) {
+                        // Missed mandatory point (Warning - Orange border/background)
+                        div.style.borderColor = 'var(--warning)';
+                        div.style.backgroundColor = 'var(--feedback-missed-bg)'; 
+                    }
+                    // Incorrect, unselected items remain neutral.
+                });
+            }
+        }
+
+        /**
+         * Reveals correct answers and allows the student to bypass the challenge.
+         */
+        function showCorrectAnswers() {
+            checkChecklistBtn.classList.add('hidden'); 
+            showAnswersBtn.classList.add('hidden'); 
+
+            const correctIds = currentTask.checklist.options.filter(opt => opt.isCorrect).map(opt => opt.id);
+            
+            // Reset colors first
+            resetChecklistColors(); 
+
+            document.querySelectorAll('#checklist-options input[type="checkbox"]').forEach(checkbox => {
+                const optionId = parseInt(checkbox.dataset.id);
+                const div = checkbox.closest('div');
+                
+                if (correctIds.includes(optionId)) {
+                    // Show as correct
+                    div.style.borderColor = 'var(--success)';
+                    div.style.backgroundColor = 'var(--feedback-success-bg)';
+                    checkbox.checked = true; // Check the box
+                } else {
+                    // Show as incorrect/distractor
+                    div.style.borderColor = 'var(--error)';
+                    div.style.backgroundColor = 'var(--feedback-error-bg)';
+                    checkbox.checked = false; // Uncheck the box
+                }
+                // Disable checkboxes to lock in the answer
+                checkbox.disabled = true;
+            });
+
+            // Display review message and button to proceed
+            checklistFeedbackEl.style.color = 'var(--info)';
+            checklistFeedbackEl.textContent = ''; // Clear previous text
+            
+            const reviewText = document.createElement('p');
+            reviewText.textContent = 'Answers shown. Please review the mandatory points before continuing.';
+            checklistFeedbackEl.appendChild(reviewText);
+
+            const continueBtn = document.createElement('button');
+            continueBtn.className = 'primary-btn w-full mt-3 py-3 rounded-full font-semibold focus-ring';
+            continueBtn.textContent = 'Review complete. Start Writing.';
+            continueBtn.onclick = startWritingStage;
+            checklistFeedbackEl.appendChild(continueBtn);
+        }
+
+        /**
+         * Transitions the UI to Stage 3 (Writing) and Stage 2 (Scaffolding).
+         */
+        function startWritingStage() {
+            stage1Card.classList.add('hidden');
+            stage3Card.classList.remove('hidden');
+            scaffoldingColumn.classList.remove('hidden');
+
+            // Set up writing area and summary
+            writingArea.value = currentTask.starter;
+            updateWordCount();
+            
+            // Display register
+            registerDisplay.textContent = currentTask.register;
+
+            // Set up scaffolding based on task register
+            const registerType = currentTask.register.includes('Informal') ? 'informal' : 'formal';
+            registerSelector.value = registerType;
+            updateScaffolding(registerType);
+            
+            // Show mandatory points summary
+            requiredPointsSummaryEl.innerHTML = currentTask.checklist.options
+                .filter(opt => opt.isCorrect)
+                .map(opt => `<li>${opt.text}</li>`)
+                .join('');
+        }
+
+        /**
+         * Updates the language scaffolding panels based on the selected register.
+         * @param {string} register - 'informal' or 'formal'.
+         */
+        function updateScaffolding(register) {
+            // Update the display pill
+            registerDisplay.textContent = register === 'informal' ? 'Informal (Friend)' : 'Formal (Business/Teacher)';
+            registerDisplay.style.backgroundColor = register === 'informal' ? 'var(--secondary-500)' : 'var(--accent-500)';
+
+            // 1. Render Functional Expressions
+            functionalExpressionsEl.innerHTML = '';
+            LANGUAGE_FUNCTIONS_DB.forEach(func => {
+                const funcSection = document.createElement('div');
+                funcSection.className = 'border-l-4 pl-3 py-1';
+                funcSection.style.borderColor = register === 'informal' ? 'var(--secondary-300)' : 'var(--accent-300)';
+                funcSection.innerHTML = `
+                    <p class="font-semibold text-sm text-var-text mb-1">${func.function}</p>
+                `;
+                
+                const expressionsContainer = document.createElement('div');
+                expressionsContainer.className = 'space-y-1';
+                // This is the line that was failing: func[register] is now guaranteed to be an array.
+                (func[register] || []).forEach(expression => { 
+                    const button = document.createElement('button');
+                    button.className = 'w-full text-left text-xs px-2 py-1 rounded-md bg-var-surface-alt text-var-text-2 hover:bg-var-border focus-ring transition-colors';
+                    button.textContent = expression;
+                    button.onclick = () => insertText(expression);
+                    expressionsContainer.appendChild(button);
+                });
+
+                funcSection.appendChild(expressionsContainer);
+                functionalExpressionsEl.appendChild(funcSection);
+            });
+
+
+            // 2. Render Discourse Markers
+            discourseMarkersEl.innerHTML = '';
+            const markers = DISCOURSE_MARKERS_DB[register];
+            
+            for (const category in markers) {
+                markers[category].forEach(marker => {
+                    const button = document.createElement('button');
+                    button.className = 'text-xs px-3 py-1 rounded-full bg-var-primary-300 text-var-primary-700 hover:bg-var-primary-500 hover:text-var-text-inverse focus-ring transition-colors font-medium';
+                    button.textContent = marker;
+                    button.onclick = () => insertText(marker + ' '); // Add space for markers
+                    discourseMarkersEl.appendChild(button);
+                });
+            }
+        }
+
+        /**
+         * Inserts text into the writing area at the current cursor position.
+         * @param {string} text - The text to insert.
+         */
+        function insertText(text) {
+            const start = writingArea.selectionStart;
+            const end = writingArea.selectionEnd;
+            const value = writingArea.value;
+
+            // Insert text at cursor position
+            writingArea.value = value.substring(0, start) + text + value.substring(end);
+
+            // Move cursor after the inserted text
+            writingArea.selectionStart = writingArea.selectionEnd = start + text.length;
+            
+            writingArea.focus();
+            updateWordCount();
+        }
+
+        /**
+         * Updates the word count display and the visual meter.
+         */
+        function updateWordCount() {
+            const text = writingArea.value.trim();
+            const words = text === '' ? 0 : text.split(/\s+/).filter(w => w.length > 0).length;
+            
+            // Update display
+            wordCountDisplay.textContent = `Words: ${words} / ${MAX_WORD_LIMIT}`;
+
+            // Update meter
+            let percentage = (words / MAX_WORD_LIMIT) * 100;
+            percentage = Math.min(percentage, 100);
+
+            wordMeterBar.style.width = `${percentage}%`;
+
+            let color = 'var(--success)';
+            if (words > 120 && words <= MAX_WORD_LIMIT) {
+                color = 'var(--warning)';
+            } else if (words > MAX_WORD_LIMIT) {
+                color = 'var(--error)';
+            }
+            wordMeterBar.style.backgroundColor = color;
+        }
+
+        /**
+         * Downloads the current draft as a .txt file.
+         */
+        function downloadDraft() {
+            if (!currentTask) return;
+
+            const content = writingArea.value;
+            const filename = `${currentTask.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_draft.txt`;
+            
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- 4. INITIALIZATION ---
+
+        window.onload = () => {
+            renderTaskList();
+        };
+
+    </script>
+</body>
+</html>

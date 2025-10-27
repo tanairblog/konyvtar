@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farkas, Kecske, Káposzta</title>
+    <style>
+        :root {
+            --bank-width: 350px;
+            --river-width: 450px;
+            --item-size: 80px;
+            --boat-width: 180px;
+            --boat-height: 90px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+            color: #333;
+            overflow: hidden;
+        }
+        h1 {
+            color: #0056b3;
+            margin-bottom: 20px;
+        }
+        #game-container {
+            display: flex;
+            align-items: flex-end;
+            width: calc(var(--bank-width) * 2 + var(--river-width));
+            height: 300px;
+            border: 2px solid #87ceeb;
+            background: linear-gradient(to bottom, #87ceeb 60%, #4682b4 100%);
+            position: relative;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .bank {
+            width: var(--bank-width);
+            height: 120px;
+            background: #90ee90;
+            border-top: 5px solid #228b22;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #left-bank { border-radius: 10px 0 0 10px; }
+        #right-bank { border-radius: 0 10px 10px 0; }
+        #river {
+            width: var(--river-width);
+            height: 100%;
+            position: relative;
+        }
+        .item {
+            width: var(--item-size);
+            height: var(--item-size);
+            cursor: pointer;
+            transition: transform 0.3s ease-in-out;
+        }
+        .item svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.2));
+        }
+        .item:hover { transform: scale(1.1); }
+        #boat {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            width: var(--boat-width);
+            height: var(--boat-height);
+            transition: left 1.5s ease-in-out;
+        }
+        #boat.at-right { left: calc(var(--river-width) - var(--boat-width) - 50px); }
+        
+        /* === JAVÍTÁS ITT === */
+        #boat-graphics {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 10; /* A hajó vizuálisan felülre kerül */
+            pointer-events: none; /* A hajó átengedi a kattintást az alatta lévő elemre */
+        }
+        #passenger-slot {
+            width: var(--item-size);
+            height: var(--item-size);
+            position: absolute;
+            right: 85px;
+            bottom: 15px;
+            z-index: 5; /* Az utas helye vizuálisan a hajó mögé kerül */
+        }
+        /* === JAVÍTÁS VÉGE === */
+
+        #controls { margin-top: 20px; }
+        button {
+            padding: 12px 24px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background-color: #ffc107;
+            color: #333;
+            margin: 0 10px;
+            transition: background-color 0.2s, transform 0.1s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+            font-weight: bold;
+        }
+        button:hover { background-color: #ffca2c; }
+        button:active { transform: translateY(1px); }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        #message-box {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            min-height: 36px;
+            padding: 5px 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .win { color: #fff; background-color: #28a745; }
+        .lose { color: #fff; background-color: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <h1>Farkas, Kecske, Káposzta 🛶</h1>
+
+    <div id="game-container">
+        <div id="left-bank" class="bank">
+            <div id="wolf" class="item" data-item="wolf"></div>
+            <div id="goat" class="item" data-item="goat"></div>
+            <div id="cabbage" class="item" data-item="cabbage"></div>
+        </div>
+        <div id="river">
+            <div id="boat">
+                <div id="boat-graphics"></div>
+                <div id="passenger-slot"></div>
+            </div>
+        </div>
+        <div id="right-bank" class="bank"></div>
+    </div>
+
+    <div id="controls">
+        <button id="cross-button">Átkelés</button>
+        <button id="reset-button">Újra</button>
+    </div>
+
+    <div id="message-box"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        async function loadAssetsAndStartGame() {
+            const loadSvg = async (url, elementId) => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Hálózati hiba: ${url}`);
+                    const svgText = await response.text();
+                    document.getElementById(elementId).innerHTML = svgText.replace(/ /g, ' ');
+                } catch (error) {
+                    console.error(`Hiba a(z) ${url} betöltésekor:`, error);
+                    document.getElementById(elementId).innerText = 'Kép hiba!';
+                }
+            };
+            await Promise.all([
+                loadSvg('farkas.svg', 'wolf'),
+                loadSvg('kecske.svg', 'goat'),
+                loadSvg('kaposzta.svg', 'cabbage'),
+                loadSvg('hajo.svg', 'boat-graphics')
+            ]);
+            initializeGame();
+        }
+
+        function initializeGame() {
+            const items = { wolf: document.getElementById('wolf'), goat: document.getElementById('goat'), cabbage: document.getElementById('cabbage') };
+            const leftBank = document.getElementById('left-bank');
+            const rightBank = document.getElementById('right-bank');
+            const boatEl = document.getElementById('boat');
+            const passengerSlot = document.getElementById('passenger-slot');
+            const crossButton = document.getElementById('cross-button');
+            const resetButton = document.getElementById('reset-button');
+            const messageBox = document.getElementById('message-box');
+            let gameState = {};
+            const rules = [
+                { conditions: state => state.goat === state.wolf && state.boat !== state.goat, message: "A farkas megette a kecskét! Vége a játéknak. 🐺" },
+                { conditions: state => state.cabbage === state.goat && state.boat !== state.goat, message: "A kecske megette a káposztát! Vége a játéknak. 🐐" }
+            ];
+            
+            function checkWin() {
+                if (gameState.wolf === 'right' && gameState.goat === 'right' && gameState.cabbage === 'right') {
+                    messageBox.textContent = "Gratulálok, mindenkit átjuttattál! 🎉";
+                    messageBox.className = 'message-box win';
+                    gameState.gameOver = true;
+                    crossButton.disabled = true;
+                }
+            }
+            
+            function checkLoss() {
+                if (gameState.gameOver) return true;
+                for (const rule of rules) {
+                    if (rule.conditions(gameState)) {
+                        messageBox.textContent = rule.message;
+                        messageBox.className = 'message-box lose';
+                        gameState.gameOver = true;
+                        crossButton.disabled = true;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function moveItem(itemName) {
+                if (gameState.gameOver) return;
+                const itemEl = items[itemName];
+                const currentSide = gameState[itemName];
+                const boatSide = gameState.boat;
+
+                if (currentSide === boatSide && !gameState.passenger) {
+                    passengerSlot.appendChild(itemEl);
+                    gameState.passenger = itemName;
+                    gameState[itemName] = 'boat';
+                } 
+                else if (currentSide === 'boat') {
+                    const targetBank = boatSide === 'left' ? leftBank : rightBank;
+                    targetBank.appendChild(itemEl);
+                    gameState[itemName] = boatSide;
+                    gameState.passenger = null;
+                    setTimeout(checkWin, 100);
+                }
+            }
+
+            function crossRiver() {
+                if (gameState.gameOver || crossButton.disabled) return;
+                
+                if (!gameState.passenger) {
+                    gameState.passenger = 'farmer'; 
+                }
+                
+                crossButton.disabled = true;
+                if (checkLoss()) {
+                    if (gameState.passenger === 'farmer') gameState.passenger = null;
+                    return;
+                }
+
+                gameState.boat = (gameState.boat === 'left') ? 'right' : 'left';
+                boatEl.classList.toggle('at-right');
+                
+                if(gameState.passenger === 'farmer') {
+                    gameState.passenger = null;
+                }
+
+                setTimeout(() => {
+                    checkLoss(); 
+                    if(!gameState.gameOver) {
+                       crossButton.disabled = false;
+                    }
+                }, 1500);
+            }
+            
+            function resetGame() {
+                gameState = { wolf: 'left', goat: 'left', cabbage: 'left', boat: 'left', passenger: null, gameOver: false };
+                rightBank.innerHTML = '';
+                if(passengerSlot.firstChild) {
+                   leftBank.appendChild(passengerSlot.firstChild);
+                }
+                Object.values(items).forEach(item => leftBank.appendChild(item));
+                boatEl.classList.remove('at-right');
+                messageBox.textContent = '';
+                messageBox.className = 'message-box';
+                crossButton.disabled = false;
+            }
+
+            Object.keys(items).forEach(key => items[key].addEventListener('click', () => moveItem(key)));
+            passengerSlot.addEventListener('click', () => {
+                if (gameState.passenger && gameState.passenger !== 'farmer') {
+                    moveItem(gameState.passenger);
+                }
+            });
+            crossButton.addEventListener('click', crossRiver);
+            resetButton.addEventListener('click', resetGame);
+            resetGame();
+        }
+
+        loadAssetsAndStartGame();
+    });
+    </script>
+</body>
+</html>
+
+

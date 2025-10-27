@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Diagram Generator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for creating the climate diagram -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, #d6e8ff, #a6c0e8);
+        }
+        .view-container {
+            height: 600px;
+            width: 100%;
+            border: 4px solid white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+        #details-view {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center mb-6">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800">Climate Diagram Generator</h1>
+        <p id="instruction-text" class="text-lg text-gray-600 mt-2">Click on the map to select a location!</p>
+    </div>
+
+    <div class="w-full max-w-4xl">
+        <!-- Map View -->
+        <div id="map" class="view-container"></div>
+        <!-- Details View for the Chart -->
+        <div id="details-view" class="view-container hidden flex-col items-center justify-center p-8 text-center">
+            <p id="details-loading-text" class="text-2xl text-gray-700">Analyzing climate data...</p>
+            <div id="details-content" class="hidden w-full h-full">
+                <p id="details-city-name" class="text-3xl font-bold text-gray-800 mb-4"></p>
+                <div class="relative h-[calc(100%-40px)] w-full">
+                    <canvas id="climate-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // DOM Element References
+        const mapEl = document.getElementById('map');
+        const detailsViewEl = document.getElementById('details-view');
+        const instructionTextEl = document.getElementById('instruction-text');
+        const detailsLoadingTextEl = document.getElementById('details-loading-text');
+        const detailsContentEl = document.getElementById('details-content');
+        const detailsCityNameEl = document.getElementById('details-city-name');
+        const chartCanvasEl = document.getElementById('climate-chart').getContext('2d');
+
+        // Global variables for map, geocoder, and chart instance
+        let map;
+        let geocoder; 
+        let climateChart;
+
+        // Initialize the Google Map
+        function initMap() {
+            map = new google.maps.Map(mapEl, { 
+                center: { lat: 47.4979, lng: 19.0402 }, 
+                zoom: 5, 
+                mapTypeId: 'terrain', 
+                disableDefaultUI: true, 
+                zoomControl: true, 
+                draggableCursor: 'crosshair' 
+            });
+            geocoder = new google.maps.Geocoder();
+            
+            // Add a click listener to the map
+            map.addListener('click', (event) => {
+                showDetailsView();
+                getClimateDataAndDrawChart(event.latLng.lat(), event.latLng.lng());
+            });
+        }
+
+        // Get the city name from latitude and longitude using Google's Geocoder
+        function getCityName(lat, lon) {
+            return new Promise((resolve) => {
+                const latlng = { lat: lat, lng: lon };
+                geocoder.geocode({ location: latlng }, (results, status) => {
+                    if (status === "OK" && results && results.length > 0) {
+                        for (const result of results) {
+                            for (const component of result.address_components) {
+                                // Find a general name like a city or a state/province
+                                if (component.types.includes('locality') || component.types.includes('administrative_area_level_1')) {
+                                    resolve(component.long_name);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    resolve('Unknown Location'); 
+                });
+            });
+        }
+
+        // **MODIFIED FUNCTION**
+        // Fetch climate data from Open-Meteo in yearly chunks to avoid API rate limits
+        async function getClimateDataAndDrawChart(lat, lon) {
+            try {
+                const cityName = await getCityName(lat, lon);
+                detailsLoadingTextEl.textContent = `Fetching climate data for ${cityName}...`;
+
+                const startYear = 1991;
+                const endYear = 2020;
+                let allMonthlyData = { time: [], temperature_2m_mean: [], precipitation_sum: [] };
+
+                // Loop through each year to fetch data in smaller chunks
+                for (let year = startYear; year <= endYear; year++) {
+                    detailsLoadingTextEl.textContent = `Fetching climate data for ${year}...`;
+                    const startDate = `${year}-01-01`;
+                    const endDate = `${year}-12-31`;
+                    // Construct the URL for a single year
+                    const climateUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&monthly=temperature_2m_mean,precipitation_sum&timezone=auto`;
+                    
+                    const response = await fetch(climateUrl);
+
+                    if (response.status === 429) {
+                         throw new Error('API limit reached. Please wait a moment and try again.');
+                    }
+                    if (!response.ok) {
+                        // Try to get a reason from the API response body
+                        const errorData = await response.json();
+                        throw new Error(errorData.reason || `Failed to fetch data for ${year}.`);
+                    }
+                    
+                    const yearData = await response.json();
+
+                    // Aggregate the data from each successful yearly fetch
+                    if (yearData.monthly) {
+                        allMonthlyData.time.push(...yearData.monthly.time);
+                        allMonthlyData.temperature_2m_mean.push(...yearData.monthly.temperature_2m_mean);
+                        allMonthlyData.precipitation_sum.push(...yearData.monthly.precipitation_sum);
+                    }
+                    
+                    // Add a small delay between requests to be respectful to the API server
+                    await new Promise(resolve => setTimeout(resolve, 250)); // 250ms delay
+                }
+
+                detailsLoadingTextEl.textContent = 'Calculating 30-year averages...';
+
+                if (allMonthlyData.time.length === 0) {
+                    throw new Error('No climate data available for this location.');
+                }
+                
+                // Process the aggregated data to calculate long-term monthly averages
+                const monthlySums = {
+                    temps: Array(12).fill(0),
+                    precip: Array(12).fill(0),
+                    tempCounts: Array(12).fill(0)
+                };
+
+                for (let i = 0; i < allMonthlyData.time.length; i++) {
+                    const month = new Date(allMonthlyData.time[i]).getUTCMonth(); // 0-11
+                    const temp = allMonthlyData.temperature_2m_mean[i];
+                    const precip = allMonthlyData.precipitation_sum[i];
+
+                    if (temp != null) {
+                        monthlySums.temps[month] += temp;
+                        monthlySums.tempCounts[month]++;
+                    }
+                    if (precip != null) {
+                        monthlySums.precip[month] += precip;
+                    }
+                }
+
+                const monthlyAverages = { temps: [], precip: [] };
+                const numYears = endYear - startYear + 1;
+
+                for (let i = 0; i < 12; i++) {
+                    const tempCount = monthlySums.tempCounts[i];
+                    // Calculate average temperature based on available data points
+                    monthlyAverages.temps.push(tempCount > 0 ? monthlySums.temps[i] / tempCount : null);
+                    // Calculate average precipitation over the entire period
+                    monthlyAverages.precip.push(monthlySums.precip[i] / numYears);
+                }
+
+                drawClimateChart(cityName, monthlyAverages.temps, monthlyAverages.precip);
+
+            } catch (error) {
+                console.error('Error:', error);
+                detailsLoadingTextEl.textContent = error.message || 'Failed to generate climate diagram. Click to return.';
+            }
+        }
+
+
+        // Draw the climate diagram using Chart.js
+        function drawClimateChart(cityName, temperatures, precipitations) {
+            detailsCityNameEl.textContent = cityName;
+            
+            if (climateChart) {
+                climateChart.destroy();
+            }
+
+            climateChart = new Chart(chartCanvasEl, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: 'Avg. Temperature (°C)',
+                            data: temperatures,
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                            yAxisID: 'y_temp',
+                            tension: 0.2,
+                            fill: false
+                        },
+                        {
+                            type: 'bar',
+                            label: 'Avg. Precipitation (mm)',
+                            data: precipitations,
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            yAxisID: 'y_precip'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y_precip: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Precipitation (mm)' }
+                        },
+                        y_temp: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Temperature (°C)' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+
+            detailsLoadingTextEl.classList.add('hidden');
+            detailsContentEl.classList.remove('hidden');
+        }
+
+        // UI transition to show the details/chart view
+        function showDetailsView() {
+            mapEl.classList.add('hidden');
+            detailsViewEl.classList.remove('hidden');
+            detailsContentEl.classList.add('hidden');
+            detailsLoadingTextEl.classList.remove('hidden');
+            detailsLoadingTextEl.textContent = 'Determining location...';
+            instructionTextEl.textContent = 'Click on the chart area to return to the map!';
+        }
+        
+        // UI transition to show the map view
+        function showMapView() {
+            detailsViewEl.classList.add('hidden');
+            mapEl.classList.remove('hidden');
+            instructionTextEl.textContent = 'Click on the map to select a location!';
+        }
+
+        // Event listener to return to the map
+        detailsViewEl.addEventListener('click', showMapView);
+    </script>
+    
+    <!-- Load Google Maps API, using your key and setting the callback function -->
+    <!-- It is recommended to replace the key below with your own Google Maps API key. -->
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=IDE KELL A KULCSOT BEMÁSOLNI&callback=initMap"></script>
+</body>
+</html>

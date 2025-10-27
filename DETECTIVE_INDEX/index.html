@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Detective Classroom Chat — Demo Kit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --primary-300:#F9C97A; --primary-500:#F4A329; --primary-700:#B45309;
+      --secondary-300:#7EDAD6; --secondary-500:#2BB6B4; --secondary-700:#0F766E;
+      --accent-300:#F49DB8; --accent-500:#E8467B; --accent-700:#A61E4D;
+      --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+      --text:#1F2937; --text-2:#4B5563; --text-muted:#6B7280; --text-inverse:#FFFFFF;
+      --success:#2F9E44; --warning:#F59F00; --error:#D92D20; --info:#2563EB;
+
+      --radius-card:16px; --radius-pill:9999px; --shadow-card:0 4px 14px rgba(17,24,39,0.08);
+      --gap-sm:8px; --gap:16px; --gap-lg:24px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,Nunito,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif; background:var(--bg); color:var(--text); font-size:16px}
+    .container{display:grid; grid-template-rows:auto 1fr; height:100%; max-width:1200px; margin:0 auto}
+
+    header{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; position:sticky; top:0; background:var(--surface); border-bottom:1px solid var(--border); z-index:10}
+    header .brand{display:flex; align-items:center; gap:10px}
+    .badge{font-size:12px; color:var(--text-inverse); background:var(--primary-700); padding:2px 10px; border-radius:var(--radius-pill); font-weight:700}
+
+    .main{display:grid; grid-template-columns:260px 1fr 320px; gap:var(--gap); padding:var(--gap); height:calc(100vh - 64px)}
+    .panel{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-card); overflow:hidden; display:flex; flex-direction:column; min-height:0; box-shadow:var(--shadow-card)}
+
+    /* Sidebar */
+    .characters{padding:var(--gap); display:flex; flex-direction:column; gap:var(--gap-sm)}
+    .char-card{display:flex; gap:12px; align-items:center; padding:10px; background:var(--surface); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:transform .12s ease, border-color .18s ease, box-shadow .18s ease}
+    .char-card:hover{transform:translateY(-1px); box-shadow:0 6px 16px rgba(17,24,39,0.08)}
+    .char-card.active{border-color:var(--secondary-500); box-shadow:0 0 0 2px rgba(43,182,180,0.18)}
+    .avatar{width:36px; height:36px; border-radius:10px; display:grid; place-items:center; font-weight:700; background:var(--surface-alt); border:1px solid var(--border); color:var(--primary-700)}
+    .char-meta{display:flex; flex-direction:column}
+    .char-name{font-weight:600}
+    .char-role{font-size:12px; color:var(--text-muted)}
+
+    /* Chat */
+    .chat{display:grid; grid-template-rows:1fr auto; min-height:0}
+    .scroll{overflow:auto; padding:var(--gap); display:flex; flex-direction:column; gap:12px; background:var(--surface-alt)}
+    .msg{max-width:80%; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--surface)}
+    .msg.user{align-self:flex-end; background:#FFF4E6; border-color:#FFE3B3}
+    .msg.ai{align-self:flex-start}
+    .sysline{font-size:12px; color:var(--text-muted); text-align:center; margin:8px 0}
+    .composer{display:flex; gap:10px; padding:12px; border-top:1px solid var(--border); background:var(--surface)}
+    .composer input{flex:1; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:12px; outline:none}
+    .composer input:focus{box-shadow:0 0 0 2px var(--secondary-300)}
+
+    .btn{background:var(--surface); border:1px solid var(--border); color:var(--text); padding:10px 14px; border-radius:10px; cursor:pointer; font-weight:600; transition:filter .18s ease, box-shadow .18s ease}
+    .btn:hover{filter:brightness(0.98)}
+    .btn.primary{background:var(--primary-700); border:1px solid var(--primary-700); color:var(--text-inverse)}
+    .btn.primary:hover{filter:brightness(0.95)}
+    .btn.ghost{background:transparent; color:var(--primary-700); border:1px solid var(--primary-300)}
+
+    /* Notebook */
+    .notebook{padding:var(--gap); display:flex; flex-direction:column; gap:var(--gap)}
+    .section h3{margin:0 0 8px 0; font-size:20px}
+    .pill{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--surface); padding:6px 10px; border-radius:var(--radius-pill); font-size:12px}
+    .list{display:flex; flex-direction:column; gap:8px}
+    .clue{padding:10px; border:1px solid var(--border); background:var(--surface); border-radius:10px}
+    .muted{color:var(--text-muted)}
+
+    /* Landing */
+    .landing{position:fixed; inset:0; display:grid; place-items:center; background:linear-gradient(180deg,rgba(255,247,242,.9),rgba(245,247,250,.9))}
+    .landing-card{width:min(920px,92vw); background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:24px; display:grid; grid-template-columns:1.3fr 1fr; gap:20px; box-shadow:var(--shadow-card)}
+    .hero{border-radius:12px; border:1px solid var(--border); background:repeating-linear-gradient(45deg, #FFF4E6, #FFF4E6 10px, #F5F7FA 10px, #F5F7FA 20px); min-height:260px}
+    .landing .field{display:flex; flex-direction:column; gap:6px}
+    .landing input, .landing select{background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:10px}
+    .landing input:focus, .landing select:focus{box-shadow:0 0 0 2px var(--secondary-300); outline:none}
+    .label{font-size:12px; color:var(--text-muted)}
+
+    /* Dialog */
+    .dialog{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(31,41,55,.35)}
+    .dialog .card{width:min(720px,94vw); background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px; box-shadow:var(--shadow-card)}
+
+    /* Small screens */
+    @media (max-width: 1000px){
+      .main{grid-template-columns:1fr; grid-template-rows:auto auto 1fr; height:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="badge">Class</div>
+        <div style="font-weight:700">Detective Classroom Chat</div>
+      </div>
+      <div id="top-right" class="muted" style="display:flex; align-items:center; gap:10px"></div>
+    </header>
+
+    <div class="main">
+      <!-- Sidebar: Characters -->
+      <aside class="panel">
+        <div class="characters">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
+            <h3 style="margin:0; font-size:14px; letter-spacing:.02em; color:#cbd5e1">Characters</h3>
+            <button class="btn ghost" id="btn-hint">Hint</button>
+          </div>
+          <div id="char-list" class="list"></div>
+        </div>
+      </aside>
+
+      <!-- Chat -->
+      <section class="panel chat">
+        <div id="chat-scroll" class="scroll"></div>
+        <div class="composer">
+          <input id="composer" type="text" placeholder="Ask a question…" autocomplete="off" />
+          <button id="btn-send" class="btn primary">Send</button>
+          <button id="btn-switch" class="btn">Switch Character</button>
+        </div>
+      </section>
+
+      <!-- Notebook / Clues / Submission -->
+      <aside class="panel">
+        <div class="notebook">
+          <div class="section">
+            <h3>Notebook</h3>
+            <div class="pill"><span>Team</span><strong id="label-team">—</strong></div>
+            <div class="pill"><span>Character</span><strong id="label-char">—</strong></div>
+          </div>
+          <div class="section">
+            <h3>Discovered clues</h3>
+            <div id="clue-list" class="list"></div>
+            <div class="muted" id="no-clues">No clues yet. Ask precise, narrow questions about time, place, motive, and access.</div>
+          </div>
+          <div class="section">
+            <h3>Task</h3>
+            <p class="muted">When ready, submit your theory with motive, method, perpetrator, and time window.</p>
+            <div style="display:flex; gap:8px; flex-wrap:wrap">
+              <button id="btn-submit" class="btn primary">Submit theory</button>
+              <button id="btn-export" class="btn">Export progress (.json)</button>
+              <button id="btn-clear" class="btn">Reset</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Landing -->
+  <div class="landing" id="landing">
+    <div class="landing-card">
+      <div>
+        <h1 style="margin:0 0 8px 0; font-size:28px">Welcome, detective</h1>
+        <p class="muted" style="margin:0 0 18px 0">Interrogate characters, uncover clues, and solve the case. Your answers must be grounded in the dossier—no speculation.</p>
+        <div class="field"><label class="label">Team nickname</label><input id="inp-team" placeholder="e.g. Eagles"/></div>
+        <div class="field"><label class="label">Difficulty</label>
+          <select id="inp-difficulty">
+            <option value="easy">Easy</option>
+            <option value="standard" selected>Standard</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div class="field"><label class="label">Mode</label>
+          <select id="inp-mode">
+            <option value="demo">Demo (offline)</option>
+            <option value="api" selected>API (connect to backend)</option>
+          </select>
+        </div>
+        <div style="margin-top:16px; display:flex; gap:10px; align-items:center">
+          <button id="btn-start" class="btn primary">Start</button>
+          <button id="btn-load" class="btn">Load previous progress</button>
+        </div>
+      </div>
+      <div class="hero"></div>
+    </div>
+  </div>
+
+  <!-- Submit dialog -->
+  <div class="dialog" id="dlg-submit">
+    <div class="card">
+      <h3 style="margin-top:0">Submit your theory</h3>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+        <div class="field"><label class="label">Perpetrator</label><input id="perp"/></div>
+        <div class="field"><label class="label">Motive</label><input id="motive"/></div>
+        <div class="field"><label class="label">Method</label><input id="method"/></div>
+        <div class="field"><label class="label">Time window</label><input id="timewin" placeholder="e.g. 23:40–00:05"/></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px">
+        <button class="btn primary" id="btn-send-solution">Send</button>
+        <button class="btn" id="btn-cancel-solution">Cancel</button>
+      </div>
+      <div id="submit-feedback" class="muted" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- Hint dialog -->
+  <div class="dialog" id="dlg-hint">
+    <div class="card">
+      <h3 style="margin-top:0">Hint</h3>
+      <p id="hint-text" class="muted">Ask about key access and late-night movement.</p>
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <button class="btn primary" id="btn-close-hint">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/*************************************************
+ * Detective Classroom Chat — Single-file HTML Kit
+ * Two modes: DEMO (offline) and API
+ **************************************************/
+
+// ---- DEMO fallback case (Hungarian demo) ----
+const DEMO_CASE = {
+  characters:[
+    {id:'eva', name:'Éva Kovács', role:'Lab assistant', initials:'ÉK', color:'#60a5fa', scope:['shift','camera','inventory'], persona:'Nervous but honest; knows her shift log, Wing B camera notes, and chemistry inventory. Will not speculate.'},
+    {id:'mark', name:'Márk Tóth', role:'IT technician', initials:'MT', color:'#f472b6', scope:['network','keycards','budget'], persona:'Pragmatic, a bit sarcastic; knows about access badges, network logs, and budget pressures.'},
+    {id:'rita', name:'Rita Szalai', role:'Caretaker', initials:'RS', color:'#34d399', scope:['keys','doors','afterhours'], persona:'Observant and calm; knows master keys, door malfunctions, after-hours movements.'}
+  ],
+  clues:[
+    {id:'cam_21_17', title:'Camera still 21:17', text:'A hooded person enters Wing B at 21:17 carrying a tote bag.', tags:['camera','time']},
+    {id:'badge_clone', title:'Badge cloning note', text:'IT memo warned about possible badge cloning via misplaced reader.', tags:['keycards','method']},
+    {id:'chem_tote', title:'Missing reagents', text:'Two solvent bottles missing; weight consistent with a tote bag.', tags:['inventory','method']},
+    {id:'budget_cut', title:'Budget cuts email', text:'Department faced severe budget cuts this term.', tags:['motive']}
+  ],
+  solution:{
+    answer_key:{ perp:'Márk Tóth', motive:'budget cuts', method:'keycard clone', time:'21:00-21:30' },
+    rubric:{ must:['perp','motive','method','time'] }
+  },
+  knowledge:{
+    eva:[
+      {text:'My shift log shows I closed Chem Lab B at 20:45 and checked Wing B camera status.'},
+      {text:'I noticed two solvent bottles missing earlier this week; they would fit in a tote bag.'},
+      {text:'After 20:00, access needs a valid badge. I do not handle badge systems.'}
+    ],
+    mark:[
+      {text:'We had a memo about a misplaced reader; badge cloning is possible if someone is careless.'},
+      {text:'Budget cut emails made people upset, but I do not manage money.'},
+      {text:'Network logs after 21:00 are limited; talk to the caretaker about physical keys.'}
+    ],
+    rita:[
+      {text:'Master keys stayed in the cabinet; no report of forced entry.'},
+      {text:'I saw someone with a hood near Wing B around 21:15; could not see the face.'},
+      {text:'Doors auto-lock at 20:00; badges leave a record unless cloned.'}
+    ]
+  }
+};
+
+// ---- App state ----
+const LS_KEY = 'detective_demo_progress_v1';
+const state = {
+  mode:'api', // default to API
+  team:'',
+  difficulty:'standard',
+  activeChar:null,
+  history:[],
+  discovered:new Set()
+};
+
+// The case currently used by the UI (DEMO by default; will be replaced by API case on load)
+let ACTIVE_CASE = DEMO_CASE;
+
+// Utility
+const byId = id => document.getElementById(id);
+function h(tag, attrs={}, ...children){
+  const n = document.createElement(tag);
+  for(const [k,v] of Object.entries(attrs||{})){
+    if(k==='class') n.className=v; else if(k==='style') n.style.cssText=v; else n.setAttribute(k,v);
+  }
+  for(const c of children){
+    if(c==null) continue; if(typeof c==='string') n.appendChild(document.createTextNode(c)); else n.appendChild(c);
+  }
+  return n;
+}
+function save(){ const payload={...state, discovered:[...state.discovered]}; localStorage.setItem(LS_KEY, JSON.stringify(payload)); }
+function load(){ try{const raw=localStorage.getItem(LS_KEY); if(!raw) return false; const p=JSON.parse(raw); Object.assign(state,p); state.discovered=new Set(p.discovered||[]); return true;}catch(e){console.warn(e); return false;} }
+function clearAll(){ localStorage.removeItem(LS_KEY); location.reload(); }
+
+// Rendering helpers use ACTIVE_CASE (API or DEMO)
+function renderTop(){
+  byId('label-team').textContent = state.team || '—';
+  const ch = ACTIVE_CASE.characters.find(c=>c.id===state.activeChar);
+  byId('label-char').textContent = ch? ch.name : '—';
+  const tr = byId('top-right'); tr.innerHTML='';
+  tr.append(
+    h('div',{class:'pill'}, 'Mode', h('strong',{}, state.mode.toUpperCase())),
+    h('div',{class:'pill'}, 'Difficulty', h('strong',{}, state.difficulty))
+  );
+}
+function renderCharacters(){
+  const list = byId('char-list'); list.innerHTML='';
+  ACTIVE_CASE.characters.forEach(c=>{
+    const card = h('div',{class:'char-card'+(state.activeChar===c.id?' active':'')});
+    const av = h('div',{class:'avatar', style:`background:${c.color||'#60a5fa'}22; color:${c.color||'#60a5fa'}`}, c.initials || (c.name||'?').split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase());
+    const meta = h('div',{class:'char-meta'}, h('div',{class:'char-name'}, c.name), h('div',{class:'char-role'}, c.role||'' ));
+    card.append(av, meta);
+    card.addEventListener('click', ()=>{ state.activeChar=c.id; renderCharacters(); renderTop(); sysNote(`Switched to ${c.name}.`); save(); });
+    list.append(card);
+  });
+  if(!state.activeChar && ACTIVE_CASE.characters.length){ state.activeChar = ACTIVE_CASE.characters[0].id; }
+}
+function renderHistory(){
+  const sc = byId('chat-scroll'); sc.innerHTML='';
+  for(const m of state.history){
+    if(m.role==='sys'){ sc.append(h('div',{class:'sysline'}, m.text)); continue; }
+    const msg = h('div',{class:'msg '+(m.role==='user'?'user':'ai')});
+    msg.append(h('div',{}, m.text));
+    if(m.role==='ai' && m.clues?.length){
+      msg.append(h('div',{class:'muted', style:'margin-top:6px; font-size:12px'}, 'Clues: ', m.clues.join(', ')));
+    }
+    sc.append(msg);
+  }
+  sc.scrollTop = sc.scrollHeight;
+}
+function renderClues(){
+  const list = byId('clue-list'); list.innerHTML='';
+  const found = (ACTIVE_CASE.clues||[]).filter(c=>state.discovered.has(c.id));
+  if(found.length===0){ byId('no-clues').style.display='block'; return; }
+  byId('no-clues').style.display='none';
+  for(const c of found){ list.append(h('div',{class:'clue'}, h('div',{style:'font-weight:600'}, c.title), h('div',{class:'muted'}, c.text))); }
+}
+function sysNote(t){ state.history.push({role:'sys', text:t}); renderHistory(); save(); }
+
+// DEMO answerer (used only in demo mode)
+function demoAnswer(question){
+  const char = ACTIVE_CASE.characters.find(c=>c.id===state.activeChar);
+  const kb = (DEMO_CASE.knowledge[char?.id] || []);
+  const lower = question.toLowerCase();
+  const hits = kb.filter(k => k.text.toLowerCase().split(/\W+/).some(w=> lower.includes(w) && w.length>4));
+  const newClues = [];
+  for(const clue of (ACTIVE_CASE.clues||[])){
+    const match = (clue.tags||[]).some(tag=> lower.includes(tag)) || lower.includes('21:17') || lower.includes('tote');
+    if(match){ if(!state.discovered.has(clue.id)){ state.discovered.add(clue.id); newClues.push(clue.id); } }
+  }
+  let body = hits.length ? hits.map(h=>h.text).slice(0,2).join(' ')
+            : `${char?.name||'Character'}: I can only speak about ${char?.scope?.join(', ')||'my notes'}. Could you ask something more specific?`;
+  if(/who did it|who is (it|the culprit|the perp)/i.test(question)){
+    body = `${char?.name||'I'} cannot say who is responsible. Ask about time, access, or what I directly observed.`;
+  }
+  return { text: body, clues:newClues };
+}
+
+// API answerer
+async function apiAnswer(question){
+  const urlBase = (window.API_BASE||'').replace(/\/$/,'');
+  try{
+    const r = await fetch(urlBase + '/ask', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ teamId:state.team, characterId:state.activeChar, message:question })
+    });
+    if(!r.ok) throw new Error('Network error');
+    const data = await r.json();
+    (data.citedClues||[]).forEach(id=> state.discovered.add(id));
+    return { text: data.answer || '(no answer)', clues:data.citedClues||[] };
+  }catch(e){
+    console.warn(e);
+    return { text:'(Backend not reachable. Switched to DEMO? Set Mode to API and try again.)', clues:[] };
+  }
+}
+
+// Load case from API (characters/clues)
+async function loadApiCase(){
+  const urlBase = (window.API_BASE||'').replace(/\/$/,'');
+  const r = await fetch(urlBase + '/case', {cache:'no-store'});
+  if(!r.ok) throw new Error('Case fetch failed');
+  const data = await r.json();
+  ACTIVE_CASE = data; // use server case
+}
+
+// Events
+function sendMessage(){
+  const inp = byId('composer');
+  const q = (inp.value||'').trim(); if(!q) return; inp.value='';
+  state.history.push({role:'user', text:q}); renderHistory(); save();
+  const answerer = state.mode==='api' ? apiAnswer : (x=>Promise.resolve(demoAnswer(x)));
+  answerer(q).then(res=>{
+    state.history.push({role:'ai', characterId:state.activeChar, text:res.text, clues:res.clues});
+    renderHistory(); renderClues(); save();
+  });
+}
+function openSubmit(){ byId('dlg-submit').style.display='flex'; byId('submit-feedback').textContent=''; }
+function closeSubmit(){ byId('dlg-submit').style.display='none'; }
+function gradeSubmission({perp,motive,method,time}){
+  const key = (DEMO_CASE.solution||{}).answer_key || {};
+  const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const score = {
+    perp: !!key.perp && norm(perp).includes(norm(key.perp)),
+    motive: !!key.motive && (norm(motive).includes('budget') || norm(motive).includes(norm(key.motive||''))),
+    method: !!key.method && (norm(method).includes('clone') || norm(method).includes(norm(key.method||''))),
+    time: /23[:. ]?4\d|23[:. ]?5\d|00[:. ]?\d\d/.test(time) // loose pattern for the new case window
+  };
+  const ok = Object.values(score).filter(Boolean).length;
+  return {score:ok, details:score};
+}
+const HINTS = [
+  'Compare library leaving time with the corridor sighting.',
+  'Ask who handled keys earlier in the day.',
+  'No forced entry means someone used a key.'
+];
+let hintIdx=0;
+function openHint(){ byId('hint-text').textContent = HINTS[(hintIdx++)%HINTS.length]; byId('dlg-hint').style.display='flex'; }
+function closeHint(){ byId('dlg-hint').style.display='none'; }
+function exportProgress(){
+  const data = { team:state.team, difficulty:state.difficulty, history:state.history, clues:[...state.discovered] };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `detective_progress_${(state.team||'team').replace(/\W+/g,'_')}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+// Wire up controls
+byId('btn-send').addEventListener('click', sendMessage);
+byId('composer').addEventListener('keydown', e=>{ if(e.key==='Enter') sendMessage(); });
+byId('btn-switch').addEventListener('click', ()=>{
+  const arr = ACTIVE_CASE.characters;
+  const idx = arr.findIndex(c=>c.id===state.activeChar);
+  state.activeChar = arr[(idx+1) % arr.length].id; renderCharacters(); renderTop(); sysNote('Character switched.'); save();
+});
+byId('btn-submit').addEventListener('click', openSubmit);
+byId('btn-export').addEventListener('click', exportProgress);
+byId('btn-clear').addEventListener('click', clearAll);
+byId('btn-hint').addEventListener('click', openHint);
+byId('btn-close-hint').addEventListener('click', closeHint);
+
+byId('btn-send-solution').addEventListener('click', ()=>{
+  const perp = byId('perp').value; const motive = byId('motive').value; const method = byId('method').value; const time = byId('timewin').value;
+  const res = gradeSubmission({perp,motive,method,time});
+  const fb = byId('submit-feedback');
+  fb.textContent = `Score ${res.score}/4 — ` + Object.entries(res.details).map(([k,v])=>`${k}:${v?'✓':'×'}`).join(' ');
+});
+byId('btn-cancel-solution').addEventListener('click', closeSubmit);
+
+// Landing
+byId('btn-start').addEventListener('click', async ()=>{
+  state.team = byId('inp-team').value.trim() || 'Team';
+  state.difficulty = byId('inp-difficulty').value;
+  state.mode = byId('inp-mode').value;
+
+  // clear old demo snapshot when switching to API
+  if(state.mode==='api'){ localStorage.removeItem(LS_KEY); state.history=[]; state.discovered=new Set(); }
+
+  byId('landing').style.display='none';
+
+  try{
+    if(state.mode==='api'){
+      await loadApiCase(); // fetch case from backend
+      sysNote(`Connected to API case: ${ACTIVE_CASE.title||'Case'}.`);
+    } else {
+      ACTIVE_CASE = DEMO_CASE;
+      sysNote('Demo mode: offline scripted case.');
+    }
+  }catch(e){
+    console.warn(e);
+    ACTIVE_CASE = DEMO_CASE; state.mode='demo';
+    sysNote('API not reachable. Falling back to DEMO mode.');
+    alert('Could not reach the backend. Showing DEMO case instead.');
+  }
+
+  renderCharacters(); renderTop(); renderHistory(); renderClues();
+  if(state.history.length===0){ sysNote('Select a character and start asking questions.'); }
+  save();
+});
+
+// Load previous
+byId('btn-load').addEventListener('click', ()=>{
+  if(load()){
+    byId('landing').style.display='none';
+    renderCharacters(); renderTop(); renderHistory(); renderClues();
+  } else {
+    alert('No previous progress found on this device.');
+  }
+});
+
+// Auto-init: force API mode if API_BASE is present
+(function init(){
+  try{
+    if(window.API_BASE){
+      // clean any lingering demo progress
+      localStorage.removeItem(LS_KEY);
+      sessionStorage.clear();
+      const sel = document.getElementById('inp-mode');
+      if(sel) sel.value = 'api';
+      state.mode='api';
+    }
+  }catch(e){}
+})();
+</script>
+
+<!-- Your backend URL -->
+<script>
+  window.API_BASE = "https://detective-backend-9qhh.onrender.com";
+</script>
+</body>
+</html>

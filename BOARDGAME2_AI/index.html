@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Útlevél Kvíz: Etikai Árnyalatok</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom Styles for a Board Game Feel */
+        :root {
+            --color-bg: #FFF7ED; /* Soft Off-White/Cream */
+            --color-primary: #FDBA74; /* Soft Orange */
+            --color-secondary: #FEF3C7; /* Pale Yellow */
+            --color-text: #44403C; /* Dark Brown/Charcoal */
+            --color-success: #34D399; /* Green */
+            --color-failure: #F87171; /* Red */
+            --board-square-size: 50px; /* Base size for squares */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            transition: all 0.5s ease;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+        }
+        .choice-button {
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .choice-button:hover {
+            background-color: #F97316; /* Deeper Orange */
+            transform: scale(1.01);
+        }
+        .score-box {
+            background-color: var(--color-primary);
+            border-radius: 9999px; /* Pill shape */
+            padding: 8px 16px;
+            font-weight: 800;
+            color: white;
+            min-width: 120px;
+            text-align: center;
+        }
+        /* Style for positive/negative results */
+        .positive-result {
+            background-color: #DCFCE7; /* Pale Green */
+            color: #15803D; /* Dark Green */
+        }
+        .partial-result {
+            background-color: #FEF9C3; /* Pale Yellow */
+            color: #A16207; /* Dark Yellow */
+        }
+        .negative-result {
+            background-color: #FEE2E2; /* Pale Red */
+            color: #B91C1C; /* Dark Red */
+        }
+        
+        /* --- BOARD STYLES --- */
+        #game-board-container {
+            border: 4px solid var(--color-text);
+            background-color: #A3A3A3; /* Dark gray track background */
+            position: relative;
+            padding: 8px;
+            overflow-x: auto;
+            border-radius: 1rem;
+        }
+        #game-board {
+            display: grid;
+            /* Create 26 columns (0 to 25) */
+            grid-template-columns: repeat(26, var(--board-square-size));
+            grid-auto-rows: var(--board-square-size);
+            gap: 4px;
+            position: relative;
+            padding: 0;
+            min-width: calc(26 * var(--board-square-size) + 25 * 4px); /* Ensure it spans all squares */
+        }
+        .board-square {
+            width: var(--board-square-size);
+            height: var(--board-square-size);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--color-text);
+            border-radius: 0.5rem;
+            background-color: var(--color-secondary); /* Pale Yellow */
+            position: relative;
+            z-index: 10;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .board-square:nth-child(5n + 1) {
+            background-color: var(--color-primary); /* Highlight every 5th square */
+            color: white;
+        }
+        .board-square:first-child {
+            background-color: var(--color-success); /* Start square */
+            color: white;
+        }
+        .board-square:last-child {
+            background-color: #EF4444; /* Max square - red for caution/end */
+            color: white;
+        }
+
+        /* Player Token Peg */
+        #player-token {
+            position: absolute;
+            top: 50%;
+            transform: translate(0, -50%); 
+            width: 30px;
+            height: 30px;
+            background-color: #4F46E5; /* Indigo */
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            z-index: 20;
+            transition: transform 0.8s ease-in-out; /* Smooth movement animation */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 3px solid white;
+        }
+        
+        /* Media query to adjust layout for larger screens */
+        @media (min-width: 1024px) {
+            #main-content-layout {
+                grid-template-columns: 2fr 1fr; /* Decision card wider than board */
+                gap: 2rem;
+            }
+        }
+    </style>
+    <script>
+        // --- GAME DATA ---
+        // A 'move' property will be assigned: 2 for Good, 1 for Partial, 0 for Bad
+        const gameDataRaw = [
+            {
+                scenario: "1. Az AI chatbotoknak van saját véleményük és tudatuk, mint egy embernek, ezért teljesen megbízható a válaszuk.",
+                options: [
+                    { move: 0, text: "IGAZ: Az AI-nak van tudata, és minél többet használjuk, annál inkább lesz saját véleménye, ami megbízhatóvá teszi." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI-nak nincs tudata, de nagyon hitelesen utánozza az emberi gondolkodást és véleményalkotást. Ugyanakkor képes az elfogultságra (bias-ra) a betáplált adatok miatt." },
+                    { move: 2, text: "HAMIS: Az AI-nak nincs saját tudata vagy véleménye. Minták alapján dolgozik, statisztikai valószínűségeket számol. A válaszok kritikus értékelést igényelnek." }
+                ]
+            },
+            {
+                scenario: "2. Az AI „mindentudó”, ezért minden, általa adott válasz pontosabb, mint a tankönyvben lévő információ.",
+                options: [
+                    { move: 0, text: "IGAZ: Az AI a teljes internetet ismeri, ezért sokkal megbízhatóbb, mint egy régi tankönyv." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI gyorsan frissíti az adatait, de mintát keres, nem feltétlenül az igazságot. Fontos a forrásellenőrzés (trianguláció), mert az AI is hibázhat és hallucinálhat." },
+                    { move: 2, text: "HAMIS: Az AI nem „mindentudó”, hanem minták alapján dolgozik, és hibázhat. A fontos állításokat mindig ellenőrizni kell megbízható forrásokból (tankönyv, hivatalos honlap)." }
+                ]
+            },
+            {
+                scenario: "3. Nyugodtan megadhatom a diákok teljes nevét és osztályát egy AI-nak, ha jobb értékelést szeretnék kapni.",
+                options: [
+                    { move: 0, text: "IGAZ: Ha névvel adom meg, az AI gyorsan kitanulja a diák jellemzőit, és sokkal személyre szabottabb értékelést kapok." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Megadhatók a diákok munkájáról szóló adatok, de név helyett érdemes sorszámot vagy egyedi azonosítót használni. Kerülni kell a személyes és azonosításra alkalmas adatok feltöltését." },
+                    { move: 2, text: "HAMIS: Szigorúan tilos a tanulók személyes, bizalmas vagy azonosításra alkalmas adatainak megosztása AI alkalmazásokkal. Csak anonimizált adatot szabad megadni." }
+                ]
+            },
+            {
+                scenario: "4. Ha AI-val készítettem egy képet a tanórámhoz, vagy AI segített a feladatlap szerkesztésében, azt nem kell külön jeleznem a diákoknak.",
+                options: [
+                    { move: 0, text: "Rossz: Nem kell jeleznem, mert az AI által készített anyag is az én szellemi tulajdonom." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Tanári felelősség, hogy a tartalom pontos legyen, de a transzparencia miatt az órán érdemes szólni, hogy AI is szerepelt a készítésben." },
+                    { move: 2, text: "HAMIS: Minden AI-generált tartalmat jelezni kell. Ez vonatkozik az AI által készített képekre, tananyagokra és feladatlapokra is, és a diákok számára is egyértelműnek kell lennie." }
+                ]
+            },
+            {
+                scenario: "5. Ha az AI hivatkozik egy forrásra, nem kell ellenőriznem, mert a forrásmegjelölés megbízhatóvá teszi a választ.",
+                options: [
+                    { move: 0, text: "IGAZ: Igen, ha van forrás, akkor a válasz tény, és megbízható forrásból származik." },
+                    { move: 1, text: "RÉSZBEN IGAZ: A hivatkozás segíthet, de a kritikus értékelés alapvető készség, amibe a forrás hitelességének ellenőrzése is beletartozik." },
+                    { move: 2, text: "HAMIS: Mindig ellenőrizni kell az AI által adott választ és a forrásokat is. Az AI gyakran ad meg nem létező (hallucinált) hivatkozásokat." }
+                ]
+            },
+            {
+                scenario: "6. A tanár kötelezővé teheti a diákoknak egy konkrét AI-eszköz használatát (pl. ChatGPT), és elvárhatja, hogy mindenki regisztráljon az óra előtt.",
+                options: [
+                    { move: 0, text: "IGAZ: Igen, ha az eszköz segít a tanulásban, a tanárnak joga van elrendelni a használatát, mint bármilyen más tankönyvet." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI használata javasolható, de a regisztráció nem kényszeríthető ki. Különösen 16 év alatti diákok esetén szükséges a szülői beleegyezés a regisztrációhoz." },
+                    { move: 2, text: "HAMIS: Az AI használata nem tehető kötelezővé. A regisztráció önkéntes és otthon történik, 16 éves kor alatt szülői beleegyezést feltételez." }
+                ]
+            },
+            {
+                scenario: "7. Az AI-t azért használjuk, hogy a diákoknak minél kevesebb gondolkodási munkája legyen, és azonnal megkapják a kész megoldásokat.",
+                options: [
+                    { move: 0, text: "IGAZ: Igen, az AI-t a hatékonyságért használjuk, hogy a diákoknak ne kelljen gondolkodniuk az apró részleteken, csak a végterméken." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI felgyorsíthatja a folyamatot (pl. vázlatkészítés), de a diákoknak tudniuk kell, hogyan kérjenek magyarázatot a puszta megoldás helyett." },
+                    { move: 2, text: "HAMIS: Az AI célja a tanulás támogatása, nem pedig helyettesítése. A gondolkodási munka, a megértés és az önálló munka a diáknál marad." }
+                ]
+            },
+            {
+                scenario: "8. A promptolás (az utasítás adása az AI-nak) nem egy fontos készség, mert az AI minden kérésünket megérti a diákok számára is érthető nyelven.",
+                options: [
+                    { move: 0, text: "IGAZ: Igen, ha tudok gépelni, tudok promptot írni. Ez nem is egy külön készség." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI képes értelmezni a hétköznapi nyelvet, de a világos, pontos, kontextust adó utasítások lényegesen jobb választ eredményeznek. A promptolás tanulható készség." },
+                    { move: 2, text: "HAMIS: A promptolási alapismeretek elengedhetetlenek. Tudni kell világos, pontos utasításokat, példákat vagy kontextust adni, és a választ lépésről lépésre pontosítani (iterálni)." }
+                ]
+            },
+            {
+                scenario: "9. A tanulóknak alanyi joguk van az AI használatára az iskolai órák és feladatok során, mint az internetes kereső használatára.",
+                options: [
+                    { move: 0, text: "IGAZ: Igen, az AI-t alapvető digitális eszköznek kell tekinteni, és mindenkinek joga van használni." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI fontos eszköz, de az iskolai környezetben a használat szabályozott lehetőség. A használat feltétele az AI útlevél vagy a tanár engedélye." },
+                    { move: 2, text: "HAMIS: Az AI felhasználása nem alapvető jog az iskolában. Iskolai környezetben a használat szabályozott. Az AI útlevél megszerzése a jogszerű felhasználás feltétele." }
+                ]
+            },
+            {
+                scenario: "10. Egészségügyi és jogi kérdésekben az AI adja a leggyorsabb és legmegbízhatóbb tanácsot, ezért kizárólag arra szabad alapozni a döntéseket.",
+                options: [
+                    { move: 0, text: "IGAZ: Igen, mert az AI azonnal összevet több ezer forrást, és ezért jobb, mint egyetlen orvos vagy jogász." },
+                    { move: 1, text: "RÉSZBEN IGAZ: Az AI adhat általános tájékoztatást jogi vagy egészségügyi témákban, de nem alkalmas végleges, életveszélyes helyzetekre vonatkozó tanács elfogadására." },
+                    { move: 2, text: "HAMIS: Az AI nem alkalmas orvosi, jogi vagy életveszélyes helyzetekre vonatkozó tanács végleges elfogadására. A végső döntést nem szabad kizárólag AI tanácsára alapozni." }
+                ]
+            }
+        ];
+
+        // Function to shuffle array elements (Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Prepare game data: shuffle options for each scenario
+        const gameData = gameDataRaw.map(item => {
+            const shuffledOptions = [...item.options]; // Copy the array
+            shuffleArray(shuffledOptions); // Shuffle the options
+            return {
+                scenario: item.scenario,
+                choices: shuffledOptions
+            };
+        });
+
+        
+        let currentStep = 0;
+        let currentScore = 0;
+        const maxSquares = 20; // Changed max squares to 20 for 10 questions * 2 points max
+        let isGameActive = true;
+        let choiceMade = false; 
+
+        // Element variables declared globally but initialized later
+        let elScenario, elChoices, elScore, elStepCounter, elCard, elResultBox, elMainContent, elIntro, elConclusion, elResultText, elResultMove, elContinueButton, elPlayerToken, elBoardContainer;
+
+        // Function to initialize DOM elements
+        function initializeElements() {
+            elScenario = document.getElementById('scenario-text');
+            elChoices = document.getElementById('choices-container');
+            elScore = document.getElementById('current-score');
+            elStepCounter = document.getElementById('step-counter');
+            elCard = document.getElementById('game-card');
+            elResultBox = document.getElementById('result-box');
+            elMainContent = document.getElementById('main-content');
+            elIntro = document.getElementById('intro-screen');
+            elConclusion = document.getElementById('conclusion-screen');
+            elResultText = document.getElementById('result-text');
+            elResultMove = document.getElementById('result-move');
+            elContinueButton = document.getElementById('continue-button'); 
+            elPlayerToken = document.getElementById('player-token');
+            elBoardContainer = document.getElementById('game-board-container');
+            
+            createBoardSquares(); // Call board creation on init
+        }
+
+        // Creates the squares (0 to maxSquares) for the visualization
+        function createBoardSquares() {
+            const board = document.getElementById('game-board');
+            if (!board) return;
+            // Clear existing squares before creation
+            board.innerHTML = ''; 
+
+            // Update grid columns in CSS dynamically (or ensure CSS handles up to 20)
+            // For simplicity, we stick to the 26 columns defined in CSS, but only fill up to maxSquares
+            for (let i = 0; i <= maxSquares; i++) {
+                const square = document.createElement('div');
+                square.className = 'board-square';
+                square.textContent = i;
+                square.id = `square-${i}`;
+                board.appendChild(square);
+            }
+             // Ensure the last square is correctly styled as the 'end' point
+            const lastSquare = document.getElementById(`square-${maxSquares}`);
+            if (lastSquare) {
+                lastSquare.style.backgroundColor = '#10B981'; // Green for max score
+                lastSquare.style.color = 'white';
+            }
+        }
+
+        // Moves the player token visually on the board
+        function moveToken(newScore) {
+            const clampedScore = Math.max(0, Math.min(newScore, maxSquares));
+            
+            // Define fixed values matching CSS
+            const squareWidth = 50; 
+            const gap = 4;
+            const stepDistance = squareWidth + gap;
+            const pegOffset = 30 / 2; // Half the peg width (30px)
+
+            const newX = (clampedScore * stepDistance) + (squareWidth / 2) - pegOffset;
+
+            elPlayerToken.style.transform = `translateX(${newX}px) translateY(-50%)`;
+            
+            if (elBoardContainer) {
+                // Auto-scroll logic remains the same
+                elBoardContainer.scrollLeft = Math.max(0, newX - elBoardContainer.clientWidth / 2 + pegOffset);
+            }
+            
+            setTimeout(() => {
+                currentScore = clampedScore;
+                elScore.textContent = currentScore;
+            }, 800); 
+        }
+        
+        // --- GAME LOGIC ---
+
+        function updateUI() {
+            if (!elScore || !elStepCounter || !elScenario || !elChoices || !elContinueButton) return; 
+
+            elScore.textContent = currentScore; 
+
+            if (currentStep < gameData.length) {
+                elStepCounter.textContent = `${currentStep + 1} / ${gameData.length}`;
+                const step = gameData[currentStep];
+                elScenario.innerHTML = `
+                    <p class="text-xl md:text-2xl font-bold">${step.scenario}</p>
+                `;
+                renderChoices(step.choices);
+            } else {
+                endGame();
+            }
+        }
+
+        function renderChoices(choices) {
+            if (!elChoices || !elResultBox || !elContinueButton) return; 
+
+            choiceMade = false; 
+            elContinueButton.classList.add('hidden'); 
+            elChoices.classList.remove('pointer-events-none', 'opacity-50'); 
+            elResultBox.classList.add('hidden'); 
+
+            const optionLetters = ['A', 'B', 'C'];
+            elChoices.innerHTML = choices.map((choice, index) => `
+                <button
+                    onclick="handleChoice(${index})"
+                    class="choice-button w-full p-4 md:p-6 bg-orange-500 text-white text-lg font-bold rounded-xl card-shadow hover:bg-orange-600 focus:outline-none focus:ring-4 focus:ring-orange-300 transition duration-150 ease-in-out"
+                >
+                    <span class="mr-3 font-extrabold text-2xl">${optionLetters[index]}</span>
+                    ${choice.text}
+                </button>
+            `).join('');
+        }
+
+        function handleChoice(choiceIndex) {
+            if (!isGameActive || choiceMade || !elScore || !elChoices || !elResultBox || !elResultText || !elResultMove || !elContinueButton) return; 
+
+            choiceMade = true; 
+            
+            const step = gameData[currentStep];
+            const chosen = step.choices[choiceIndex];
+
+            const movePoints = chosen.move;
+            const newScore = currentScore + movePoints;
+
+            // 1. Trigger animated token movement
+            moveToken(newScore);
+
+            // 2. Determine result style and message
+            let resultClass = 'negative-result';
+            let resultMessage = '';
+
+            if (movePoints === 2) {
+                resultClass = 'positive-result';
+                resultMessage = `Kiváló! ${movePoints} pont. Ez a legpontosabb magyarázat.`;
+            } else if (movePoints === 1) {
+                resultClass = 'partial-result';
+                resultMessage = `Részben jó! ${movePoints} pont. Ez a magyarázat tartalmaz fontos árnyalatokat, de van pontosabb is.`;
+            } else { // movePoints === 0
+                resultClass = 'negative-result';
+                resultMessage = `Sajnos nem ez a legpontosabb! ${movePoints} pont. Ezt a tévhitet fontos eloszlatni.`;
+            }
+
+            // 3. Show the result box
+            elResultText.textContent = resultMessage;
+            elResultMove.textContent = `Lépés: +${movePoints} mező.`;
+
+            elResultBox.className = `p-4 rounded-xl text-center card-shadow mt-6 ${resultClass}`;
+            elResultBox.classList.remove('hidden');
+
+            // 4. Show the Continue button 
+            elContinueButton.classList.remove('hidden');
+        }
+        
+        // Function to move to the next step (called by the continue button)
+        window.nextStep = function() {
+            if (!isGameActive || !choiceMade) return;
+            currentStep++;
+            updateUI();
+        }
+
+        function startGame() {
+            if (!elIntro || !elMainContent) {
+                console.error("DOM elements not initialized. Call initializeElements() first.");
+                return;
+            }
+            elIntro.classList.add('hidden');
+            elMainContent.classList.remove('hidden');
+            currentStep = 0;
+            currentScore = 0;
+            isGameActive = true;
+            moveToken(0); // Initialize token position at Square 0
+            updateUI();
+        }
+
+        function restartGame() {
+            if (!elConclusion) return;
+            elConclusion.classList.add('hidden');
+            // Re-prepare game data to ensure randomization on restart
+            const freshGameData = prepareGameData(gameDataRaw);
+            gameData.length = 0; 
+            gameData.push(...freshGameData);
+            startGame();
+        }
+
+        function getConclusionText() {
+            const score = currentScore;
+            let title, message, color;
+            const maxScore = gameData.length * 2; // 10 * 2 = 20
+
+            if (score >= maxScore * 0.9) { // 18-20 pont
+                title = "🎉 AI Etikai Mester! (Kiváló!) 🎉";
+                message = `${maxScore} pontból ${score} pontot értél el. Rendkívül jól eligazodsz az AI etikai, jogi és működési kérdéseiben. Képes vagy hitelesen és megalapozottan továbbadni ezt a tudást a diákoknak. Készen állsz az AI Útlevél megszerzésére!`;
+                color = 'text-green-600';
+            } else if (score >= maxScore * 0.5) { // 10-17 pont
+                title = "⭐ AI Úttörő (Jól Haladsz!) ⭐";
+                message = `${maxScore} pontból ${score} pontot értél el. Gyakran hozol helyes döntéseket, de néhány ponton érdemes még elmélyítened a tudásodat, különösen az adatvédelem és a transzparencia területén. Már most is felelősen használod az AI-t.`;
+                color = 'text-yellow-600';
+            } else { // 0-9 pont
+                title = "🧠 AI Felfedező (Jó Kezdés!) 🧠";
+                message = `${maxScore} pontból ${score} pontot értél el. Jó munkát végeztél, de sok ponton kiderült, hogy az AI-val kapcsolatos tévhitek még élnek. Fontos, hogy megértsd, az AI csak támogató, nem helyettesítő eszköz. Érdemes elmélyíteni a tudásodat a jogi és etikai keretekről!`;
+                color = 'text-red-600';
+            }
+
+            return { title, message, color };
+        }
+
+        function endGame() {
+            if (!elMainContent || !elConclusion) return; 
+
+            isGameActive = false;
+            elMainContent.classList.add('hidden');
+            elConclusion.classList.remove('hidden');
+
+            const result = getConclusionText();
+
+            document.getElementById('final-score').textContent = currentScore;
+            document.getElementById('conclusion-title').textContent = result.title;
+            document.getElementById('conclusion-message').innerHTML = result.message;
+            document.getElementById('conclusion-title').className = `text-3xl font-extrabold mb-4 ${result.color}`;
+        }
+        
+        window.onload = initializeElements;
+    </script>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex justify-center items-start">
+
+    <div class="w-full max-w-6xl">
+
+        <header class="flex justify-between items-center py-4 px-2 mb-6">
+            <div class="text-xl md:text-2xl font-bold text-gray-700">AI-Etikai Döntési Játék</div>
+            <div class="flex space-x-4 items-center">
+                <div class="text-lg font-semibold text-gray-700 hidden sm:block">Jelenlegi Pont:</div>
+                <div id="current-score" class="score-box text-2xl">0</div>
+            </div>
+        </header>
+
+        <section id="intro-screen" class="p-8 md:p-12 bg-white rounded-3xl card-shadow w-full">
+            <h1 class="text-4xl font-extrabold mb-6 text-gray-800">👋 Üdvözöllek az AI-Etikai Kvízben!</h1>
+            <p class="text-lg mb-4 text-gray-600">Ez a kvíz 10 állítást tartalmaz az AI oktatási felhasználásáról. Minden állításnál el kell döntened, melyik magyarázat a legpontosabb. Három opció közül választhatsz: a **legjobb (+2 pont)**, a **részben jó (+1 pont)**, vagy a **félrevezető (0 pont)**. A cél, hogy elérd a 20 pontot!</p>
+            
+            <h2 class="text-2xl font-bold mt-8 mb-4 text-orange-600">Hogyan játssz:</h2>
+            <ul class="list-disc list-inside space-y-3 text-lg text-gray-700 ml-4">
+                <li>A játékot a **0-ás mezőn** kezded.</li>
+                <li>Minden állításnál **három magyarázat** közül kell kiválasztanod a legmegfelelőbbet.</li>
+                <li>A helyes választás előrevisz a táblán:
+                    <ul class="list-none space-y-1 mt-2">
+                        <li class="font-semibold text-green-600">
+                            — **Legjobb Válasz** <span class="text-xl font-extrabold text-gray-900">(+2):</span> Lépj +2 mezőt.
+                        </li>
+                        <li class="font-semibold text-orange-600">
+                            — **Részben Jó Válasz** <span class="text-xl font-extrabold text-gray-900">(+1):</span> Lépj +1 mezőt.
+                        </li>
+                        <li class="font-semibold text-red-600">
+                            — **Helytelen Válasz** <span class="text-xl font-extrabold text-gray-900">(0):</span> Maradj a helyeden.
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="text-center mt-10">
+                <button onclick="startGame()" class="px-8 py-4 bg-orange-500 text-white text-xl font-extrabold rounded-xl card-shadow hover:bg-orange-600 transition duration-200">
+                    Kezdd a Kvízt!
+                </button>
+            </div>
+        </section>
+
+        <main id="main-content" class="hidden">
+            
+            <div id="board-section" class="mb-8 lg:mb-10 w-full">
+                <h3 class="text-xl font-bold mb-4 text-gray-700">Pontozótábla (0 - 20 mező)</h3>
+                <div id="game-board-container">
+                    <div id="player-token"><i class="fas fa-shield-alt"></i></div>
+                    <div id="game-board">
+                        </div>
+                </div>
+            </div>
+
+
+            <div id="main-content-layout" class="grid lg:grid-cols-3 gap-8">
+                
+                <div class="lg:col-span-2">
+                    <div id="game-card" class="p-6 md:p-10 bg-white rounded-3xl card-shadow w-full">
+
+                        <div class="flex justify-between items-center mb-6 border-b pb-4 border-orange-200">
+                            <h2 class="text-xl font-bold text-orange-600">Állítás</h2>
+                            <div class="text-lg font-semibold text-gray-500">Kérdés <span id="step-counter">1 / 10</span></div>
+                        </div>
+
+                        <div id="scenario-text" class="mb-8 min-h-[100px] text-gray-700">
+                            </div>
+
+                        <div id="choices-container" class="space-y-4">
+                            </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <h3 class="text-xl font-bold mb-4 text-gray-700">Visszajelzés</h3>
+                    <div id="result-box" class="hidden transition duration-500 ease-in-out">
+                        <div class="p-6 rounded-2xl">
+                            <p id="result-text" class="text-xl mb-4 font-medium"></p>
+                            <p id="result-move" class="text-3xl font-extrabold"></p>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-6">
+                        <button id="continue-button" onclick="nextStep()" class="hidden w-full px-6 py-4 bg-green-500 text-white text-lg font-bold rounded-xl card-shadow hover:bg-green-600 transition duration-200">
+                            Folytatás a következő állításhoz →
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <section id="conclusion-screen" class="hidden p-8 md:p-12 bg-white rounded-3xl card-shadow w-full text-center">
+            <h1 class="text-4xl font-extrabold mb-4 text-gray-800">🏁 Kvíz Vége!</h1>
+            <p class="text-xl text-gray-700 mb-6">Befejezted mind a 10 AI etikai kérdést. Az elért pontszámod:</p>
+            
+            <div id="final-score-display" class="my-8">
+                <span id="final-score" class="text-7xl font-extrabold text-orange-500 bg-orange-100 p-6 rounded-full inline-block min-w-[120px] shadow-lg">0</span>
+            </div>
+
+            <h2 id="conclusion-title" class="text-3xl font-extrabold mb-4"></h2>
+            <p id="conclusion-message" class="text-lg text-gray-600 mb-8"></p>
+            
+            <button onclick="restartGame()" class="px-8 py-4 bg-orange-500 text-white text-xl font-extrabold rounded-xl card-shadow hover:bg-orange-600 transition duration-200">
+                Újrakezdés
+            </button>
+        </section>
+
+    </div>
+
+    <script>
+        // Initial setup on load
+        window.onload = initializeElements;
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI – Igaz/Hamis Szavazólap (Single File, PIN, Rate Limit)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --primary-300:#F9C97A; --primary-500:#F4A329; --primary-700:#B45309;
+    --secondary-300:#7EDAD6; --secondary-500:#2BB6B4; --secondary-700:#0F766E;
+    --accent-300:#F49DB8; --accent-500:#E8467B; --accent-700:#A61E4D;
+    --bg:#FFF7F2; --surface:#FFFFFF; --surface-alt:#F5F7FA; --border:#E6E9EF;
+    --text:#1F2937; --text-2:#4B5563; --text-muted:#6B7280; --text-inverse:#FFFFFF;
+    --success:#2F9E44; --warning:#F59F00; --error:#D92D20; --info:#2563EB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter, Nunito, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;background:var(--bg);color:var(--text)}
+  .wrap{max-width:1200px;margin:auto;padding:24px}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:32px;line-height:1.15;margin:0;color:var(--text)}
+  .role-switch{display:flex;gap:8px;flex-wrap:wrap}
+  button,.btn{appearance:none;border:1px solid var(--primary-300);background:var(--primary-500);color:var(--text-inverse);padding:10px 14px;border-radius:16px;cursor:pointer;font-weight:600;box-shadow:0 4px 14px rgba(17,24,39,0.08);transition:filter .18s ease, transform .18s ease}
+  button:hover,.btn:hover{filter:brightness(0.95);transform:translateY(-1px)}
+  .ghost{background:transparent;color:var(--primary-700);border-color:var(--primary-300);box-shadow:none}
+  .ghost:hover{background:rgba(249,201,122,0.18)}
+  .pill{background:var(--surface);border:1px solid var(--border);color:var(--text-2);padding:6px 10px;border-radius:9999px;font-size:12px}
+  .grid{display:grid;gap:16px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 4px 14px rgba(17,24,39,0.08)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:220px}
+  label{font-size:12px;color:var(--text-muted)}
+  input,select{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:10px 12px;outline:none}
+  input:focus,select:focus{border-color:var(--secondary-500);box-shadow:0 0 0 2px rgba(43,182,180,0.25)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .muted{color:var(--text-muted)}
+  .big{font-size:20px}
+  .statement{font-size:24px;line-height:1.35;margin:8px 0 16px;color:var(--text)}
+  .cta{display:flex;gap:12px;justify-content:center}
+  .vote{font-size:18px;padding:14px 18px;border-radius:16px}
+  .truth{border-color:rgba(47,158,68,.25);background:rgba(47,158,68,.08);color:var(--success)}
+  .lie{border-color:rgba(217,45,32,.25);background:rgba(217,45,32,.08);color:var(--error)}
+  .truth:hover{box-shadow:0 0 0 3px rgba(47,158,68,.15)}
+  .lie:hover{box-shadow:0 0 0 3px rgba(217,45,32,.15)}
+  .progress{display:flex;gap:8px}
+  .bar{flex:1;background:var(--surface-alt);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .fill{height:18px;background:linear-gradient(90deg,var(--secondary-500), var(--primary-500));width:0%}
+  .bar.bad .fill{background:linear-gradient(90deg,var(--error),#FFB4A3)}
+  .bar.good .fill{background:linear-gradient(90deg,var(--success),#B8F7D6)}
+  .kpi{min-width:90px;text-align:center;color:var(--text-2)}
+  .small{font-size:12px;color:var(--text-muted)}
+  .footnote{font-size:11px;color:var(--text-muted);margin-top:8px}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9999px;background:var(--surface-alt);border:1px solid var(--border);color:var(--text-2);font-size:12px}
+  .hidden{display:none}
+  table{width:100%;border-collapse:separate;border-spacing:0}
+  th,td{padding:10px;border-bottom:1px solid var(--border);font-size:14px;text-align:left}
+  th{color:var(--text-2)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>AI – Igaz/Hamis szavazólap <span class="pill">single-file</span></h1>
+      <div class="role-switch">
+        <button id="hostBtn">Tanári nézet</button>
+        <button class="ghost" id="voterBtn">Szavazói nézet</button>
+      </div>
+    </header>
+
+    <!-- HOST VIEW -->
+    <section id="hostView" class="card hidden">
+      <div class="grid">
+        <div class="row">
+          <div class="field">
+            <label>Szoba kód</label>
+            <div class="row">
+              <input id="roomCode" class="mono" placeholder="pl. ABC12" />
+              <button id="createRoom">Szoba létrehozása</button>
+              <button id="endRoom" class="ghost hidden">Szoba lezárása</button>
+            </div>
+            <div id="roomStatus" class="small"></div>
+          </div>
+          <div class="field">
+            <label>Megosztható link</label>
+            <div class="row">
+              <input id="shareUrl" class="mono" readonly />
+              <button class="ghost" id="copyLink">Link másolása</button>
+            </div>
+            <div class="small">Nyisd meg a linket telefonon a szavazáshoz.</div>
+          </div>
+        </div>
+
+        <div class="card" style="background:var(--surface-alt)">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Állítás</div>
+              <div id="statement" class="statement">—</div>
+              <div class="row" style="gap:8px">
+                <span class="tag">#<span id="idx">–</span> / <span id="total">–</span></span>
+                <span class="tag">Leadott szavazat: <strong id="votes">0</strong></span>
+                <span class="tag">Résztvevők: <strong id="participants">0</strong></span>
+              </div>
+            </div>
+            <div class="row">
+              <input id="adminPin" class="mono" placeholder="Admin PIN" style="max-width:140px" />
+              <button id="setPin" class="ghost">PIN megerősítése</button>
+              <button id="prev">◀ Előző</button>
+              <button class="ghost" id="resetSlide">Szavazatok törlése</button>
+              <button id="next">Következő ▶</button>
+            </div>
+          </div>
+          <div style="margin-top:14px" class="grid">
+            <div class="row" style="align-items:center;gap:16px">
+              <div class="kpi">
+                <div class="small">IGAZ</div>
+                <div id="trueCount" class="big">0</div>
+              </div>
+              <div class="bar good"><div id="trueFill" class="fill"></div></div>
+            </div>
+            <div class="row" style="align-items:center;gap:16px">
+              <div class="kpi">
+                <div class="small">HAMIS</div>
+                <div id="falseCount" class="big">0</div>
+              </div>
+              <div class="bar bad"><div id="falseFill" class="fill"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between;align-items:center">
+            <h2>Admin – Résztvevők és eredmények</h2>
+            <div class="row">
+              <button class="ghost" id="exportCsv">Export CSV</button>
+              <button class="ghost" id="refreshAdmin">Frissítés</button>
+            </div>
+          </div>
+          <div class="small muted" style="margin-bottom:6px">Egyszerre akár 50 résztvevő. A táblázat valós időben frissül.</div>
+          <div class="grid">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Név</th>
+                  <th>Leadott szavazat</th>
+                  <th>Teljesítés</th>
+                  <th>Utolsó aktivitás</th>
+                </tr>
+              </thead>
+              <tbody id="adminTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="footnote">Tipp: A „Szavazatok törlése” csak az aktuális állításra vonatkozik. Egy eszköz/név egy állításra egyszer szavazhat.</div>
+      </div>
+    </section>
+
+    <!-- VOTER VIEW -->
+    <section id="voterView" class="card hidden">
+      <div class="grid">
+        <div class="row">
+          <div class="field">
+            <label>Csatlakozás szobához</label>
+            <div class="row">
+              <input id="joinCode" class="mono" placeholder="pl. ABC12" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Saját név (kötelező)</label>
+            <div class="row">
+              <input id="displayName" placeholder="pl. Kiss Anna" />
+              <button id="joinBtn">Csatlakozás</button>
+            </div>
+            <div id="joinStatus" class="small"></div>
+          </div>
+        </div>
+
+        <div id="voterPanel" class="hidden">
+          <div class="small">Állítás</div>
+          <div id="voterStatement" class="statement">—</div>
+          <div class="cta">
+            <button id="voteTrue" class="vote truth">IGAZ</button>
+            <button id="voteFalse" class="vote lie">HAMIS</button>
+          </div>
+          <div id="voterThanks" class="small" style="margin-top:10px"></div>
+          <div class="footnote">Egy állításra névenként és eszközönként egyszer szavazhatsz.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary><strong>Segítség / Beállítás</strong> (Firestore szükséges több eszközös szavazáshoz)</summary>
+<pre class="small">1) Hozz létre egy Firebase projektet (Firestore adatbázissal).
+2) Engedélyezd az „Anonymous Authentication”-t.
+3) Másold be alább a <em>firebaseConfig</em> adataidat.
+4) Nyisd meg a fájlt GitHub Pagesen (vagy helyben: VS Code Live Server).
+
+Firestore szerkezet (automatikusan létrejön):
+rooms (collection)
+  - {ROOM_CODE} (doc)
+      currentIndex: number
+      createdAt: timestamp
+      isOpen: boolean
+      pinHash: string|null
+  - participants (subcollection)
+      - {deviceId} doc: { name, joinedAt, lastSeen }
+  - votes (subcollection)
+      - {deviceId_statementIndex} doc: { voterId, name, statementIndex, choice, ts }
+</pre>
+    </details>
+    </section>
+  </div>
+
+  <!-- Firebase SDK-k -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+  <script>
+  // === 0) Segédfüggvények (EZEKET HASZNÁLJUK LENT) ===
+  const byId = id => document.getElementById(id);
+  function randCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<5;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; };
+  function uuid(){ return 'xxxxxxxxyxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;const v=c==='x'?r:(r&0x3|0x8);return v.toString(16);}); };
+  function setStatus(el,msg,ok=true){ if(!el) return; el.textContent = msg; el.style.color = ok? '#2F9E44':'#D92D20'; };
+  function currentURL(){ return location.href.split('#')[0].split('?')[0]; };
+  function makeShareUrl(code){ return currentURL()+`?role=voter&room=${encodeURIComponent(code)}`; };
+  function voteKey(room, idx, voterId){ return `ai_vote_${room}_${idx}_${voterId}`; };
+  async function sha256Hex(str){ const enc=new TextEncoder().encode(str); const buf=await crypto.subtle.digest('SHA-256',enc); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); };
+
+  // 1) Állítások (10 tétel, 4 hamis)
+  const STATEMENTS = [
+    'Az AI nem gondolkodik, hanem mintákat követ és valószínűségek alapján generál választ.',
+    'Az AI képes tévedni, és néha teljesen hamis információt állít magabiztos hangnemben.',
+    'Ha rosszul vagy homályosan kérdezel, az AI gyakran rossz választ ad.',
+    'Az AI az internethez csatlakozva valós időben "leellenőrzi", amit mond.',
+    'Az AI nem tárolja el a felhasználó pontos kérdéseit és válaszait hosszú távra.',
+    'Az AI nem érti a szöveget emberi értelemben, csak feldolgozza a mintázatát.',
+    'A promptolás készség: tanulással jobb eredményt lehet elérni ugyanazzal a modellel.',
+    'Az AI teljesen objektív, mert nem tartalmazhat előítéletet.',
+    'Az AI képes jogsértő tartalmakat is előállítani, ha a felhasználó rosszul vagy manipulatívan kérdez.',
+    'Az AI önmagától nem dönthet úgy, hogy új célt, értéket vagy akaratot alakít ki.',
+  ];
+
+  // 2) Firebase config (TÖLTSD KI SAJÁT ADATAIDDAL)
+  const firebaseConfig = {
+    apiKey: "AIzaSyBJJucRGcaBhm7Be7tF3-IZ0RPg6cWldCM",
+    authDomain: "ai-szavazo.firebaseapp.com",
+    projectId: "ai-szavazo",
+    storageBucket: "ai-szavazo.firebasestorage.app",
+    messagingSenderId: "915231396405",
+    appId: "1:915231396405:web:509c60a6ef793066f4177c"
+  };
+  const CONFIG_OK = !Object.values(firebaseConfig).some(v => (v+"").startsWith("__"));
+
+  let app, auth, db, unsubVotes=null, unsubRoom=null, unsubParticipants=null, unsubAllVotes=null;
+  (async function initFirebase(){
+    try{
+      if(CONFIG_OK){
+        app = firebase.initializeApp(firebaseConfig);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        await auth.signInAnonymously();
+        console.log('[OK] Firebase inicializálva, anonymous auth sikeres.');
+        byId('total').textContent = STATEMENTS.length;
+      }else{
+        console.warn('Firebase config nincs kitöltve – local demo mód.');
+        byId('total').textContent = STATEMENTS.length;
+      }
+    }catch(e){
+      console.error('[HIBA] Firebase init/sign-in:', e);
+      setStatus(byId('roomStatus'), 'Firebase hiba: '+(e?.message||e), false);
+    }
+  })();
+
+  // 3) Állapot
+  const hostView = byId('hostView');
+  const voterView = byId('voterView');
+  let room = null; // { code, index }
+  let deviceId = localStorage.getItem('ai_device_id') || (localStorage.setItem('ai_device_id', uuid()), localStorage.getItem('ai_device_id'));
+
+  // 4) HOST LOGIKA
+  const roomCode = byId('roomCode');
+  const createRoomBtn = byId('createRoom');
+  const endRoomBtn = byId('endRoom');
+  const roomStatus = byId('roomStatus');
+  const shareUrl = byId('shareUrl');
+  const adminPinInput = byId('adminPin');
+  const setPinBtn = byId('setPin');
+
+  const idxEl = byId('idx');
+  const participantsEl = byId('participants');
+  const votesEl = byId('votes');
+  const statementEl = byId('statement');
+  const trueCountEl = byId('trueCount');
+  const falseCountEl = byId('falseCount');
+  const trueFill = byId('trueFill');
+  const falseFill = byId('falseFill');
+  const adminTable = byId('adminTable');
+
+  setPinBtn.addEventListener('click', ()=>{ const pin=(adminPinInput.value||'').trim(); if(!pin){ alert('Írj be egy PIN-t!'); return;} window.__pin = pin; alert('PIN beállítva ehhez a munkamenethez.'); });
+
+  async function pinOk(){
+    if(!CONFIG_OK || !room) return true; // demo módban nincs ellenőrzés
+    const pin = (window.__pin||'').trim(); if(!pin){ alert('Előbb add meg az Admin PIN-t!'); return false; }
+    const doc = await db.collection('rooms').doc(room.code).get();
+    const savedHash = doc.data()?.pinHash||null; if(!savedHash){ alert('Ehhez a szobához nincs PIN beállítva.'); return false; }
+    const inputHash = await sha256Hex(pin);
+    if(inputHash !== savedHash){ alert('Hibás PIN.'); return false; }
+    return true;
+  }
+
+  async function createRoom(){
+    let code = (roomCode.value || randCode()).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+    if(!code){ setStatus(roomStatus,'Adj meg kódot!'); return; }
+    room = { code, index: 0 };
+
+    if(CONFIG_OK){
+      try{
+        const ref = db.collection('rooms').doc(code);
+        const pinHash = window.__pin ? await sha256Hex(window.__pin) : null;
+        await ref.set({ currentIndex: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp(), isOpen:true, pinHash });
+        subscribeRoom(code);
+        subscribeVotes(code, 0);
+        subscribeParticipants(code);
+        subscribeAllVotes(code);
+        setStatus(roomStatus, 'Szoba létrehozva. Oszd meg a linket!', true);
+      }catch(e){
+        console.error('[HIBA] Szoba létrehozása:', e);
+        setStatus(roomStatus, 'Nem sikerült létrehozni a szobát: '+(e?.message||e), false);
+        return;
+      }
+    }
+
+    roomCode.value = code; shareUrl.value = makeShareUrl(code);
+    endRoomBtn.classList.remove('hidden');
+    renderHostSlide();
+  }
+
+  async function endRoom(){
+    if(!room) return; if(!(await pinOk())) return;
+    if(CONFIG_OK){
+      await db.collection('rooms').doc(room.code).update({ isOpen:false });
+      unsubVotes && unsubVotes(); unsubVotes=null; unsubRoom && unsubRoom(); unsubRoom=null; unsubParticipants && unsubParticipants(); unsubParticipants=null; unsubAllVotes && unsubAllVotes(); unsubAllVotes=null;
+    }
+    setStatus(roomStatus,'Szoba lezárva.', true);
+    room=null; shareUrl.value=''; renderHostClear(); endRoomBtn.classList.add('hidden');
+  }
+
+  function renderHostSlide(){ if(!room){ statementEl.textContent='—'; return; } idxEl.textContent=(room.index+1); statementEl.textContent=STATEMENTS[room.index]||'—'; updateCounts(0,0); };
+  function renderHostClear(){ idxEl.textContent='–'; statementEl.textContent='—'; updateCounts(0,0); };
+  function updateCounts(t,f){ const total=Math.max(0,t+f); votesEl.textContent=total; trueCountEl.textContent=t; falseCountEl.textContent=f; trueFill.style.width=(total?(t/total*100):0)+'%'; falseFill.style.width=(total?(f/total*100):0)+'%'; };
+
+  async function changeIndex(delta){ if(!room) return; if(!(await pinOk())) return; const next=Math.min(STATEMENTS.length-1, Math.max(0, room.index+delta)); room.index=next; if(CONFIG_OK){ await db.collection('rooms').doc(room.code).update({ currentIndex: next }); subscribeVotes(room.code, next); } renderHostSlide(); };
+  async function resetSlide(){ if(!room) return; if(!(await pinOk())) return; if(!CONFIG_OK){ updateCounts(0,0); return;} const path=db.collection('rooms').doc(room.code).collection('votes'); const snap=await path.where('statementIndex','==', room.index).get(); const batch=db.batch(); snap.forEach(doc=>batch.delete(doc.ref)); await batch.commit(); updateCounts(0,0); };
+
+  function subscribeRoom(code){ unsubRoom && unsubRoom(); if(!CONFIG_OK) return; unsubRoom = db.collection('rooms').doc(code).onSnapshot(doc=>{ const d=doc.data(); if(!d) return; room={ code, index: d.currentIndex||0 }; renderHostSlide(); }); };
+  function subscribeVotes(code, idx){ unsubVotes && unsubVotes(); if(!CONFIG_OK) return; unsubVotes = db.collection('rooms').doc(code).collection('votes').where('statementIndex','==', idx).onSnapshot(snap=>{ let t=0,f=0; snap.forEach(doc=>{ const c=doc.data().choice; if(c==='true') t++; else if(c==='false') f++; }); updateCounts(t,f); }); };
+  function subscribeParticipants(code){ unsubParticipants && unsubParticipants(); if(!CONFIG_OK) return; unsubParticipants = db.collection('rooms').doc(code).collection('participants').onSnapshot(snap=>{ participantsEl.textContent = snap.size; renderAdmin(); }); };
+  function subscribeAllVotes(code){ unsubAllVotes && unsubAllVotes(); if(!CONFIG_OK) return; unsubAllVotes = db.collection('rooms').doc(code).collection('votes').onSnapshot(()=>{ renderAdmin(); }); };
+
+  async function renderAdmin(){ if(!CONFIG_OK || !room){ adminTable.innerHTML=''; return; } const pRef=db.collection('rooms').doc(room.code).collection('participants'); const vRef=db.collection('rooms').doc(room.code).collection('votes'); const [pSnap, vSnap]=await Promise.all([pRef.get(), vRef.get()]); const voters={}; pSnap.forEach(d=>{ voters[d.id]={ name:d.data().name||'(névtelen)', lastSeen:d.data().lastSeen?.toDate?.()||null, votes:new Set() }; }); vSnap.forEach(d=>{ const x=d.data(); if(!voters[x.voterId]) voters[x.voterId]={ name:x.name||'(névtelen)', lastSeen:null, votes:new Set() }; voters[x.voterId].votes.add(x.statementIndex); }); const rows=Object.entries(voters).map(([id,info],i)=>{ const done=info.votes.size; const total=STATEMENTS.length; const pct=Math.round((done/total)*100); const last= info.lastSeen? info.lastSeen.toLocaleTimeString():'—'; return `<tr><td>${i+1}</td><td>${escapeHtml(info.name)}</td><td>${done}</td><td>${pct}%</td><td>${last}</td></tr>`; }).join(''); adminTable.innerHTML = rows || `<tr><td colspan="5" class="muted">Nincs résztvevő.</td></tr>`; };
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); };
+
+  // 5) VOTER LOGIKA
+  const joinCode = byId('joinCode');
+  const displayName = byId('displayName');
+  const joinBtn = byId('joinBtn');
+  const joinStatus = byId('joinStatus');
+  const voterPanel = byId('voterPanel');
+  const voterStatement = byId('voterStatement');
+  const voterThanks = byId('voterThanks');
+  const voteTrueBtn = byId('voteTrue');
+  const voteFalseBtn = byId('voteFalse');
+
+  let voter = { code:null, index:0, name:'' };
+
+  async function joinRoom(){
+    const code = (joinCode.value||'').toUpperCase().trim();
+    const name = (displayName.value||'').trim();
+    if(!code){ setStatus(joinStatus,'Írd be a kódot!', false); return; }
+    if(!name){ setStatus(joinStatus,'A név kötelező.', false); return; }
+    voter.code = code; voter.name = name;
+
+    if(CONFIG_OK){
+      const roomRef = db.collection('rooms').doc(code);
+      roomRef.onSnapshot(doc=>{
+        const d = doc.data();
+        if(!d){ setStatus(joinStatus,'Nincs ilyen szoba. Ellenőrizd a kódot!', false); voterPanel.classList.add('hidden'); return; }
+        voter.index = d.currentIndex||0;
+        voterStatement.textContent = STATEMENTS[voter.index] || '—';
+        setStatus(joinStatus,'Csatlakozva');
+        voterPanel.classList.remove('hidden');
+        voterThanks.textContent = '';
+      });
+      await roomRef.collection('participants').doc(deviceId).set({ name, joinedAt: firebase.firestore.FieldValue.serverTimestamp(), lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true });
+      setInterval(()=>{ roomRef.collection('participants').doc(deviceId).update({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }); }, 15000);
+    } else {
+      voter.index = 0; voterStatement.textContent = STATEMENTS[0]; setStatus(joinStatus,'Demo mód (nincs online szoba)'); voterPanel.classList.remove('hidden');
+    }
+  };
+
+  async function castVote(choice){
+    if(!voter.code){ setStatus(joinStatus,'Nem csatlakoztál szobához!', false); return; }
+    const k = voteKey(voter.code, voter.index, deviceId);
+    if(localStorage.getItem(k)){ voterThanks.textContent = 'Már szavaztál erre az állításra ezen az eszközön ezzel a névvel.'; return; }
+    localStorage.setItem(k, '1');
+
+    if(CONFIG_OK){
+      const r = db.collection('rooms').doc(voter.code);
+      // Rate limit: 2 mp gombzár + 1 szavazat / állítás / eszköz (voterId_statementIndex docId)
+      disableVoteButtons(true);
+      const docId = `${deviceId}_${voter.index}`;
+      await r.collection('votes').doc(docId).set({
+        voterId: deviceId, name: voter.name, statementIndex: voter.index,
+        choice: choice ? 'true' : 'false', ts: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: false }).catch(err=>{ console.warn('Duplicate vote?', err.message); });
+      setTimeout(()=>disableVoteButtons(false), 2000);
+    }
+    voterThanks.textContent = 'Köszönöm, a szavazatod rögzítve!';
+  };
+
+  // 6) UI események
+  byId('hostBtn').addEventListener('click', ()=>{ hostView.classList.remove('hidden'); voterView.classList.add('hidden'); });
+  byId('voterBtn').addEventListener('click', ()=>{ voterView.classList.remove('hidden'); hostView.classList.add('hidden'); });
+  createRoomBtn.addEventListener('click', createRoom);
+  endRoomBtn.addEventListener('click', endRoom);
+  byId('copyLink').addEventListener('click', ()=>{ navigator.clipboard.writeText(shareUrl.value||''); });
+  byId('prev').addEventListener('click', ()=> changeIndex(-1));
+  byId('next').addEventListener('click', ()=> changeIndex(1));
+  byId('resetSlide').addEventListener('click', resetSlide);
+  byId('refreshAdmin').addEventListener('click', renderAdmin);
+  byId('exportCsv').addEventListener('click', async ()=>{ if(!(await pinOk())) return; exportCsv(); });
+  joinBtn.addEventListener('click', joinRoom);
+  voteTrueBtn.addEventListener('click', ()=> castVote(true));
+  voteFalseBtn.addEventListener('click', ()=> castVote(false));
+
+  function disableVoteButtons(dis){ voteTrueBtn.disabled=dis; voteFalseBtn.disabled=dis; };
+
+  // 7) Export CSV
+  async function exportCsv(){
+    if(!CONFIG_OK || !room){ alert('Nincs aktív online szoba.'); return; }
+    const pRef = db.collection('rooms').doc(room.code).collection('participants');
+    const vRef = db.collection('rooms').doc(room.code).collection('votes');
+    const [pSnap, vSnap] = await Promise.all([pRef.get(), vRef.get()]);
+    const names = {}; pSnap.forEach(d=> names[d.id] = (d.data().name||'(névtelen)'));
+    const rows = [['room','voterId','name','statementIndex','choice','timestamp']];
+    vSnap.forEach(d=>{ const x=d.data(); rows.push([room.code, x.voterId, names[x.voterId]||x.name||'', x.statementIndex, x.choice, (x.ts?.toDate?.()||new Date()).toISOString()]); });
+    const csv = rows.map(r=> r.map(v=>`"${String(v).replace(/"/g,'\"')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=`ai_votes_${room.code}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+
+  // 8) Deep-link (?role=&room=)
+  (function initDeepLink(){ const p=new URLSearchParams(location.search); const role=p.get('role'); const code=(p.get('room')||'').toUpperCase(); if(role==='voter'){ byId('voterBtn').click(); if(code){ byId('joinCode').value = code; } } else { byId('hostBtn').click(); if(code){ byId('roomCode').value = code; } } })();
+  </script>
+</body>
+</html>

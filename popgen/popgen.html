@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sodródás és szelekció</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        /* CSS styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            margin: 20px;
+            padding: 0;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            font-size: 2.5rem;
+        }
+
+        p {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #555;
+        }
+
+        #simulation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        label, input, button {
+            font-size: 1.1rem;
+        }
+
+        label {
+            margin-right: 10px;
+            color: #333;
+        }
+
+        input {
+            margin: 10px 0;
+            padding: 10px;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:disabled {
+            background-color: #9E9E9E;
+            cursor: not-allowed;
+        }
+
+        #animation {
+            width: 100%;
+            max-width: 900px;
+            height: 300px;
+            margin: 20px auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background-color: #ffffff;
+            position: relative;
+            overflow: auto;
+            padding: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .animal {
+            width: 30px;
+            height: 30px;
+            margin: 2px;
+        }
+
+        #generation-info {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🌿 sodródás és szelekció 🌿</h1>
+<p>Az allélgyakoriságok változása 100 generáción át</p>
+
+<div id="simulation">
+    <label for="populationSize">Egyedszám:</label>
+    <input type="number" id="populationSize" value="50" min="2" step="1">
+    
+    <label for="fitnessAA">AA fenitípus fitnesze:</label>
+    <input type="number" id="fitnessAA" value="1" min="0" step="0.01">
+
+    <label for="fitnessAa">Aa fenotípus fitnesze:</label>
+    <input type="number" id="fitnessAa" value="1" min="0" step="0.01">
+
+    <label for="fitnessaa">aa fenitípus fitnesze:</label>
+    <input type="number" id="fitnessaa" value="1" min="0" step="0.01">
+    
+    <div>
+        <button id="runButton" onclick="runSimulation()">szimuláció indítása</button>
+        <button id="stopButton" onclick="stopSimulation()" disabled>Szimuláció megállítása</button>
+    </div>
+</div>
+
+<div id="animation"></div>
+<div id="generation-info"></div>
+
+<div id="plot"></div>
+
+<script>
+    let simulationInterval;
+    let isSimulationRunning = false;
+
+    // Function to simulate genetic drift and selection in any population size
+    function runSimulation() {
+        if (isSimulationRunning) return;
+
+        // Disable the Run Simulation button and enable the Stop Simulation button
+        document.getElementById('runButton').disabled = true;
+        document.getElementById('stopButton').disabled = false;
+        isSimulationRunning = true;
+
+        let populationSize = parseInt(document.getElementById('populationSize').value);
+        let fitnessAA = parseFloat(document.getElementById('fitnessAA').value);
+        let fitnessAa = parseFloat(document.getElementById('fitnessAa').value);
+        let fitnessaa = parseFloat(document.getElementById('fitnessaa').value);
+        let generations = 100;
+
+        // Initialize the population with random genotypes
+        let population = initializePopulation(populationSize);
+
+        let freq_A_history = [];
+        let freq_a_history = [];
+        let populationHistory = []; // To store population at each generation
+
+        for (let generation = 1; generation <= generations; generation++) {
+            // Store the current population
+            populationHistory.push([...population]);
+
+            // Calculate allele frequencies in the current population
+            let alleleCounts = countAlleles(population);
+            let freq_A = alleleCounts.A / (2 * populationSize);
+            let freq_a = alleleCounts.a / (2 * populationSize);
+
+            freq_A_history.push(freq_A);
+            freq_a_history.push(freq_a);
+
+            // Check for fixation
+            if (freq_A === 0 || freq_A === 1) {
+                console.log(`Allele fixation at generation ${generation}.`);
+                // Fill the rest of the generations with the same value
+                for (let gen = generation + 1; gen <= generations; gen++) {
+                    freq_A_history.push(freq_A);
+                    freq_a_history.push(freq_a);
+                    // Also fill populationHistory with the same population
+                    populationHistory.push([...population]);
+                }
+                break;
+            }
+
+            // Apply selection based on fitness
+            population = applySelection(population, fitnessAA, fitnessAa, fitnessaa);
+
+            // Simulate reproduction to form the next generation
+            population = reproduce(population, populationSize);
+
+            // If population has died out, break
+            if (population.length === 0) {
+                console.log(`Population died out at generation ${generation}.`);
+                // Fill the rest of the generations with zeros
+                for (let gen = generation + 1; gen <= generations; gen++) {
+                    freq_A_history.push(0);
+                    freq_a_history.push(0);
+                    populationHistory.push([]);
+                }
+                break;
+            }
+        }
+
+        plotResults(freq_A_history, freq_a_history);
+
+        // Start the animation
+        animatePopulation(populationHistory);
+    }
+
+    function stopSimulation() {
+        clearInterval(simulationInterval);
+        isSimulationRunning = false;
+        document.getElementById('runButton').disabled = false;
+        document.getElementById('stopButton').disabled = true;
+        document.getElementById('generation-info').innerText = 'Simulation stopped.';
+    }
+
+    // Function to animate the population over generations
+    function animatePopulation(populationHistory) {
+        let generationIndex = 0;
+        let generations = populationHistory.length;
+        let animationDiv = document.getElementById('animation');
+        let generationInfo = document.getElementById('generation-info');
+
+        // Clear any existing interval
+        clearInterval(simulationInterval);
+
+        // Display initial generation
+        displayGeneration(populationHistory[0]);
+        generationInfo.innerText = `Generation: ${generationIndex + 1}`;
+
+        simulationInterval = setInterval(() => {
+            if (!isSimulationRunning) {
+                clearInterval(simulationInterval);
+                return;
+            }
+            generationIndex++;
+            if (generationIndex >= generations) {
+                clearInterval(simulationInterval);
+                isSimulationRunning = false;
+                document.getElementById('runButton').disabled = false;
+                document.getElementById('stopButton').disabled = true;
+                return;
+            }
+            displayGeneration(populationHistory[generationIndex]);
+            generationInfo.innerText = `Generation: ${generationIndex + 1}`;
+        }, 500); // Update every 500 milliseconds
+    }
+
+    // Function to display a generation
+    function displayGeneration(population) {
+        let animationDiv = document.getElementById('animation');
+        animationDiv.innerHTML = ''; // Clear previous generation
+
+        population.forEach(individual => {
+            let animalDiv = document.createElement('div');
+            animalDiv.classList.add('animal');
+
+            // Create SVG element for the animal icon
+            let svgNS = "http://www.w3.org/2000/svg";
+            let svg = document.createElementNS(svgNS, "svg");
+            svg.setAttribute("class", "animal-svg");
+            svg.setAttribute("viewBox", "0 0 64 64");
+            svg.setAttribute("width", "30");
+            svg.setAttribute("height", "30");
+
+            // Fanciful animal shape (e.g., a cartoon animal)
+            // Body
+            let body = document.createElementNS(svgNS, "ellipse");
+            body.setAttribute("cx", "32");
+            body.setAttribute("cy", "40");
+            body.setAttribute("rx", "20");
+            body.setAttribute("ry", "15");
+            body.setAttribute("stroke", "black");
+            body.setAttribute("stroke-width", "1");
+
+            // Head
+            let head = document.createElementNS(svgNS, "circle");
+            head.setAttribute("cx", "32");
+            head.setAttribute("cy", "20");
+            head.setAttribute("r", "12");
+            head.setAttribute("stroke", "black");
+            head.setAttribute("stroke-width", "1");
+
+            // Left Ear
+            let ear1 = document.createElementNS(svgNS, "ellipse");
+            ear1.setAttribute("cx", "24");
+            ear1.setAttribute("cy", "8");
+            ear1.setAttribute("rx", "5");
+            ear1.setAttribute("ry", "10");
+            ear1.setAttribute("stroke", "black");
+            ear1.setAttribute("stroke-width", "1");
+
+            // Right Ear
+            let ear2 = document.createElementNS(svgNS, "ellipse");
+            ear2.setAttribute("cx", "40");
+            ear2.setAttribute("cy", "8");
+            ear2.setAttribute("rx", "5");
+            ear2.setAttribute("ry", "10");
+            ear2.setAttribute("stroke", "black");
+            ear2.setAttribute("stroke-width", "1");
+
+            // Left Eye
+            let eye1 = document.createElementNS(svgNS, "circle");
+            eye1.setAttribute("cx", "28");
+            eye1.setAttribute("cy", "18");
+            eye1.setAttribute("r", "2");
+            eye1.setAttribute("fill", "black");
+
+            // Right Eye
+            let eye2 = document.createElementNS(svgNS, "circle");
+            eye2.setAttribute("cx", "36");
+            eye2.setAttribute("cy", "18");
+            eye2.setAttribute("r", "2");
+            eye2.setAttribute("fill", "black");
+
+            // Mouth
+            let mouth = document.createElementNS(svgNS, "path");
+            mouth.setAttribute("d", "M28 24 Q32 28 36 24");
+            mouth.setAttribute("stroke", "black");
+            mouth.setAttribute("stroke-width", "1");
+            mouth.setAttribute("fill", "none");
+
+            // Assign fill colors based on genotype
+            let fillColor = "grey";
+            if (individual === 'AA') {
+                fillColor = "red";
+            } else if (individual === 'Aa' || individual === 'aA') {
+                fillColor = "purple";
+            } else if (individual === 'aa') {
+                fillColor = "blue";
+            }
+            body.setAttribute("fill", fillColor);
+            head.setAttribute("fill", fillColor);
+            ear1.setAttribute("fill", fillColor);
+            ear2.setAttribute("fill", fillColor);
+
+            svg.appendChild(body);
+            svg.appendChild(head);
+            svg.appendChild(ear1);
+            svg.appendChild(ear2);
+            svg.appendChild(eye1);
+            svg.appendChild(eye2);
+            svg.appendChild(mouth);
+
+            animalDiv.appendChild(svg);
+            animationDiv.appendChild(animalDiv);
+        });
+    }
+
+    // Function to initialize the population with random genotypes
+    function initializePopulation(populationSize) {
+        let population = [];
+        for (let i = 0; i < populationSize; i++) {
+            // Randomly assign genotypes: AA, Aa, or aa
+            let rand = Math.random();
+            if (rand < 0.33) {
+                population.push('AA');
+            } else if (rand < 0.66) {
+                population.push('Aa');
+            } else {
+                population.push('aa');
+            }
+        }
+        return population;
+    }
+
+    // Function to count the alleles in the population
+    function countAlleles(population) {
+        let counts = { A: 0, a: 0 };
+        population.forEach(individual => {
+            if (individual === 'AA') {
+                counts.A += 2;
+            } else if (individual === 'Aa' || individual === 'aA') {
+                counts.A += 1;
+                counts.a += 1;
+            } else if (individual === 'aa') {
+                counts.a += 2;
+            }
+        });
+        return counts;
+    }
+
+    // Function to apply selection based on fitness
+    function applySelection(population, fitnessAA, fitnessAa, fitnessaa) {
+        let selectedPopulation = [];
+        population.forEach(individual => {
+            let fitness = 0;
+            if (individual === 'AA') {
+                fitness = fitnessAA;
+            } else if (individual === 'Aa' || individual === 'aA') {
+                fitness = fitnessAa;
+            } else if (individual === 'aa') {
+                fitness = fitnessaa;
+            }
+            if (Math.random() < fitness) {
+                selectedPopulation.push(individual);
+            }
+        });
+        return selectedPopulation;
+    }
+
+    // Function to simulate reproduction
+    function reproduce(population, populationSize) {
+        let newGeneration = [];
+        while (newGeneration.length < populationSize) {
+            // Select two parents randomly from the current population
+            let parent1 = population[Math.floor(Math.random() * population.length)];
+            let parent2 = population[Math.floor(Math.random() * population.length)];
+            
+            if (parent1 && parent2) {
+                let offspring = generateOffspring(parent1, parent2);
+                newGeneration.push(offspring);
+            } else {
+                // If population has died out, break the loop
+                break;
+            }
+        }
+        // If the population has died out, return an empty array
+        return newGeneration.length > 0 ? newGeneration : [];
+    }
+
+    // Function to generate offspring based on parents' genotypes
+    function generateOffspring(parent1, parent2) {
+        let alleles1 = parent1.split('');
+        let alleles2 = parent2.split('');
+        let alleleFromParent1 = alleles1[Math.floor(Math.random() * 2)];
+        let alleleFromParent2 = alleles2[Math.floor(Math.random() * 2)];
+        return alleleFromParent1 + alleleFromParent2;
+    }
+
+    // Plot the results using Plotly
+    function plotResults(freq_A_history, freq_a_history) {
+        let generations = Array.from(Array(freq_A_history.length).keys());
+
+        let traceA = {
+            x: generations,
+            y: freq_A_history,
+            mode: 'lines',
+            name: 'A allélgyakoriság',
+            line: { color: 'red', width: 3 }
+        };
+
+        let traceB = {
+            x: generations,
+            y: freq_a_history,
+            mode: 'lines',
+            name: 'a allélgyakoriság',
+            line: { color: 'blue', width: 3 }
+        };
+
+        let data = [traceA, traceB];
+
+        let layout = {
+            title: {
+                text: 'Sodródás és szelekció',
+                font: { size: 24 }
+            },
+            xaxis: {
+                title: 'Generáció',
+                titlefont: { size: 18 },
+                tickfont: { size: 14 }
+            },
+            yaxis: {
+                title: 'Allélgyakoriság',
+                titlefont: { size: 18 },
+                tickfont: { size: 14 },
+                range: [0, 1]
+            },
+            plot_bgcolor: '#f8f9fa',
+            paper_bgcolor: '#f0f4f8',
+            margin: {
+                l: 60,
+                r: 30,
+                b: 60,
+                t: 60
+            },
+            showlegend: true,
+            legend: {
+                x: 0.8,
+                y: 1.1,
+                font: { size: 14 }
+            }
+        };
+
+        Plotly.newPlot('plot', data, layout);
+    }
+</script>
+
+</body>
+</html>
