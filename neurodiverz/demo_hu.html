@@ -5,14 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A világ neurodivergens szemmel</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@3.11.0/dist/tf-core.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@3.11.0/dist/tf-backend-webgl.min.js"></script>
-    
-    
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4/face_detection.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.1/dist/face-detection.min.js"></script>
     
     <style>
@@ -95,7 +90,7 @@
                 const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
                 
                 const detectorConfig = {
-                    runtime: 'medipe', 
+                    runtime: 'mediapipe', 
                     solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.4'
                 };
                 detector = await faceDetection.createDetector(model, detectorConfig);
@@ -147,7 +142,7 @@
                         const mirroredX = canvas.width - x - width;
 
                         // --- APPLY PIXELATION BLUR ---
-                        const pixelationFactor = 30; // Increased for more blur!
+                        const pixelationFactor = 16;
 
                         const smallerWidth = width / pixelationFactor;
                         const smallerHeight = height / pixelationFactor;
@@ -161,7 +156,7 @@
                         // Then draw that pixelated smaller image back at the original size
                         ctx.drawImage(
                             canvas, // Source image is the canvas itself (now with the tiny pixelated face)
-                            mirorX, y, smallerWidth, smallerHeight, // Source (smaller) rectangle
+                            mirroredX, y, smallerWidth, smallerHeight, // Source (smaller) rectangle
                             mirroredX, y, width, height // Destination (original) rectangle
                         );
                         // --- END PIXELATION BLUR ---
@@ -207,4 +202,3 @@
     </script>
 </body>
 </html>
-
