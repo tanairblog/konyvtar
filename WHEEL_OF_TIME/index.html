@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interactive 24‑Hour Pizza Diagram</title>
+  <style>
+    :root{
+      --bg:#0f172a;          /* slate-900 */
+      --panel:#111827;        /* gray-900 */
+      --muted:#334155;        /* slate-700 */
+      --text:#e5e7eb;         /* gray-200 */
+      --accent:#22d3ee;       /* cyan-400 */
+      --warn:#f43f5e;         /* rose-500 */
+      --ok:#10b981;           /* emerald-500 */
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif; 
+      background:linear-gradient(120deg,#0b1023,#0e1b3a 50%,#0b1023); color:var(--text);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:18px;
+    }
+    .app{display:grid; grid-template-columns: 420px minmax(340px, 560px); gap:20px; width: min(1100px, 100%);}    
+    .card{background:rgba(17,24,39,.9); border:1px solid #1f2937; border-radius:18px; box-shadow:0 10px 30px rgba(0,0,0,.3)}
+    .left{padding:16px 16px 8px}
+    .right{padding:12px}
+    h1{font-size:clamp(18px,2.4vw,26px); margin:8px 0 2px; letter-spacing:.2px}
+    .sub{opacity:.75; font-size:.9rem; margin-bottom:10px}
+    .rows{max-height:66vh; overflow:auto; padding-right:6px}
+    .row{display:grid; grid-template-columns: 18px 1fr auto auto; gap:8px; align-items:center; padding:8px; border-radius:12px; transition:background .2s}
+    .row:hover{background:#0b1224}
+    .swatch{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.35)}
+    .label{font-weight:600; letter-spacing:.1px}
+    .hm{display:flex; gap:6px; align-items:center}
+    .hm input{width:70px; padding:8px 10px; background:#0a1222; color:var(--text); border:1px solid #1f2a44; border-radius:10px; font-size:.95rem}
+    .hm input:focus{outline:none; border-color:#3b82f6; box-shadow:0 0 0 3px rgba(59,130,246,.25)}
+    .mins{opacity:.7; font-variant-numeric:tabular-nums}
+
+    .toolbar{display:flex; gap:8px; align-items:center; justify-content:space-between; margin:10px 4px 8px}
+    .btn{appearance:none; border:1px solid #1f2a44; background:#0b1224; color:var(--text); padding:8px 12px; border-radius:10px; cursor:pointer; font-weight:600}
+    .btn:hover{filter:brightness(1.15)}
+    .btn.secondary{background:#0a1328}
+
+    .stats{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:6px 4px 12px}
+    .pill{padding:6px 10px; border-radius:999px; background:#0b1224; border:1px solid #1f2a44; font-variant-numeric:tabular-nums}
+    .pill.warn{border-color:var(--warn); color:#fecdd3}
+
+    .chart-wrap{display:grid; place-items:center; padding:8px}
+    .legend{display:grid; grid-template-columns: repeat(2, minmax(180px,1fr)); gap:8px; margin-top:10px}
+    .leg-item{display:flex; align-items:center; gap:8px; background:#0b1224; border:1px solid #1f2a44; border-radius:10px; padding:8px}
+
+    .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0}
+
+    @media (max-width: 880px){
+      .app{grid-template-columns: 1fr}
+      .rows{max-height:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="card left" aria-labelledby="title">
+      <h1 id="title">24‑órás pizza‑diagram</h1>
+      <p class="sub">Írj be <strong>órát</strong> és <strong>percet</strong> minden tevékenységhez (0 is lehet). A kör arányosan kitöltődik.</p>
+
+      <div class="toolbar">
+        <div class="stats" aria-live="polite">
+          <span class="pill" id="remaining">Hátralévő idő: 24:00</span>
+          <span class="pill" id="used">Felhasznált: 0:00</span>
+          <span class="pill" id="percent">Kitöltés: 0%</span>
+        </div>
+        <div style="display:flex; gap:8px">
+          <button class="btn" id="resetBtn" title="Minden mező törlése">Reset</button>
+          <button class="btn secondary" id="saveBtn" title="Mentés a böngészőbe">Mentés</button>
+          <button class="btn secondary" id="loadBtn" title="Korábbi mentés betöltése">Betöltés</button>
+          <button class="btn secondary" id="testBtn" title="Beépített tesztek futtatása">Run tests</button>
+        </div>
+      </div>
+
+      <div class="rows" id="rows"></div>
+      <p class="sub" style="margin:10px 8px 14px">
+        Tipp: a <em>Tab</em> billentyűvel gyorsan lépkedhetsz a mezők között. Ha a teljes idő meghaladja a 24 órát, piros jelzést kapsz.
+      </p>
+    </section>
+
+    <section class="card right">
+      <div class="chart-wrap">
+        <svg id="chart" width="520" height="520" role="img" aria-labelledby="chartTitle chartDesc">
+          <title id="chartTitle">A nap 24 órája – tevékenységek arányai</title>
+          <desc id="chartDesc">A kördiagram szeletei a megadott idők arányában jelennek meg. Üres kör = nincs idő megadva.</desc>
+          <defs>
+            <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000" flood-opacity="0.35"/>
+            </filter>
+          </defs>
+          <!-- background ring -->
+          <g transform="translate(260,260)">
+            <circle r="200" fill="#0b1224" stroke="#1f2a44" stroke-width="2"></circle>
+            <g id="slices" filter="url(#softShadow)"></g>
+            <!-- center label -->
+            <g id="centerLabel" aria-hidden="true" transform="translate(0,6)" text-anchor="middle" font-weight="700" font-size="22" fill="#e5e7eb">
+              <text id="centerPercent">0%</text>
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="legend" id="legend"></div>
+    </section>
+  </div>
+
+<script>
+(() => {
+  // --- Activities (from your list; typos normalized) ---
+  const ACTIVITIES = [
+    { key: 'sleep',   label: 'Sleep' },
+    { key: 'sports',  label: 'Sports' },
+    { key: 'travel',  label: 'Travelling (public transport etc.)' },
+    { key: 'study',   label: 'Studying at home' },
+    { key: 'games',   label: 'Playing video games' },
+    { key: 'social',  label: 'Social media' },
+    { key: 'family',  label: 'Talking to family' },
+    { key: 'meals',   label: 'Meals (lunch etc.)' },
+    { key: 'tv',      label: 'Watching TV (or Netflix)' },
+    { key: 'shopping',label: 'Shopping' },
+    { key: 'chores',  label: 'Doing household chores' },
+    { key: 'personal',label: 'Personal care (e.g. washing)' },
+    { key: 'friends', label: 'Hanging out with friends' },
+  ];
+
+  // --- 13 colorblind‑friendly-ish colors (Okabe–Ito + Tol variants) ---
+  const COLORS = [
+    '#E69F00', '#56B4E9', '#009E73', '#F0E442', '#0072B2', '#D55E00', '#CC79A7',
+    '#4477AA', '#EE6677', '#228833', '#CCBB44', '#66CCEE', '#AA3377'
+  ];
+
+  // DOM refs
+  const rowsEl = document.getElementById('rows');
+  const slicesEl = document.getElementById('slices');
+  const legendEl = document.getElementById('legend');
+  const remainingEl = document.getElementById('remaining');
+  const usedEl = document.getElementById('used');
+  const percentEl = document.getElementById('percent');
+  const centerPercent = document.getElementById('centerPercent');
+
+  // Persisted state
+  const STORAGE_KEY = 'pizza24h-v2';
+
+  // Build input rows and legend
+  const state = new Map(); // key -> minutes
+  ACTIVITIES.forEach(a => state.set(a.key, 0));
+
+  ACTIVITIES.forEach((a, i) => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <span class="swatch" style="background:${COLORS[i % COLORS.length]}"></span>
+      <span class="label">${a.label}</span>
+      <span class="hm">
+        <input type="number" inputmode="numeric" min="0" max="24" step="1" aria-label="${a.label} hours" placeholder="0" class="h-in" />
+        <span style="opacity:.7">h</span>
+        <input type="number" inputmode="numeric" min="0" max="59" step="1" aria-label="${a.label} minutes" placeholder="0" class="m-in" />
+        <span style="opacity:.7">m</span>
+      </span>
+      <span class="mins" aria-hidden="true" data-mins>0m</span>
+    `;
+    rowsEl.appendChild(row);
+
+    const hm = row.querySelector('.hm');
+    const hInput = hm.querySelector('.h-in');
+    const mInput = hm.querySelector('.m-in');
+    const minsOut = row.querySelector('[data-mins]');
+
+    const onChange = () => {
+      let h = Number(hInput.value || 0);
+      let m = Number(mInput.value || 0);
+      h = Math.max(0, Math.min(24, Math.floor(h)));
+      m = Math.max(0, Math.min(59, Math.floor(m)));
+      hInput.value = h ? String(h) : '';
+      mInput.value = m ? String(m) : '';
+      const mins = h*60 + m;
+      state.set(a.key, mins);
+      minsOut.textContent = `${mins}m`;
+      render();
+    };
+    hInput.addEventListener('input', onChange);
+    mInput.addEventListener('input', onChange);
+
+    // Legend
+    const li = document.createElement('div');
+    li.className = 'leg-item';
+    li.innerHTML = `<span class="swatch" style="background:${COLORS[i % COLORS.length]}"></span>
+                    <span>${a.label}</span>`;
+    legendEl.appendChild(li);
+  });
+
+  // Buttons
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    state.forEach((_, k) => state.set(k, 0));
+    rowsEl.querySelectorAll('.h-in, .m-in').forEach(i => i.value = '');
+    rowsEl.querySelectorAll('[data-mins]').forEach(el => el.textContent = '0m');
+    render();
+  });
+
+  document.getElementById('saveBtn').addEventListener('click', () => {
+    const obj = {}; state.forEach((v,k)=> obj[k]=v);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    flash(percentEl, 'Mentve.');
+  });
+  document.getElementById('loadBtn').addEventListener('click', () => {
+    try{
+      const obj = JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+      ACTIVITIES.forEach((a,i)=>{
+        const mins = Number(obj[a.key]||0);
+        state.set(a.key, mins);
+        const row = rowsEl.children[i];
+        row.querySelector('.h-in').value = Math.floor(mins/60) || '';
+        row.querySelector('.m-in').value = (mins%60) || '';
+        row.querySelector('[data-mins]').textContent = `${mins}m`;
+      });
+      render();
+    }catch(e){ flash(percentEl, 'Nem sikerült betölteni.', true); }
+  });
+
+  // Test button – simple assertions
+  document.getElementById('testBtn').addEventListener('click', runTests);
+
+  function flash(el, msg, warn=false){
+    const old = el.textContent;
+    el.textContent = msg;
+    el.classList.toggle('warn', warn);
+    setTimeout(()=>{ el.textContent = old; el.classList.remove('warn'); }, 1200);
+  }
+
+  // --- Drawing ---
+  const TWO_PI = Math.PI * 2;
+  const R = 200, IR = 70; // radius and inner radius (donut)
+
+  function polar(r, a){ return [ r*Math.cos(a), r*Math.sin(a) ]; }
+  function arcPath(r0, r1, a0, a1){
+    const sweep = a1 - a0;
+    const large = Math.abs(sweep) > Math.PI ? 1 : 0;
+    const [x0,y0] = polar(r1,a0);
+    const [x1,y1] = polar(r1,a1);
+    const [x2,y2] = polar(r0,a1);
+    const [x3,y3] = polar(r0,a0);
+    return [
+      `M ${x0.toFixed(3)} ${y0.toFixed(3)}`,
+      `A ${r1} ${r1} 0 ${large} 1 ${x1.toFixed(3)} ${y1.toFixed(3)}`,
+      `L ${x2.toFixed(3)} ${y2.toFixed(3)}`,
+      `A ${r0} ${r0} 0 ${large} 0 ${x3.toFixed(3)} ${y3.toFixed(3)}`,
+      'Z'
+    ].join(' ');
+  }
+
+  function fmtHM(mins){
+    const h = Math.floor(mins/60), m = Math.abs(mins%60);
+    return `${String(h)}:${String(m).padStart(2,'0')}`;
+  }
+
+  function render(){
+    const totals = [...state.values()];
+    const used = totals.reduce((a,b)=>a+b,0);
+    const remaining = 1440 - used;
+    const pct = Math.max(0, Math.min(100, Math.round(used/1440*100)));
+
+    remainingEl.textContent = `Hátralévő idő: ${fmtHM(Math.max(0,remaining))}`;
+    usedEl.textContent = `Felhasznált: ${fmtHM(used)}`;
+    percentEl.textContent = `Kitöltés: ${pct}%`;
+    centerPercent.textContent = `${pct}%`;
+
+    const over = used > 1440;
+    remainingEl.classList.toggle('warn', over);
+    usedEl.classList.toggle('warn', over);
+    percentEl.classList.toggle('warn', over);
+
+    // Clear slices
+    slicesEl.innerHTML = '';
+
+    // If nothing, show empty ring
+    if(used <= 0){ return; }
+
+    // Draw slices proportional to FULL 24h
+    let angle = -Math.PI/2; // start at 12 o'clock
+    ACTIVITIES.forEach((a, i) => {
+      const mins = state.get(a.key) || 0;
+      if(mins <= 0) return;
+      const frac = mins / 1440; // proportion of full 24h
+      const a0 = angle;
+      const a1 = angle + frac*TWO_PI;
+      angle = a1;
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', arcPath(IR, R, a0, a1));
+      path.setAttribute('fill', COLORS[i % COLORS.length]);
+      path.setAttribute('stroke', 'rgba(255,255,255,.12)');
+      path.setAttribute('stroke-width', '1');
+      path.setAttribute('opacity', '0.95');
+      path.appendChild(title(`${a.label}: ${fmtHM(mins)} (${Math.round(mins/1440*100)}% of 24h)`));
+      slicesEl.appendChild(path);
+    });
+
+    // Draw remainder (unallocated time)
+    if(used < 1440){
+      const start = angle;
+      const end = -Math.PI/2 + TWO_PI; // full circle end
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.setAttribute('d', arcPath(IR, R, start, end));
+      path.setAttribute('fill', '#0a1328');
+      path.setAttribute('stroke', 'rgba(255,255,255,.08)');
+      path.setAttribute('stroke-width', '1');
+      path.appendChild(title(`Unallocated: ${fmtHM(1440-used)} (${Math.round((1440-used)/1440*100)}% of 24h)`));
+      slicesEl.appendChild(path);
+    }
+  }
+
+  function title(text){
+    const t = document.createElementNS('http://www.w3.org/2000/svg','title');
+    t.textContent = text; return t;
+  }
+
+  // --- Tests ---
+  function runTests(){
+    // snapshot current state
+    const snapshot = {}; state.forEach((v,k)=>snapshot[k]=v);
+
+    // Helper to set a single activity
+    const set = (key, mins) => { state.set(key, mins); };
+    const text = () => centerPercent.textContent;
+
+    // Test 1: simple fill 8h sleep + 1h30 sports
+    set('sleep', 8*60); set('sports', 90);
+    ACTIVITIES.filter(a=>!['sleep','sports'].includes(a.key)).forEach(a=>set(a.key,0));
+    render();
+    const used1 = [...state.values()].reduce((a,b)=>a+b,0);
+    console.assert(used1===570, 'T1 used minutes should be 570');
+    console.assert(text()==='40%' || text()==='39%', 'T1 percent should round ~40%');
+
+    // Test 2: all zero
+    ACTIVITIES.forEach(a=>set(a.key,0));
+    render();
+    console.assert(centerPercent.textContent==='0%', 'T2 percent should be 0%');
+
+    // Test 3: overfill (>24h)
+    set('sleep', 25*60); // 25h
+    render();
+    console.assert(centerPercent.textContent==='100%', 'T3 percent should be 100% when over 24h');
+    console.assert(usedEl.classList.contains('warn'), 'T3 should warn when over 24h');
+
+    // restore
+    ACTIVITIES.forEach((a,i)=>{
+      const mins = Number(snapshot[a.key]||0);
+      state.set(a.key, mins);
+      const row = rowsEl.children[i];
+      row.querySelector('.h-in').value = Math.floor(mins/60) || '';
+      row.querySelector('.m-in').value = (mins%60) || '';
+      row.querySelector('[data-mins]').textContent = `${mins}m`;
+    });
+    render();
+
+    flash(percentEl, 'Tests completed');
+  }
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>
