@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rendszám-sor</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            margin: 0;
+        }
+
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Mögött van mindennek */
+            background-image: linear-gradient(rgba(240, 242, 245, 0.8), rgba(240, 242, 245, 0.8)), url('https://images.unsplash.com/photo-1532187863486-ab145555777b?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+        }
+
+        #selection-screen {
+            text-align: center;
+            max-width: 800px;
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        #selection-screen h1 {
+            margin-bottom: 20px;
+            color: #1c1e21;
+        }
+
+        #selection-screen h2 {
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #606770;
+            font-size: 1.2em;
+        }
+
+        .button-group {
+            margin-bottom: 20px;
+        }
+
+        .mode-button, .count-button, #help-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .mode-button:hover, .count-button:hover, #help-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .mode-button.selected, .count-button.selected {
+            background-color: #28a745; /* Zöld a kiválasztottnak */
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.5);
+        }
+
+        #start-game-button {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.3em;
+        }
+
+        #start-game-button:not(:disabled) {
+            background-color: #28a745;
+            cursor: pointer;
+        }
+
+        #start-game-button:not(:disabled):hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        #game-container {
+            width: 95%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1c1e21;
+            margin-top: 0;
+        }
+
+        #stats-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 1.2em;
+        }
+
+        #hand-area {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        #hand-area h2 {
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #606770;
+        }
+
+        .card {
+            display: inline-block;
+            background: #ffffff;
+            border: 1px solid #ccd0d5;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        
+        .card.in-hand {
+            border-style: dashed;
+            border-color: #8a9ba8;
+            cursor: grab;
+        }
+
+        .card.dragging {
+            opacity: 0.4;
+            cursor: grabbing;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .card-name {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .card-number {
+            font-size: 1em;
+            color: #606770;
+            margin-top: 5px;
+        }
+
+        #table-area {
+            background: #f7f8fa;
+            border: 1px solid #dddfe2;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 15px;
+            overflow-x: auto;
+            transition: background-color 0.3s;
+            min-height: 150px;
+        }
+
+        #drop-indicator {
+            border: 2px dashed #0056b3;
+            background-color: #d0e7ff;
+            border-radius: 8px;
+            width: 60px;
+            min-height: 100px;
+            flex-shrink: 0;
+        }
+
+        #game-over-message {
+            text-align: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #0056b3;
+            padding: 40px;
+            display: none;
+        }
+
+        .correct-flash { animation: flash-green 0.7s ease-out; }
+        .incorrect-flash { animation: flash-red 0.7s ease-out; }
+
+        @keyframes flash-green {
+            50% { background-color: #d4edda; }
+        }
+        @keyframes flash-red {
+            50% { background-color: #f8d7da; }
+        }
+
+        /* Help Modal Styles */
+        #help-modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000; /* Képernyő tetején */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: left;
+            position: relative;
+        }
+
+        .modal-content h2 {
+            text-align: center;
+            color: #0056b3;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .modal-content p {
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        #close-help-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        #close-help-modal:hover, #close-help-modal:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="background-container"></div>
+
+    <div id="selection-screen">
+        <h1>Rendszám-sor</h1>
+        <h2>Válassz játékmódot!</h2>
+        <div class="button-group">
+            <button class="mode-button" data-property="atomicNumber">Rendszám</button>
+            <button class="mode-button" data-property="electronegativity">Elektronegativitás</button>
+            <button class="mode-button" data-property="discoveryYear">Felfedezés éve</button>
+            <button class="mode-button" data-property="boilingPoint">Forráspont</button>
+        </div>
+
+        <h2>Elemek száma:</h2>
+        <div class="button-group">
+            <button class="count-button" data-count="20">20</button>
+            <button class="count-button" data-count="30">30</button>
+            <button class="count-button" data-count="50">50</button>
+        </div>
+        <button id="start-game-button" class="mode-button" disabled>Játék indítása</button>
+        <button id="help-button" class="mode-button">Segítség</button>
+    </div>
+
+    <div id="game-container" style="display: none;">
+        <h1 id="game-title"></h1>
+        <div id="stats-area">
+            <div>Pontszám: <span id="score">0</span></div>
+            <div>Pakliban maradt: <span id="deck-count">0</span></div>
+        </div>
+        <div id="hand-area">
+            <h2>Aktuális kártya (húzd a helyére)</h2>
+            <div id="current-card" class="card in-hand" draggable="true">
+                <div id="current-card-name" class="card-name"></div>
+            </div>
+        </div>
+        <div id="table-area"></div>
+        <div id="game-over-message" style="display: none;">
+            <p id="final-score-text"></p>
+            <button id="restart-button" class="mode-button" style="display: none;">Új játék</button>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal">
+        <div class="modal-content">
+            <button id="close-help-modal">&times;</button>
+            <h2>Rendszám-sor: Játékszabályok</h2>
+            <p><strong>Játék célja:</strong> Rendezd sorba a kártyákat a választott tulajdonság (rendszám, elektronegativitás, felfedezés éve, forráspont) szerint növekvő sorrendben!</p>
+            <p><strong>Kezdés:</strong> A játék elején válassz játékmódot és elemek számát (20, 30 vagy 50 elemmel). A játék két előre lerakott kártyával indul az asztalon.</p>
+            <p><strong>Játékmenet:</strong> A kezdben tartott kártyát (ami csak az elem nevét mutatja) húzd az asztalon lévő sorba a megfelelő helyre.</p>
+            <ul>
+                <li>Amikor elhúzod a kártyát az asztal fölé, egy jelölő (kék keretes doboz) jelenik meg, ami mutatja a potenciális beszúrási pontot.</li>
+                <li>Ha a húzást az asztal szélére viszed, a kártyasor automatikusan görgetni fog, hogy könnyebben megtaláld a helyes pozíciót.</li>
+            </ul>
+            <p><strong>Ellenőrzés és pontozás:</strong></p>
+            <ul>
+                <li><strong>Helyes illesztés:</strong> Ha a kártya a rendszám (vagy a választott tulajdonság) alapján helyes pozícióba került a szomszédos kártyákhoz képest, kapsz 1 pontot. A kártya bekerül a sorba, és mutatja tulajdonságát.</li>
+                <li><strong>Helytelen illesztés:</strong> Nem kapsz pontot. A kártya automatikusan a _helyes_ pozíciójába kerül a sorban. A játék vizuálisan jelzi, ha hibáztál.</li>
+            </ul>
+            <p><strong>Új kártya:</strong> Minden laplerakás után (akár helyes, akár helytelen) automatikusan kapsz egy új kártyát a pakliból.</p>
+            <p><strong>Játék vége:</strong> Amikor elfogy a pakli, a játéknak vége. Megjelenik a végső pontszámod és egy "Új játék" gomb, amivel újrakezdheted.</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = [
+                { name: 'Hidrogén', atomicNumber: 1, electronegativity: 2.20, discoveryYear: 1766, boilingPoint: 20.28 },
+                { name: 'Hélium', atomicNumber: 2, electronegativity: null, discoveryYear: 1868, boilingPoint: 4.22 },
+                { name: 'Lítium', atomicNumber: 3, electronegativity: 0.98, discoveryYear: 1817, boilingPoint: 1615 },
+                { name: 'Berillium', atomicNumber: 4, electronegativity: 1.57, discoveryYear: 1798, boilingPoint: 2742 },
+                { name: 'Bór', atomicNumber: 5, electronegativity: 2.04, discoveryYear: 1808, boilingPoint: 4273 },
+                { name: 'Szén', atomicNumber: 6, electronegativity: 2.55, discoveryYear: -3750, boilingPoint: 5100 }, // Ókor = BCE 3750 (becsült)
+                { name: 'Nitrogén', atomicNumber: 7, electronegativity: 3.04, discoveryYear: 1772, boilingPoint: 77.36 },
+                { name: 'Oxigén', atomicNumber: 8, electronegativity: 3.44, discoveryYear: 1774, boilingPoint: 90.20 },
+                { name: 'Fluor', atomicNumber: 9, electronegativity: 3.98, discoveryYear: 1886, boilingPoint: 85.03 },
+                { name: 'Neon', atomicNumber: 10, electronegativity: null, discoveryYear: 1898, boilingPoint: 27.07 },
+                { name: 'Nátrium', atomicNumber: 11, electronegativity: 0.93, discoveryYear: 1807, boilingPoint: 1156 },
+                { name: 'Magnézium', atomicNumber: 12, electronegativity: 1.31, discoveryYear: 1808, boilingPoint: 1363 },
+                { name: 'Alumínium', atomicNumber: 13, electronegativity: 1.61, discoveryYear: 1825, boilingPoint: 2792 },
+                { name: 'Szilícium', atomicNumber: 14, electronegativity: 1.90, discoveryYear: 1823, boilingPoint: 3538 },
+                { name: 'Foszfor', atomicNumber: 15, electronegativity: 2.19, discoveryYear: 1669, boilingPoint: 553 },
+                { name: 'Kén', atomicNumber: 16, electronegativity: 2.58, discoveryYear: -2000, boilingPoint: 717.8 }, // Ókor = BCE 2000 (becsült)
+                { name: 'Klór', atomicNumber: 17, electronegativity: 3.16, discoveryYear: 1774, boilingPoint: 239.11 },
+                { name: 'Argon', atomicNumber: 18, electronegativity: null, discoveryYear: 1894, boilingPoint: 87.30 },
+                { name: 'Kálium', atomicNumber: 19, electronegativity: 0.82, discoveryYear: 1807, boilingPoint: 1032 },
+                { name: 'Kalcium', atomicNumber: 20, electronegativity: 1.00, discoveryYear: 1808, boilingPoint: 1757 },
+                // Elemek 21-30
+                { name: 'Skandium', atomicNumber: 21, electronegativity: 1.36, discoveryYear: 1879, boilingPoint: 3103 },
+                { name: 'Titán', atomicNumber: 22, electronegativity: 1.54, discoveryYear: 1791, boilingPoint: 3560 },
+                { name: 'Vanádium', atomicNumber: 23, electronegativity: 1.63, discoveryYear: 1801, boilingPoint: 3680 },
+                { name: 'Króm', atomicNumber: 24, electronegativity: 1.66, discoveryYear: 1797, boilingPoint: 2944 },
+                { name: 'Mangán', atomicNumber: 25, electronegativity: 1.55, discoveryYear: 1774, boilingPoint: 2334 },
+                { name: 'Vas', atomicNumber: 26, electronegativity: 1.83, discoveryYear: -1500, boilingPoint: 3134 }, // Ókor
+                { name: 'Kobalt', atomicNumber: 27, electronegativity: 1.88, discoveryYear: 1735, boilingPoint: 3200 },
+                { name: 'Nikkel', atomicNumber: 28, electronegativity: 1.91, discoveryYear: 1751, boilingPoint: 3003 },
+                { name: 'Réz', atomicNumber: 29, electronegativity: 1.90, discoveryYear: -9000, boilingPoint: 2835 }, // Ókor
+                { name: 'Cink', atomicNumber: 30, electronegativity: 1.65, discoveryYear: -1000, boilingPoint: 1180 }, // Ókor
+                // Elemek 31-50
+                { name: 'Gallium', atomicNumber: 31, electronegativity: 1.81, discoveryYear: 1875, boilingPoint: 2477 },
+                { name: 'Germánium', atomicNumber: 32, electronegativity: 2.01, discoveryYear: 1886, boilingPoint: 3103 },
+                { name: 'Arzén', atomicNumber: 33, electronegativity: 2.18, discoveryYear: -1500, boilingPoint: 887 }, // Ókor, szublimál
+                { name: 'Szelén', atomicNumber: 34, electronegativity: 2.55, discoveryYear: 1817, boilingPoint: 958 },
+                { name: 'Bróm', atomicNumber: 35, electronegativity: 2.96, discoveryYear: 1826, boilingPoint: 332 },
+                { name: 'Kripton', atomicNumber: 36, electronegativity: 3.00, discoveryYear: 1898, boilingPoint: 120.85 },
+                { name: 'Rubídium', atomicNumber: 37, electronegativity: 0.82, discoveryYear: 1861, boilingPoint: 961 },
+                { name: 'Stroncium', atomicNumber: 38, electronegativity: 0.95, discoveryYear: 1790, boilingPoint: 1655 },
+                { name: 'Ittrium', atomicNumber: 39, electronegativity: 1.22, discoveryYear: 1794, boilingPoint: 3618 },
+                { name: 'Cirkónium', atomicNumber: 40, electronegativity: 1.33, discoveryYear: 1789, boilingPoint: 4682 },
+                { name: 'Nióbium', atomicNumber: 41, electronegativity: 1.60, discoveryYear: 1801, boilingPoint: 5200 },
+                { name: 'Molibdén', atomicNumber: 42, electronegativity: 2.16, discoveryYear: 1778, boilingPoint: 4912 },
+                { name: 'Technécium', atomicNumber: 43, electronegativity: 1.90, discoveryYear: 1937, boilingPoint: 4538 },
+                { name: 'Ruténium', atomicNumber: 44, electronegativity: 2.20, discoveryYear: 1844, boilingPoint: 4423 },
+                { name: 'Ródium', atomicNumber: 45, electronegativity: 2.28, discoveryYear: 1803, boilingPoint: 3968 },
+                { name: 'Palládium', atomicNumber: 46, electronegativity: 2.20, discoveryYear: 1803, boilingPoint: 3236 },
+                { name: 'Ezüst', atomicNumber: 47, electronegativity: 1.93, discoveryYear: -3000, boilingPoint: 2435 }, // Ókor
+                { name: 'Kadmium', atomicNumber: 48, electronegativity: 1.69, discoveryYear: 1817, boilingPoint: 1040 },
+                { name: 'Indium', atomicNumber: 49, electronegativity: 1.78, discoveryYear: 1863, boilingPoint: 2345 },
+                { name: 'Ón', atomicNumber: 50, electronegativity: 1.88, discoveryYear: -3000, boilingPoint: 2875 } // Ókor
+            ];
+
+            const propertyDetails = {
+                atomicNumber: { name: 'Rendszám', unit: '' },
+                electronegativity: { name: 'Elektronegativitás', unit: '' },
+                discoveryYear: { name: 'Felfedezés éve', unit: '' },
+                boilingPoint: { name: 'Forráspont', unit: 'K' }
+            };
+
+            const pastelColors = [
+                '#FFD1DC', // Pink
+                '#FFECB3', // Light Yellow
+                '#D1FFD1', // Light Green
+                '#D1E7FF', // Light Blue
+                '#E0BBE4', // Lavender
+                '#FFABAB', // Light Red
+                '#B3E0FF', // Sky Blue
+                '#FFC3A0', // Peach
+                '#C3FFC3', // Mint Green
+                '#F0E68C'  // Khaki (light yellow-green)
+            ];
+
+            let deck = [], tableCards = [], currentCard = null, score = 0, isProcessing = false, scrollInterval = null, gameProperty = null, selectedElementCount = null;
+
+            const selectionScreen = document.getElementById('selection-screen');
+            const gameContainer = document.getElementById('game-container');
+            const gameTitle = document.getElementById('game-title');
+            const scoreEl = document.getElementById('score');
+            const deckCountEl = document.getElementById('deck-count');
+            const currentCardEl = document.getElementById('current-card');
+            const currentCardNameEl = document.getElementById('current-card-name');
+            const tableAreaEl = document.getElementById('table-area');
+            const gameOverMessageEl = document.getElementById('game-over-message');
+            const finalScoreText = document.getElementById('final-score-text');
+            const restartButton = document.getElementById('restart-button');
+            const handAreaEl = document.getElementById('hand-area');
+            const dropIndicator = document.createElement('div');
+            dropIndicator.id = 'drop-indicator';
+
+            const modeButtons = document.querySelectorAll('.mode-button[data-property]');
+            const countButtons = document.querySelectorAll('.count-button');
+            const startGameButton = document.getElementById('start-game-button');
+            const helpButton = document.getElementById('help-button');
+            const helpModal = document.getElementById('help-modal');
+            const closeModalButton = document.getElementById('close-help-modal');
+
+            // --- VÁLASZTÓKÉPERNYŐ LOGIKA ---
+            modeButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    modeButtons.forEach(btn => btn.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    gameProperty = e.target.dataset.property;
+                    checkStartButtonState();
+                });
+            });
+
+            countButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    countButtons.forEach(btn => btn.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    selectedElementCount = parseInt(e.target.dataset.count, 10);
+                    checkStartButtonState();
+                });
+            });
+
+            startGameButton.addEventListener('click', () => {
+                if (gameProperty && selectedElementCount) {
+                    selectionScreen.style.display = 'none';
+                    gameContainer.style.display = 'flex';
+                    gameTitle.textContent = `Rendszám-sor: ${propertyDetails[gameProperty].name}`;
+                    startGame();
+                }
+            });
+
+            function checkStartButtonState() {
+                if (gameProperty && selectedElementCount) {
+                    startGameButton.disabled = false;
+                    startGameButton.style.backgroundColor = ''; // Reset to default green
+                } else {
+                    startGameButton.disabled = true;
+                    startGameButton.style.backgroundColor = '#6c757d'; // Grey out
+                }
+            }
+
+            restartButton.addEventListener('click', restartGame);
+            helpButton.addEventListener('click', showHelp);
+            closeModalButton.addEventListener('click', hideHelp);
+
+            function showHelp() {
+                helpModal.style.display = 'flex';
+            }
+
+            function hideHelp() {
+                helpModal.style.display = 'none';
+            }
+
+            // --- DRAG & DROP LOGIKA ---
+            currentCardEl.addEventListener('dragstart', () => {
+                if (isProcessing) return;
+                setTimeout(() => currentCardEl.classList.add('dragging'), 0);
+            });
+
+            currentCardEl.addEventListener('dragend', () => currentCardEl.classList.remove('dragging'));
+
+            tableAreaEl.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (isProcessing) return;
+
+                const tableRect = tableAreaEl.getBoundingClientRect();
+                const edgeSize = 80;
+                if (e.clientX < tableRect.left + edgeSize) {
+                    startAutoScroll(-10);
+                } else if (e.clientX > tableRect.right - edgeSize) {
+                    startAutoScroll(10);
+                } else {
+                    stopAutoScroll();
+                }
+
+                const afterElement = getDragAfterElement(tableAreaEl, e.clientX);
+                if (afterElement == null) {
+                    tableAreaEl.appendChild(dropIndicator);
+                }
+                else {
+                    tableAreaEl.insertBefore(dropIndicator, afterElement);
+                }
+            });
+
+            tableAreaEl.addEventListener('dragleave', () => {
+                stopAutoScroll();
+                if (tableAreaEl.contains(dropIndicator)) {
+                    tableAreaEl.removeChild(dropIndicator);
+                }
+            });
+
+            tableAreaEl.addEventListener('drop', e => {
+                e.preventDefault();
+                if (isProcessing || !tableAreaEl.contains(dropIndicator)) return;
+                
+                isProcessing = true;
+                stopAutoScroll();
+
+                const placementIndex = Array.from(tableAreaEl.children).indexOf(dropIndicator);
+                tableAreaEl.removeChild(dropIndicator);
+                processPlacement(placementIndex);
+            });
+
+            function getDragAfterElement(container, x) {
+                const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+                for (const child of draggableElements) {
+                    const box = child.getBoundingClientRect();
+                    if (x < box.left + box.width / 2) {
+                        return child;
+                    }
+                }
+                return null;
+            }
+
+            function startAutoScroll(speed) {
+                if (scrollInterval) return;
+                scrollInterval = setInterval(() => { tableAreaEl.scrollLeft += speed; }, 20);
+            }
+
+            function stopAutoScroll() {
+                clearInterval(scrollInterval);
+                scrollInterval = null;
+            }
+
+            // --- JÁTÉKMENET ---
+
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            function startGame() {
+                score = 0; isProcessing = false; tableCards = [];
+                deck = [...elements].slice(0, selectedElementCount).filter(el => el[gameProperty] !== null && el[gameProperty] !== undefined && el[gameProperty] !== 'N/A');
+                shuffle(deck);
+
+                const card1 = deck.pop();
+                const card2 = deck.pop();
+
+                if (card1 && card2) {
+                    // Színek hozzárendelése
+                    card1.color = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+                    card2.color = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+
+                    if (card1[gameProperty] < card2[gameProperty]) {
+                        tableCards.push(card1, card2);
+                    } else {
+                        tableCards.push(card2, card1);
+                    }
+                } else if (card1) {
+                    card1.color = pastelColors[Math.floor(Math.random() * pastelColors.length)];
+                    tableCards.push(card1);
+                }
+
+                dealNewCard();
+                renderGame();
+            }
+
+            function dealNewCard() {
+                if (deck.length > 0) {
+                    currentCard = deck.pop();
+                    currentCard.color = pastelColors[Math.floor(Math.random() * pastelColors.length)]; // Szín hozzárendelése
+                    currentCardEl.style.display = ''; handAreaEl.style.display = '';
+                } else {
+                    currentCard = null;
+                    endGame();
+                }
+            }
+
+            function renderGame() {
+                scoreEl.textContent = score;
+                deckCountEl.textContent = deck.length;
+                if (currentCard) {
+                    currentCardNameEl.textContent = currentCard.name;
+                    currentCardEl.classList.remove('dragging');
+                    currentCardEl.style.backgroundColor = currentCard.color; // Kézben lévő kártya színe
+                } else {
+                    handAreaEl.style.display = 'none';
+                }
+                tableAreaEl.innerHTML = '';
+                tableCards.forEach(card => tableAreaEl.appendChild(createCardElement(card)));
+                isProcessing = false;
+            }
+
+            function createCardElement(card) {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.style.backgroundColor = card.color; // Szín alkalmazása
+                const unit = propertyDetails[gameProperty].unit || '';
+                let value = card[gameProperty];
+
+                if (gameProperty === 'discoveryYear' && value < 0) {
+                    value = `${Math.abs(value)} Kr. e.`;
+                } else if (gameProperty === 'electronegativity') {
+                    value = value !== null ? value.toFixed(2) : 'N/A'; 
+                } else if (value === null || value === undefined) {
+                    value = 'N/A';
+                }
+
+                cardEl.innerHTML = `<div class="card-name">${card.name}</div><div class="card-number">(${value} ${unit})</div>`;
+                return cardEl;
+            }
+
+            function processPlacement(placementIndex) {
+                if (!currentCard) return;
+
+                const prevCard = tableCards[placementIndex - 1] || null;
+                const nextCard = tableCards[placementIndex] || null;
+                const currentValue = currentCard[gameProperty];
+
+                const isCorrect = currentValue > (prevCard ? prevCard[gameProperty] : -Infinity) && currentValue < (nextCard ? nextCard[gameProperty] : Infinity);
+
+                let insertedAt;
+                if (isCorrect) {
+                    score++;
+                    tableCards.splice(placementIndex, 0, currentCard);
+                    insertedAt = placementIndex;
+                    showFeedback(true);
+                } else {
+                    let correctIndex = tableCards.findIndex(card => card[gameProperty] > currentValue);
+                    if (correctIndex === -1) correctIndex = tableCards.length;
+                    tableCards.splice(correctIndex, 0, currentCard);
+                    insertedAt = correctIndex;
+                    showFeedback(false);
+                }
+                
+                currentCardEl.style.display = 'none';
+
+                setTimeout(() => {
+                    dealNewCard();
+                    renderGame();
+                    const newCardElement = tableAreaEl.children[insertedAt];
+                    if (newCardElement) {
+                        newCardElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                }, 700);
+            }
+
+            function showFeedback(isCorrect) {
+                const className = isCorrect ? 'correct-flash' : 'incorrect-flash';
+                tableAreaEl.classList.add(className);
+                setTimeout(() => tableAreaEl.classList.remove(className), 700);
+            }
+
+            function endGame() {
+                tableAreaEl.style.display = 'none';
+                handAreaEl.style.display = 'none';
+                gameOverMessageEl.style.display = 'block';
+                finalScoreText.textContent = `Játék vége! Végső pontszám: ${score}`;
+                restartButton.style.display = 'block';
+            }
+
+            function restartGame() {
+                score = 0;
+                deck = [];
+                tableCards = [];
+                currentCard = null;
+                isProcessing = false;
+                stopAutoScroll();
+
+                gameProperty = null; 
+                selectedElementCount = null;
+
+                selectionScreen.style.display = 'block'; 
+                gameContainer.style.display = 'none'; 
+                gameOverMessageEl.style.display = 'none';
+                restartButton.style.display = 'none';
+                finalScoreText.textContent = '';
+
+                modeButtons.forEach(btn => btn.classList.remove('selected'));
+                countButtons.forEach(btn => btn.classList.remove('selected'));
+                startGameButton.disabled = true;
+                startGameButton.style.backgroundColor = '#6c757d';
+
+                handAreaEl.style.display = '';
+                currentCardEl.style.display = '';
+                tableAreaEl.style.display = 'flex';
+                tableAreaEl.innerHTML = '';
+                currentCardNameEl.textContent = '';
+            }
+        });
+    </script>
+
+</body>
+</html>
