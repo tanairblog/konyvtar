@@ -514,8 +514,7 @@
                 const afterElement = getDragAfterElement(tableAreaEl, e.clientX);
                 if (afterElement == null) {
                     tableAreaEl.appendChild(dropIndicator);
-                }
-                else {
+                } else {
                     tableAreaEl.insertBefore(dropIndicator, afterElement);
                 }
             });
