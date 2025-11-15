@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vigenère-titkosítás</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 100px;
+        }
+        button {
+            margin: 10px 0;
+        }
+        .highlight {
+            color: red;
+            font-weight: bold;
+        }
+        .animation-container {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .alphabet-cell {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid black;
+            font-size: 14px;
+        }
+        .alphabet-cell.active {
+            background-color: yellow;
+        }
+        .alphabet-cell.key {
+            background-color: lightblue;
+        }
+        .alphabet-cell.result {
+            background-color: red;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Vigenère-titkosítás</h1>
+    <label for="action">Válassz:</label>
+    <select id="action">
+        <option value="encrypt">Titkosítás</option>
+        <option value="decrypt">Megfejtés</option>
+    </select>
+
+    <label for="key">Add meg a kulcsot:</label>
+    <input type="text" id="key" placeholder="Kulcs">
+
+    <label for="text">Add meg a szöveget:</label>
+    <textarea id="text" placeholder="Szöveg"></textarea>
+
+    <button onclick="processVigenere()">Elküld</button>
+
+    <h2>Folyamat:</h2>
+    <div id="folyamat"></div>
+
+    <h2>Eredmény:</h2>
+    <p id="eredmény"></p>
+
+    <script>
+        const alphabet = "AÁBCDEÉFGHIÍJKLMNOÓÖŐPQRSTUÚÜŰVWXYZ";
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function animateAlphabet(textIndex, keyIndexValue, newIndex, container) {
+            container.innerHTML = ""; // Clear the container for a single-line animation
+
+            for (let i = 0; i < alphabet.length; i++) {
+                const cell = document.createElement("div");
+                cell.className = "alphabet-cell";
+                cell.textContent = alphabet[i];
+
+                if (i === textIndex) {
+                    cell.classList.add("active");
+                }
+                if (i === keyIndexValue) {
+                    cell.classList.add("key");
+                }
+                if (i === newIndex) {
+                    cell.classList.add("result");
+                }
+
+                container.appendChild(cell);
+            }
+        }
+
+        async function processVigenere() {
+            const action = document.getElementById("action").value;
+            const key = document.getElementById("key").value.toUpperCase();
+            const text = document.getElementById("text").value.toUpperCase();
+            const resultElement = document.getElementById("eredmény");
+            const processElement = document.getElementById("folyamat");
+
+            if (!key || !text) {
+                resultElement.textContent = "Add meg a kulcsot és a szöveget.";
+                return;
+            }
+
+            let result = "";
+            let keyIndex = 0;
+            processElement.innerHTML = "<div class='animation-container'></div><br><div class='processing-line'></div>"; // Added line break and separate processing section
+            const animationContainer = processElement.querySelector(".animation-container");
+            const processingLine = processElement.querySelector(".processing-line");
+
+            for (let i = 0; i < text.length; i++) {
+                const textChar = text[i];
+                const textIndex = alphabet.indexOf(textChar);
+
+                if (textIndex === -1) {
+                    result += textChar; // Non-alphabetic characters stay the same
+                    continue;
+                }
+
+                const keyChar = key[keyIndex % key.length];
+                const keyIndexValue = alphabet.indexOf(keyChar);
+                let newIndex;
+
+                if (action === "encrypt") {
+                    newIndex = (textIndex + keyIndexValue) % alphabet.length;
+                } else if (action === "decrypt") {
+                    newIndex = (textIndex - keyIndexValue + alphabet.length) % alphabet.length;
+                }
+
+                const resultChar = alphabet[newIndex];
+                result += resultChar;
+
+                // Animate the single-line alphabet
+                await animateAlphabet(textIndex, keyIndexValue, newIndex, animationContainer);
+
+                processingLine.innerHTML = `<p>Feldolgozás:<br><span class="highlight" style = "color: gold;">${textChar}</span> a kulcs: <span class="highlight" style="color: lightblue;">${keyChar}</span> → eredmény: <span class="highlight" style="color: red;">${resultChar}</span></p>`;
+
+                keyIndex++;
+
+                // Add a small delay for animation effect
+                await sleep(1000);
+            }
+
+            resultElement.textContent = result;
+        }
+    </script>
+</body>
+</html>
