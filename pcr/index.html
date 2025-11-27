@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCR szimuláció</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            /* SZÍNKÓDOK */
+            --sense-orig: #0f172a;    /* Sötétkék (Eredeti templát) */
+            --sense-new: #2563eb;     /* Élénk kék (Új szál) */
+            --sense-primer: #93c5fd;  /* Világoskék (Primer) */
+
+            --anti-orig: #450a0a;     /* Sötétbordó (Eredeti templát) */
+            --anti-new: #dc2626;      /* Élénk piros (Új szál) */
+            --anti-primer: #fca5a5;   /* Rózsaszínes (Primer) */
+        }
+
+        svg { overflow: visible; }
+
+        /* Alap szál stílus */
+        .strand {
+            fill: none;
+            stroke-width: 6;
+            stroke-linecap: round;
+            /* Fontos: A transition-t levesszük az animált tulajdonságokról a villogás elkerülése végett */
+            transition: transform 1s ease-in-out, opacity 0.5s;
+        }
+        
+        /* Vékonyabb vonalak a sokszorozódás nézethez */
+        .strand-sm { stroke-width: 3; }
+
+        /* Színek */
+        .s-orig { stroke: var(--sense-orig); }
+        .s-new { stroke: var(--sense-new); }
+        .p-sense { stroke: var(--sense-primer); fill: none; stroke-width: 6; stroke-linecap: round; }
+
+        .a-orig { stroke: var(--anti-orig); }
+        .a-new { stroke: var(--anti-new); }
+        .p-anti { stroke: var(--anti-primer); fill: none; stroke-width: 6; stroke-linecap: round; }
+
+        .base-pairs {
+            stroke: #cbd5e1;
+            stroke-width: 1;
+            transition: opacity 0.5s;
+        }
+
+        .polymerase {
+            fill: #16a34a;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        /* --- TOOLTIP (HOVER DEFINÍCIÓK) --- */
+        .term-tooltip {
+            cursor: help;
+            border-bottom: 1px dotted currentColor;
+            position: relative;
+            display: inline-block;
+        }
+
+        .term-tooltip:hover::after {
+            content: attr(data-title);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #1e293b; /* Slate-800 */
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: normal;
+            white-space: normal;
+            width: max-content;
+            max-width: 250px;
+            z-index: 50;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            pointer-events: none;
+            line-height: 1.4;
+        }
+
+        /* Kis nyíl a tooltip alján */
+        .term-tooltip:hover::before {
+            content: '';
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1e293b transparent transparent transparent;
+            z-index: 50;
+        }
+
+        /* --- ANIMÁCIÓK (MECHANIZMUS NÉZET) --- */
+        .denature .top-group { transform: translateY(-35px); }
+        .denature .bottom-group { transform: translateY(35px); }
+        .denature .base-pairs { opacity: 0; }
+
+        .anneal .p-sense, .anneal .p-anti { opacity: 1; }
+        .p-sense, .p-anti { opacity: 0; transition: opacity 0.5s; }
+
+        .extend .polymerase { opacity: 1; }
+        
+        /* FONTOS JAVÍTÁS: Az animált szálaknál kikapcsoljuk a transition-t */
+        .new-strand-path {
+            /* Kezdetben rejtve (a stroke-dashoffset a HTML-ben van beállítva) */
+            opacity: 1; 
+        }
+
+        .anim-active .new-strand-path { 
+            animation: drawStrand 3s linear forwards; 
+        }
+        
+        .anim-active .move-right { animation: moveRight 3s linear forwards; }
+        .anim-active .move-left { animation: moveLeft 3s linear forwards; }
+        
+        /* Speciális Ciklus 2 */
+        .cycle-2-anim .move-right-stop { animation: moveRightStop 3s linear forwards; }
+        .cycle-2-anim .move-left-stop { animation: moveLeftStop 3s linear forwards; }
+
+        /* --- ANIMÁCIÓK (SOKSZOROZÓDÁS NÉZET) --- */
+        
+        .growth-stage .molecule-pair { transition: transform 1s ease-in-out; }
+        
+        /* Denaturáció a rács nézetben */
+        .growth-denature .strand-a { transform: translateY(-6px); }
+        .growth-denature .strand-b { transform: translateY(6px); }
+        
+        /* Új szálak megjelenése a rácsban */
+        .growth-new-strand {
+            stroke-dasharray: 120;
+            stroke-dashoffset: 120;
+            opacity: 0.5; /* Halványan látszik, hogy ott van, majd kirajzolódik */
+        }
+        .growth-extend .growth-new-strand {
+            opacity: 1;
+            animation: drawGrowth 2s linear forwards;
+        }
+
+        @keyframes drawStrand { to { stroke-dashoffset: 0; } }
+        @keyframes drawGrowth { to { stroke-dashoffset: 0; } }
+        
+        @keyframes moveRight { from { transform: translateX(0); } to { transform: translateX(450px); } }
+        @keyframes moveLeft { from { transform: translateX(0); } to { transform: translateX(-450px); } }
+        
+        @keyframes moveRightStop { 
+            0% { transform: translateX(0); opacity: 1; } 
+            85% { transform: translateX(350px); opacity: 1; } 
+            100% { transform: translateX(370px); opacity: 0; } 
+        }
+        @keyframes moveLeftStop { 
+            0% { transform: translateX(0); opacity: 1; } 
+            85% { transform: translateX(-350px); opacity: 1; } 
+            100% { transform: translateX(-370px); opacity: 0; } 
+        }
+
+        .cycle-group { display: none; }
+        .cycle-group.active { display: block; }
+        
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col items-center p-4">
+
+    <div class="max-w-5xl w-full bg-white rounded-xl shadow-xl overflow-hidden">
+        
+        <!-- Header -->
+        <div class="bg-slate-800 p-4 text-white flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold">PCR Szimuláció: Mechanizmus és Sokszorozódás</h1>
+                <p class="text-slate-400 text-xs">Vidd az egeret a 
+                    <span class="term-tooltip text-blue-300" data-title="Olyan kifejezés, amihez magyarázat tartozik.">pöttyözött szavak</span> 
+                    fölé a definíciókért!
+                </p>
+            </div>
+            <div class="bg-slate-700 p-2 rounded text-[10px] grid grid-cols-2 gap-x-4 gap-y-1">
+                <div class="font-bold text-blue-300 col-span-2 border-b border-slate-600">
+                    <span class="term-tooltip" data-title="Az 5'→3' irányú szál, amely a kódoló információt hordozza.">ÉRTELMES (5'→3')</span> - KÉK
+                </div>
+                <div><span class="legend-dot" style="background:#0f172a"></span>Eredeti</div>
+                <div><span class="legend-dot" style="background:#2563eb"></span>Új</div>
+                
+                <div class="font-bold text-red-300 col-span-2 border-b border-slate-600 mt-1">
+                    <span class="term-tooltip" data-title="A 3'←5' irányú szál, amely az értelmes szál kiegészítő párja (komplementer).">KIEGÉSZÍTŐ (3'←5')</span> - PIROS
+                </div>
+                <div><span class="legend-dot" style="background:#450a0a"></span>Eredeti</div>
+                <div><span class="legend-dot" style="background:#dc2626"></span>Új</div>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <!-- Status Bar -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 bg-slate-100 p-3 rounded-lg border border-slate-200">
+                <div class="flex items-center space-x-4 mb-2 md:mb-0">
+                    <span id="cycle-badge" class="bg-blue-600 text-white px-3 py-1 rounded-full font-bold shadow-sm text-sm">1. Ciklus</span>
+                    <span id="temp-display" class="text-xl font-bold text-red-600 w-16 text-center">95°C</span>
+                </div>
+                <div class="text-center md:text-right flex-1 px-4">
+                    <h2 id="step-title" class="font-bold text-md text-slate-700">
+                        <span class="term-tooltip" data-title="A DNS kettős spirál szétválása magas hőmérsékleten.">Denaturáció</span>
+                    </h2>
+                    <p id="step-desc" class="text-xs text-slate-500">A szálak szétválnak.</p>
+                </div>
+            </div>
+
+            <!-- Canvas -->
+            <div id="canvas-container" class="relative bg-white border border-slate-200 rounded-xl shadow-inner mb-4 overflow-hidden h-[400px] flex items-center justify-center">
+                <svg viewBox="0 0 600 350" class="w-full h-full" id="main-svg">
+                    
+                    <defs>
+                        <linearGradient id="fade-left"><stop offset="0%" stop-color="white"/><stop offset="100%" stop-color="white" stop-opacity="0"/></linearGradient>
+                        <linearGradient id="fade-right"><stop offset="0%" stop-color="white" stop-opacity="0"/><stop offset="100%" stop-color="white"/></linearGradient>
+                    </defs>
+
+                    <!-- === 1. CIKLUS (Részletes) === -->
+                    <g id="group-cycle-1" class="cycle-group active">
+                        <text x="300" y="30" text-anchor="middle" class="text-xs fill-slate-400 font-bold uppercase">1. Ciklus: Az első másolatok</text>
+                        <g class="base-pairs" transform="translate(0, 20)">
+                            <line x1="100" y1="100" x2="100" y2="140" /><line x1="200" y1="100" x2="200" y2="140" />
+                            <line x1="300" y1="100" x2="300" y2="140" /><line x1="400" y1="100" x2="400" y2="140" /><line x1="500" y1="100" x2="500" y2="140" />
+                        </g>
+
+                        <!-- FELSŐ -->
+                        <g class="top-group" transform="translate(0, 20)">
+                            <path class="strand s-orig" d="M-50,100 L650,100" />
+                            <path class="p-anti" d="M500,115 L450,115" /> 
+                            <path class="strand a-new new-strand-path" d="M450,115 L-50,115" stroke-dasharray="600" stroke-dashoffset="600" />
+                            <circle cx="450" cy="115" r="10" class="polymerase move-left" />
+                        </g>
+
+                        <!-- ALSÓ -->
+                        <g class="bottom-group" transform="translate(0, 20)">
+                            <path class="strand a-orig" d="M-50,140 L650,140" />
+                            <path class="p-sense" d="M100,125 L150,125" />
+                            <path class="strand s-new new-strand-path" d="M150,125 L650,125" stroke-dasharray="600" stroke-dashoffset="600" />
+                            <circle cx="150" cy="125" r="10" class="polymerase move-right" />
+                        </g>
+                        
+                        <rect x="0" y="0" width="60" height="350" fill="url(#fade-left)"/><rect x="540" y="0" width="60" height="350" fill="url(#fade-right)"/>
+                    </g>
+
+
+                    <!-- === 2. CIKLUS (Részletes - Leesős) === -->
+                    <g id="group-cycle-2" class="cycle-group">
+                        <text x="300" y="30" text-anchor="middle" class="text-xs fill-slate-500 font-bold uppercase">2. Ciklus: A hosszúság beállítása</text>
+                        <g class="base-pairs" transform="translate(0, 20)">
+                            <line x1="150" y1="100" x2="150" y2="140" /><line x1="250" y1="100" x2="250" y2="140" />
+                            <line x1="350" y1="100" x2="350" y2="140" /><line x1="450" y1="100" x2="450" y2="140" />
+                        </g>
+
+                        <!-- FELSŐ -->
+                        <g class="top-group" transform="translate(0, 20)">
+                            <path class="strand a-new opacity-60" d="M-50,100 L500,100" stroke-dasharray="8,4" />
+                            <path class="p-sense" d="M100,115 L150,115" />
+                            <path class="strand s-new new-strand-path" d="M150,115 L500,115" stroke-dasharray="350" stroke-dashoffset="350" />
+                            <circle cx="150" cy="115" r="10" class="polymerase move-right-stop" />
+                        </g>
+
+                        <!-- ALSÓ -->
+                        <g class="bottom-group" transform="translate(0, 20)">
+                            <path class="strand s-new opacity-60" d="M100,140 L650,140" stroke-dasharray="8,4" />
+                            <path class="p-anti" d="M500,125 L450,125" />
+                            <path class="strand a-new new-strand-path" d="M450,125 L100,125" stroke-dasharray="350" stroke-dashoffset="350" />
+                            <circle cx="450" cy="125" r="10" class="polymerase move-left-stop" />
+                        </g>
+                        
+                        <rect x="0" y="0" width="60" height="350" fill="url(#fade-left)"/><rect x="540" y="0" width="60" height="350" fill="url(#fade-right)"/>
+                    </g>
+
+
+                    <!-- === 3. CIKLUS (GRID - 4 Pár) === -->
+                    <g id="group-cycle-3" class="cycle-group">
+                        <text x="300" y="40" text-anchor="middle" class="text-xs fill-green-600 font-bold uppercase tracking-widest">3. Ciklus: 4 Molekula Pár</text>
+                        
+                        <!-- 4 db Pár elrendezése -->
+                        <g transform="translate(60, 80)" class="molecule-pair">
+                            <path class="strand strand-sm s-orig strand-a" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" /> 
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+
+                        <g transform="translate(440, 80)" class="molecule-pair">
+                            <path class="strand strand-sm a-orig strand-a" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,-8 L100,-8" />
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+
+                        <g transform="translate(180, 180)" class="molecule-pair">
+                            <path class="strand strand-sm s-new strand-a" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" />
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+
+                        <g transform="translate(320, 180)" class="molecule-pair">
+                            <path class="strand strand-sm a-new strand-a" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,-8 L100,-8" />
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                    </g>
+
+                    <!-- === 4. CIKLUS (GRID - 8 Pár) === -->
+                    <g id="group-cycle-4" class="cycle-group">
+                        <text x="300" y="40" text-anchor="middle" class="text-xs fill-purple-600 font-bold uppercase tracking-widest">4. Ciklus: 8 Molekula Pár (Sokszorozódás)</text>
+                        
+                        <!-- 8 db Kisebb Pár -->
+                        <!-- 1. Sor -->
+                        <g transform="translate(40, 80) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm s-orig strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                        <g transform="translate(180, 80) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm s-new strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                        <g transform="translate(320, 80) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm s-new strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                        <g transform="translate(460, 80) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm a-orig strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm s-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm a-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+
+                        <!-- 2. Sor -->
+                        <g transform="translate(40, 180) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm s-new strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                        <g transform="translate(180, 180) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm a-new strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm s-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm a-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                        <g transform="translate(320, 180) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm s-new strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm a-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm a-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm s-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                        <g transform="translate(460, 180) scale(0.8)" class="molecule-pair">
+                            <path class="strand strand-sm a-new strand-a" d="M0,0 L100,0" /> <path class="strand strand-sm s-new strand-b" d="M0,0 L100,0" /> 
+                            <path class="strand strand-sm s-new growth-new-strand" d="M0,-8 L100,-8" /> <path class="strand strand-sm a-new growth-new-strand" d="M0,8 L100,8" />
+                        </g>
+                    </g>
+
+                </svg>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex justify-center gap-4 mt-4">
+                <button id="reset-btn" onclick="resetSim()" disabled class="px-6 py-2 rounded-lg bg-slate-200 text-slate-600 font-medium transition hover:bg-slate-300 disabled:opacity-50 text-sm">
+                    Vissza
+                </button>
+                <button id="next-btn" onclick="nextStep()" class="px-10 py-3 rounded-lg bg-blue-600 text-white font-bold shadow-lg hover:bg-blue-700 transition transform active:scale-95 flex items-center">
+                    Indítás ➔
+                </button>
+            </div>
+
+            <!-- Counters -->
+            <div class="mt-6 pt-4 border-t border-slate-200 grid grid-cols-4 gap-2 text-center text-sm">
+                <div class="p-2 rounded bg-slate-50 border border-slate-200">
+                    <div class="text-slate-400 font-bold text-[10px] uppercase">Ciklus</div>
+                    <div id="stat-cycle" class="text-xl font-bold text-slate-700">1</div>
+                </div>
+                <div class="p-2 rounded bg-slate-50 border border-slate-200">
+                    <div class="text-slate-400 font-bold text-[10px] uppercase">
+                        <span class="term-tooltip" data-title="Az eredeti, nagyon hosszú DNS molekula, amit sokszorozni kezdünk.">Hosszú</span>
+                    </div>
+                    <div id="count-long" class="text-xl font-bold text-blue-900">2</div>
+                </div>
+                <div class="p-2 rounded bg-slate-50 border border-slate-200">
+                    <div class="text-slate-400 font-bold text-[10px] uppercase">
+                        <span class="term-tooltip" data-title="Olyan DNS szál, amely az egyik végén már a helyes ponton kezdődik, de a másik végén még túl hosszú.">Köztes</span>
+                    </div>
+                    <div id="count-inter" class="text-xl font-bold text-orange-500">0</div>
+                </div>
+                <div class="p-2 rounded bg-green-50 border border-green-200 ring-2 ring-green-100">
+                    <div class="text-green-700 font-bold text-[10px] uppercase">
+                        <span class="term-tooltip" data-title="A pontos méretű DNS szakasz, amit létre akartunk hozni (a két primer közötti rész).">Célszekvencia</span>
+                    </div>
+                    <div id="count-target" class="text-2xl font-bold text-green-600">0</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- LOGIKA ---
+        let currentCycle = 1;
+        let stepInCycle = 0;
+        let isAnimating = false;
+
+        const nextBtn = document.getElementById('next-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const stepTitle = document.getElementById('step-title');
+        const stepDesc = document.getElementById('step-desc');
+        const tempDisplay = document.getElementById('temp-display');
+        const cycleBadge = document.getElementById('cycle-badge');
+        
+        const groups = {
+            1: document.getElementById('group-cycle-1'),
+            2: document.getElementById('group-cycle-2'),
+            3: document.getElementById('group-cycle-3'), // Grid 4
+            4: document.getElementById('group-cycle-4')  // Grid 8
+        };
+
+        const counts = {
+            long: document.getElementById('count-long'),
+            inter: document.getElementById('count-inter'),
+            target: document.getElementById('count-target'),
+            cycle: document.getElementById('stat-cycle')
+        };
+
+        // Frissített StepInfo a tooltipekkel
+        const stepInfo = [
+            { 
+                title: '<span class="term-tooltip" data-title="A DNS kettős spirál szétválása magas hőmérsékleten.">Denaturáció</span>', 
+                temp: "95°C", 
+                desc: "A <span class='term-tooltip' data-title='Dezoxiribonukleinsav: az örökítőanyag, amely két szálból áll.'>DNS</span> szálak a hő hatására elválnak egymástól.", 
+                color: "text-red-600" 
+            },
+            { 
+                title: '<span class="term-tooltip" data-title="A primerek hozzákapcsolódása a DNS egyszálú szakaszaihoz.">Hibridizáció</span>', 
+                temp: "55°C", 
+                desc: "A <span class='term-tooltip' data-title='Rövid, mesterséges DNS darab, ami kijelöli a másolás kezdőpontját.'>primerek</span> megtapadnak a specifikus helyeken.", 
+                color: "text-yellow-600" 
+            },
+            { 
+                title: '<span class="term-tooltip" data-title="A DNS lánc hosszabbítása: az enzim beépíti az építőköveket.">Elongáció</span>', 
+                temp: "72°C", 
+                desc: "A <span class='term-tooltip' data-title='Taq polimeráz enzim, amely felépíti az új DNS láncot.'>polimeráz</span> létrehozza az új szálakat.", 
+                color: "text-green-600" 
+            }
+        ];
+
+        function nextStep() {
+            if (isAnimating) return;
+
+            // Ha vége egy ciklusnak
+            if (stepInCycle === 3) {
+                if (currentCycle < 4) {
+                    switchCycle(currentCycle + 1);
+                } else {
+                    // Ciklus 4 után már csak a számlálót pörgetjük
+                    simulateGrowth();
+                }
+                return;
+            }
+
+            const currentGroup = groups[currentCycle];
+            
+            // 1. Denaturáció
+            if (stepInCycle === 0) { 
+                stepInCycle = 1;
+                updateUI(0);
+                
+                if (currentCycle >= 3) {
+                    currentGroup.classList.add('growth-denature'); // Grid nézet szétválás
+                } else {
+                    currentGroup.classList.add('denature');
+                }
+            }
+            // 2. Hibridizáció
+            else if (stepInCycle === 1) { 
+                stepInCycle = 2;
+                updateUI(1);
+                if (currentCycle < 3) currentGroup.classList.add('anneal');
+            }
+            // 3. Elongáció (Animáció)
+            else if (stepInCycle === 2) { 
+                stepInCycle = 3;
+                updateUI(2);
+                
+                isAnimating = true;
+                nextBtn.disabled = true;
+                
+                if (currentCycle >= 3) {
+                    currentGroup.classList.add('growth-extend'); // Grid nézet növekedés
+                } else {
+                    currentGroup.classList.add('extend');
+                    setTimeout(() => {
+                        currentGroup.classList.add('anim-active');
+                        if(currentCycle === 2) currentGroup.classList.add('cycle-2-anim');
+                    }, 50);
+                }
+
+                setTimeout(() => {
+                    isAnimating = false;
+                    nextBtn.disabled = false;
+                    
+                    updateCounts(currentCycle);
+                    
+                    if (currentCycle === 4) {
+                         nextBtn.textContent = "5. Ciklus (Csak Számok) ➔";
+                    } else {
+                        nextBtn.textContent = "Következő Ciklus ➔";
+                    }
+
+                }, 2500); // Animáció ideje
+            }
+            resetBtn.disabled = false;
+        }
+
+        function switchCycle(newCycle) {
+            const oldGroup = groups[currentCycle];
+            oldGroup.style.opacity = '0';
+
+            setTimeout(() => {
+                // Reset old group classes
+                oldGroup.classList.remove('active', 'denature', 'anneal', 'extend', 'anim-active', 'cycle-2-anim', 'growth-denature', 'growth-extend');
+                oldGroup.style.opacity = '1';
+                
+                currentCycle = newCycle;
+                stepInCycle = 0;
+
+                const newGroup = groups[currentCycle];
+                newGroup.classList.add('active');
+                
+                cycleBadge.textContent = `${currentCycle}. Ciklus`;
+                stepTitle.innerHTML = `${currentCycle}. Ciklus`; // InnerHTML a tooltipek miatt
+                
+                if (newCycle >= 3) {
+                    stepDesc.textContent = "Mostantól az egész populációt látjuk kicsiben.";
+                    tempDisplay.textContent = "---";
+                } else {
+                    stepDesc.textContent = "Új kör indul.";
+                    tempDisplay.textContent = "---";
+                }
+                
+                tempDisplay.className = "text-xl font-bold text-slate-400 w-16 text-center";
+                nextBtn.textContent = "Indítás ➔";
+            }, 500);
+        }
+
+        function simulateGrowth() {
+            let c = parseInt(counts.cycle.textContent) + 1;
+            if (c > 30) { c = 30; nextBtn.disabled = true; nextBtn.textContent = "Vége"; return; }
+            
+            counts.cycle.textContent = c;
+            let total = Math.pow(2, c);
+            let target = Math.pow(2, c) - (2 * c) - 2; 
+            if (target < 0) target = 0;
+            
+            counts.target.textContent = target.toLocaleString();
+            
+            stepTitle.innerHTML = `${c}. Ciklus (Szimulálva)`;
+            stepDesc.innerHTML = `Exponenciális <span class='term-tooltip' data-title='Robbanásszerű növekedés (2, 4, 8, 16...)'>robbanás!</span>`;
+            
+            // Kis vizuális villanás
+            groups[4].style.opacity = '0.5';
+            setTimeout(() => groups[4].style.opacity = '1', 200);
+        }
+
+        function updateUI(stepIndex) {
+            const info = stepInfo[stepIndex];
+            stepTitle.innerHTML = info.title; // innerHTML a tooltipek miatt
+            stepDesc.innerHTML = info.desc;
+            tempDisplay.textContent = info.temp;
+            tempDisplay.className = `text-xl font-bold w-16 text-center ${info.color}`;
+        }
+
+        function updateCounts(cycle) {
+            counts.cycle.textContent = cycle;
+            if (cycle === 1) {
+                counts.long.textContent = "2"; counts.inter.textContent = "2"; counts.target.textContent = "0";
+            } else if (cycle === 2) {
+                counts.long.textContent = "2"; counts.inter.textContent = "4"; counts.target.textContent = "2";
+            } else if (cycle === 3) {
+                counts.long.textContent = "2"; counts.inter.textContent = "6"; counts.target.textContent = "8";
+            } else if (cycle === 4) {
+                counts.long.textContent = "2"; counts.inter.textContent = "8"; counts.target.textContent = "22";
+            }
+        }
+
+        function resetSim() { location.reload(); }
+    </script>
+</body>
+</html>
